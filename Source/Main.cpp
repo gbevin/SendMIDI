@@ -86,7 +86,7 @@ public:
     const String getApplicationVersion() override    { return ProjectInfo::versionString; }
     bool moreThanOneInstanceAllowed() override       { return true; }
     
-    void initialise(const String& commandLine) override
+    void initialise(const String&) override
     {
         StringArray parameters(getCommandLineParameterArray());
         parseParameters(parameters);
@@ -103,7 +103,7 @@ public:
     {
     }
 
-    void anotherInstanceStarted(const String& commandLine) override
+    void anotherInstanceStarted(const String&) override
     {
     }
 

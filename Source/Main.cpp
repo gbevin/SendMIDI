@@ -214,7 +214,13 @@ private:
                     
                     parameters.removeEmptyStrings(true);
                     
-                    parseParameters(parameters);
+                    StringArray unquoted;
+                    for (String param : parameters)
+                    {
+                        unquoted.add(param.trimCharactersAtStart("\"").trimCharactersAtEnd("\""));
+                    }
+                    
+                    parseParameters(unquoted);
                 }
                 else
                 {

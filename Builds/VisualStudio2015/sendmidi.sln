@@ -1,0 +1,19 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2015
+Project("{A891BF8A-84FD-1651-0CAB-8E0817BBC78E}") = "sendmidi", "sendmidi.vcxproj", "{A2FB3B8F-ACAF-6EA0-D040-17CBB0D478BB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A2FB3B8F-ACAF-6EA0-D040-17CBB0D478BB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A2FB3B8F-ACAF-6EA0-D040-17CBB0D478BB}.Debug|Win32.Build.0 = Debug|Win32
+		{A2FB3B8F-ACAF-6EA0-D040-17CBB0D478BB}.Release|Win32.ActiveCfg = Release|Win32
+		{A2FB3B8F-ACAF-6EA0-D040-17CBB0D478BB}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

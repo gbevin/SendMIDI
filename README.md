@@ -4,6 +4,8 @@ SendMIDI is a multi-platform command-line tool makes it very easy to quickly sen
 
 All the heavy lifting is done by the wonderful JUCE library.
 
+The project website is https://github.com/gbevin/SendMIDI
+
 ## Purpose
 This tool is mainly intended for configuration or setup through Continuous Control, RPN and NRPN messages, but many other MIDI messages can be sent
 
@@ -33,18 +35,18 @@ Here are a few examples to get you started:
 
 List all the available MIDI output ports on your system
 
-```bash
+```
 sendmidi list
 ```
 
 Switch the LinnStrument to User Firmware Mode by setting NRPN to 245 to the value 1:
   
-```bash
+```
 sendmidi dev "LinnStrument MIDI" nrpn 245 1
 ```
   
 Light up LinnStrument column 5 on row 0 in green by setting CCs 20, 21, and 22 to the column, row and color:
   
-```bash
+```
 sendmidi dev "LinnStrument MIDI" cc 20 5 cc 21 0 cc 22 3
 ```

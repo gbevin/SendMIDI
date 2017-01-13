@@ -299,6 +299,7 @@ private:
     void printUsage()
     {
         std::cout << ProjectInfo::projectName << " v" << ProjectInfo::versionString << std::endl;
+        std::cout << "https://github.com/gbevin/SendMIDI" << std::endl << std::endl;
         std::cout
         << "Usage: " << ProjectInfo::projectName << " [commands]" << std::endl
         << "Commands:" << std::endl;

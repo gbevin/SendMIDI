@@ -71,7 +71,7 @@ public:
         commands_.add({"ch",   CHANNEL,            1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
         commands_.add({"on",   NOTE_ON,            2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
         commands_.add({"off",  NOTE_OFF,           2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
-        commands_.add({"pp",   NOTE_OFF,           2, "note value",     "Send Poly Pressure with note (0-127) and pressure (0-127)"});
+        commands_.add({"pp",   POLY_PRESSURE,      2, "note value",     "Send Poly Pressure with note (0-127) and pressure (0-127)"});
         commands_.add({"cc",   CONTROL_CHANGE,     2, "number value",   "Send Continuous Controller (0-127) with value (0-127)"});
         commands_.add({"pc",   PROGRAM_CHANGE,     1, "number",         "Send Program Change number (0-127)"});
         commands_.add({"cp",   CHANNEL_PRESSURE,   1, "value",          "Send Channel Pressure value (0-127)"});

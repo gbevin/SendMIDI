@@ -52,14 +52,27 @@ Switch the LinnStrument to User Firmware Mode by setting NRPN 245 to the value 1
 sendmidi dev "LinnStrument MIDI" nrpn 245 1
 ```
 
-Light up LinnStrument column 5 on row 0 in green by setting CCs 20, 21, and 22 to the column, row and color:
+Light up LinnStrument column 5 on row 0 in red by setting CCs 20, 21, and 22 to the column, row and color:
   
 ```
-sendmidi dev "LinnStrument MIDI" cc 20 5 cc 21 0 cc 22 3
+sendmidi dev "LinnStrument MIDI" cc 20 5 cc 21 0 cc 22 1
 ```
 
 Load the commands from a text file on your system and execute them, afterwards switch to the "Network Session 1" port and send it program change number 10:
   
 ```
 sendmidi file path/to/some/text/file dev "Network Session 1" pc 10
+```
+
+## Text File Format
+
+The text file that can be read through the "file" command can contain a list of commands and options, just like when you would have written them manually on the console (without the "sendmidi" executable). You can insert new lines instead of spaces and any line that starts with a dash (#) character is a comment.
+
+For instance, this is a text file for one of the examples above:
+```
+dev "LinnStrument MIDI"
+# set column 5 on row 0 to the red color
+cc 20 5
+cc 21 0
+cc 22 1
 ```

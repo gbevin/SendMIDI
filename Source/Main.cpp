@@ -236,6 +236,7 @@ private:
                 break;
             case DEVICE:
             {
+                midiOut_ = nullptr;
                 midiOutName_ = cmd.opts_[0];
                 int index = MidiOutput::getDevices().indexOf(midiOutName_);
                 if (index >= 0)
@@ -243,6 +244,19 @@ private:
                     midiOut_ = MidiOutput::openDevice(index);
                 }
                 else
+                {
+                    StringArray devices = MidiOutput::getDevices();
+                    for (int i = 0; i < devices.size(); ++i)
+                    {
+                        if (devices[i].containsIgnoreCase(midiOutName_))
+                        {
+                            midiOut_ = MidiOutput::openDevice(i);
+                            midiOutName_ = devices[i];
+                            break;
+                        }
+                    }
+                }
+                if (midiOut_ == nullptr)
                 {
                     std::cout << "Couldn't find MIDI output port \"" << midiOutName_ << "\"" << std::endl;
                 }
@@ -401,7 +415,10 @@ private:
                 line << " " << cmd.altParam_;
             }
         }
-        std::cout << line << std::endl;
+        std::cout << line << std::endl << std::endl;
+        std::cout << "The MIDI device name doesn't have to be an exact match." << std::endl;
+        std::cout << "If SendMIDI can't find the exact name that was specified, it will pick the first" << std::endl
+                  << "MIDI output port that contains the provided text, irrespective of case." << std::endl;
         std::cout << std::endl;
     }
     

@@ -11,13 +11,13 @@ This tool is mainly intended for configuration or setup through Continuous Contr
 
 ## Download
 
-You can download pre-built binaries from the releases section:
+You can download pre-built binaries from the release section:
 https://github.com/gbevin/SendMIDI/releases
 
 Since SendMIDI is free and open-source, you can also easily build it yourself. Just take a look into the Builds directory when you download the sources.
 
 ## Usage
-To use it, simply type "sendmidi" on the command line and follow it with a series of commands that you want to execute. These commands have purposefully been chosen to be concise and easy to remember, so that it's extremely fast and intuitive to quickly shoot out a few MIDI messages.
+To use it, simply type "sendmidi" or "sendmidi.exe" on the command line and follow it with a series of commands that you want to execute. These commands have purposefully been chosen to be concise and easy to remember, so that it's extremely fast and intuitive to quickly shoot out a few MIDI messages.
 
 These are all the supported commands:
 ```
@@ -46,14 +46,20 @@ List all the available MIDI output ports on your system
 sendmidi list
 ```
 
-Switch the LinnStrument to User Firmware Mode by setting NRPN to 245 to the value 1:
-  
+Switch the LinnStrument to User Firmware Mode by setting NRPN 245 to the value 1:
+
 ```
 sendmidi dev "LinnStrument MIDI" nrpn 245 1
 ```
-  
+
 Light up LinnStrument column 5 on row 0 in green by setting CCs 20, 21, and 22 to the column, row and color:
   
 ```
 sendmidi dev "LinnStrument MIDI" cc 20 5 cc 21 0 cc 22 3
+```
+
+Load the commands from a text file on your system and execute them, afterwards switch to the "Network Session 1" port and send it program change number 10:
+  
+```
+sendmidi file path/to/some/text/file dev "Network Session 1" pc 10
 ```

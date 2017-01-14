@@ -32,7 +32,8 @@ enum CommandIndex
     CHANNEL_PRESSURE,
     PITCH_BEND,
     RPN,
-    NRPN
+    NRPN,
+    PANIC
 };
 
 struct ApplicationCommand
@@ -49,7 +50,7 @@ struct ApplicationCommand
         expectedOptions_ = 0;
         optionsDescription_ = "";
         commandDescription_ = "";
-        options_.clear();
+        opts_.clear();
     }
     
     String param_;
@@ -57,7 +58,7 @@ struct ApplicationCommand
     unsigned expectedOptions_;
     String optionsDescription_;
     String commandDescription_;
-    StringArray options_;
+    StringArray opts_;
 };
 
 class sendMidiApplication  : public JUCEApplication
@@ -65,19 +66,20 @@ class sendMidiApplication  : public JUCEApplication
 public:
     sendMidiApplication()
     {
-        commands_.add({"dev",  DEVICE,             1, "name",           "Set the name of the MIDI output port (REQUIRED)"});
-        commands_.add({"list",  LIST,              0, "",               "Lists the MIDI output ports"});
-        commands_.add({"file", TXTFILE,            1, "path",           "Loads commands from the specified file"});
-        commands_.add({"ch",   CHANNEL,            1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
-        commands_.add({"on",   NOTE_ON,            2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
-        commands_.add({"off",  NOTE_OFF,           2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
-        commands_.add({"pp",   POLY_PRESSURE,      2, "note value",     "Send Poly Pressure with note (0-127) and pressure (0-127)"});
-        commands_.add({"cc",   CONTROL_CHANGE,     2, "number value",   "Send Continuous Controller (0-127) with value (0-127)"});
-        commands_.add({"pc",   PROGRAM_CHANGE,     1, "number",         "Send Program Change number (0-127)"});
-        commands_.add({"cp",   CHANNEL_PRESSURE,   1, "value",          "Send Channel Pressure value (0-127)"});
-        commands_.add({"pb",   PITCH_BEND,         1, "value",          "Send Pitch Bend value (0-16383)"});
-        commands_.add({"rpn",  RPN,                2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
-        commands_.add({"nrpn", NRPN,               2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
+        commands_.add({"dev",   DEVICE,             1, "name",           "Set the name of the MIDI output port (REQUIRED)"});
+        commands_.add({"list",  LIST,               0, "",               "Lists the MIDI output ports"});
+        commands_.add({"panic", PANIC,              0, "",               "Sends all possible Note Offs and relevant panic CCs"});
+        commands_.add({"file",  TXTFILE,            1, "path",           "Loads commands from the specified file"});
+        commands_.add({"ch",    CHANNEL,            1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
+        commands_.add({"on",    NOTE_ON,            2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
+        commands_.add({"off",   NOTE_OFF,           2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
+        commands_.add({"pp",    POLY_PRESSURE,      2, "note value",     "Send Poly Pressure with note (0-127) and pressure (0-127)"});
+        commands_.add({"cc",    CONTROL_CHANGE,     2, "number value",   "Send Continuous Controller (0-127) with value (0-127)"});
+        commands_.add({"pc",    PROGRAM_CHANGE,     1, "number",         "Send Program Change number (0-127)"});
+        commands_.add({"cp",    CHANNEL_PRESSURE,   1, "value",          "Send Channel Pressure value (0-127)"});
+        commands_.add({"pb",    PITCH_BEND,         1, "value",          "Send Pitch Bend value (0-16383)"});
+        commands_.add({"rpn",   RPN,                2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
+        commands_.add({"nrpn",  NRPN,               2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
         
         channel_ = 1;
     }
@@ -88,38 +90,60 @@ public:
     
     void initialise(const String&) override
     {
-        StringArray parameters(getCommandLineParameterArray());
-        parseParameters(parameters);
+        StringArray cmdLineParams(getCommandLineParameterArray());
+        parseParameters(cmdLineParams);
         
-        if (parameters.isEmpty())
+        if (cmdLineParams.contains("--"))
+        {
+            while (std::cin)
+            {
+                std::string line;
+                getline(std::cin, line);
+                StringArray params = parseLineAsParameters(line);
+                parseParameters(params);
+            }
+        }
+        
+        if (cmdLineParams.isEmpty())
         {
             printUsage();
         }
         
         systemRequestedQuit();
     }
-                            
-    void shutdown() override
-    {
-    }
-
-    void anotherInstanceStarted(const String&) override
-    {
-    }
-
+    
+    void shutdown() override {}
+    void anotherInstanceStarted(const String&) override {}
+    
 private:
     ApplicationCommand* findApplicationCommand(const String& param)
     {
-        for (auto&& command : commands_)
+        for (auto&& cmd : commands_)
         {
-            if (command.param_ == param)
+            if (cmd.param_ == param)
             {
-                return &command;
+                return &cmd;
             }
         }
         return nullptr;
     }
-            
+    
+    StringArray parseLineAsParameters(const String& line)
+    {
+        StringArray parameters;
+        if (!line.startsWith("#"))
+        {
+            StringArray tokens;
+            tokens.addTokens(line, true);
+            tokens.removeEmptyStrings(true);
+            for (String token : tokens)
+            {
+                parameters.add(token.trimCharactersAtStart("\"").trimCharactersAtEnd("\""));
+            }
+        }
+        return parameters;
+    }
+    
     void parseParameters(StringArray& parameters)
     {
         ApplicationCommand currentCommand = ApplicationCommand::Dummy();
@@ -134,7 +158,7 @@ private:
             {
                 if (currentCommand.expectedOptions_ > 0)
                 {
-                    currentCommand.options_.add(param);
+                    currentCommand.opts_.add(param);
                     currentCommand.expectedOptions_ -= 1;
                 }
             }
@@ -162,10 +186,10 @@ private:
             }
         }
     }
-            
-    void executeCommand(ApplicationCommand& command)
+    
+    void executeCommand(ApplicationCommand& cmd)
     {
-        switch (command.command_)
+        switch (cmd.command_)
         {
             case NONE:
                 break;
@@ -177,7 +201,7 @@ private:
                 break;
             case DEVICE:
             {
-                midiOutName_ = command.options_[0];
+                midiOutName_ = cmd.opts_[0];
                 int index = MidiOutput::getDevices().indexOf(midiOutName_);
                 if (index >= 0)
                 {
@@ -189,38 +213,36 @@ private:
                 }
                 break;
             }
+            case PANIC:
+            {
+                for (int ch = 1; ch <= 16; ++ch)
+                {
+                    sendMidiMessage(MidiMessage::controllerEvent(ch, 64, 0));
+                    sendMidiMessage(MidiMessage::controllerEvent(ch, 120, 0));
+                    sendMidiMessage(MidiMessage::controllerEvent(ch, 123, 0));
+                    for (int note = 0; note <= 127; ++note)
+                    {
+                        sendMidiMessage(MidiMessage::noteOff(ch, note, (uint8)0));
+                    }
+                }
+                break;
+            }
             case TXTFILE:
             {
-                String path(command.options_[0]);
+                String path(cmd.opts_[0]);
                 File file = File::getCurrentWorkingDirectory().getChildFile(path);
                 if (file.existsAsFile())
                 {
+                    StringArray parameters;
+                    
                     StringArray lines;
                     file.readLines(lines);
-                    StringArray noComments;
                     for (String line : lines)
                     {
-                        if (!line.startsWith("#"))
-                        {
-                            noComments.add(line);
-                        }
+                        parameters.addArray(parseLineAsParameters(line));
                     }
                     
-                    StringArray parameters;
-                    for (String line : noComments)
-                    {
-                        parameters.addTokens(line, true);
-                    }
-                    
-                    parameters.removeEmptyStrings(true);
-                    
-                    StringArray unquoted;
-                    for (String param : parameters)
-                    {
-                        unquoted.add(param.trimCharactersAtStart("\"").trimCharactersAtEnd("\""));
-                    }
-                    
-                    parseParameters(unquoted);
+                    parseParameters(parameters);
                 }
                 else
                 {
@@ -229,44 +251,44 @@ private:
                 break;
             }
             case CHANNEL:
-                channel_ = limit7Bit(command.options_[0].getIntValue());
+                channel_ = limit7Bit(cmd.opts_[0].getIntValue());
                 break;
             case NOTE_ON:
                 sendMidiMessage(MidiMessage::noteOn(channel_,
-                                                    limit7Bit(command.options_[0].getIntValue()),
-                                                    float(limit7Bit(command.options_[1].getIntValue()))/127.f));
+                                                    limit7Bit(cmd.opts_[0].getIntValue()),
+                                                    limit7Bit(cmd.opts_[1].getIntValue())));
                 break;
             case NOTE_OFF:
                 sendMidiMessage(MidiMessage::noteOff(channel_,
-                                                     limit7Bit(command.options_[0].getIntValue()),
-                                                     float(limit7Bit(command.options_[1].getIntValue()))/127.f));
+                                                     limit7Bit(cmd.opts_[0].getIntValue()),
+                                                     limit7Bit(cmd.opts_[1].getIntValue())));
                 break;
             case POLY_PRESSURE:
                 sendMidiMessage(MidiMessage::aftertouchChange(channel_,
-                                                              limit7Bit(command.options_[0].getIntValue()),
-                                                              limit7Bit(command.options_[1].getIntValue())));
+                                                              limit7Bit(cmd.opts_[0].getIntValue()),
+                                                              limit7Bit(cmd.opts_[1].getIntValue())));
                 break;
             case CONTROL_CHANGE:
                 sendMidiMessage(MidiMessage::controllerEvent(channel_,
-                                                             limit7Bit(command.options_[0].getIntValue()),
-                                                             limit7Bit(command.options_[1].getIntValue())));
+                                                             limit7Bit(cmd.opts_[0].getIntValue()),
+                                                             limit7Bit(cmd.opts_[1].getIntValue())));
                 break;
             case PROGRAM_CHANGE:
                 sendMidiMessage(MidiMessage::programChange(channel_,
-                                                           limit7Bit(command.options_[0].getIntValue())));
+                                                           limit7Bit(cmd.opts_[0].getIntValue())));
                 break;
             case CHANNEL_PRESSURE:
                 sendMidiMessage(MidiMessage::channelPressureChange(channel_,
-                                                                   limit7Bit(command.options_[0].getIntValue())));
+                                                                   limit7Bit(cmd.opts_[0].getIntValue())));
                 break;
             case PITCH_BEND:
                 sendMidiMessage(MidiMessage::pitchWheel(channel_,
-                                                        limit14Bit(command.options_[0].getIntValue())));
+                                                        limit14Bit(cmd.opts_[0].getIntValue())));
                 break;
             case NRPN:
             {
-                int number = limit14Bit(command.options_[0].getIntValue());
-                int value = limit14Bit(command.options_[1].getIntValue());
+                int number = limit14Bit(cmd.opts_[0].getIntValue());
+                int value = limit14Bit(cmd.opts_[1].getIntValue());
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 99, number >> 7));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 98, number & 0x7f));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 6, value >> 7));
@@ -277,8 +299,8 @@ private:
             }
             case RPN:
             {
-                int number = limit14Bit(command.options_[0].getIntValue());
-                int value = limit14Bit(command.options_[1].getIntValue());
+                int number = limit14Bit(cmd.opts_[0].getIntValue());
+                int value = limit14Bit(cmd.opts_[1].getIntValue());
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 101, number >> 7));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 100, number & 0x7f));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 6, value >> 7));
@@ -289,42 +311,42 @@ private:
             }
         }
         
-        command.clear();
+        cmd.clear();
     }
-            
-    static int limit7Bit(int value)
+    
+    static uint8 limit7Bit(int value)
     {
         return jlimit(0, 0x7f, value);
     }
     
-    static int limit14Bit(int value)
+    static uint16 limit14Bit(int value)
     {
         return jlimit(0, 0x3fff, value);
     }
-            
+    
     void printUsage()
     {
         std::cout << ProjectInfo::projectName << " v" << ProjectInfo::versionString << std::endl;
         std::cout << "https://github.com/gbevin/SendMIDI" << std::endl << std::endl;
-        std::cout
-        << "Usage: " << ProjectInfo::projectName << " [commands]" << std::endl
+        std::cout << "Usage: " << ProjectInfo::projectName << " [commands] [--]" << std::endl
         << "Commands:" << std::endl;
-        for (auto&& command : commands_)
+        for (auto&& cmd : commands_)
         {
-            std::cout << "  " << command.param_.paddedRight(' ', 4);
-            if (command.optionsDescription_.isNotEmpty())
+            std::cout << "  " << cmd.param_.paddedRight(' ', 5);
+            if (cmd.optionsDescription_.isNotEmpty())
             {
-                std::cout << "  " << command.optionsDescription_.paddedRight(' ', 13);
+                std::cout << " " << cmd.optionsDescription_.paddedRight(' ', 13);
             }
             else
             {
-                std::cout << "               ";
+                std::cout << "              ";
             }
-            std::cout << "  " << command.commandDescription_;
+            std::cout << "  " << cmd.commandDescription_;
             std::cout << std::endl;
         }
+        std::cout << "  --                   Read commands from standard input until it's closed" << std::endl;
     }
-
+    
     Array<ApplicationCommand> commands_;
     int channel_;
     String midiOutName_;

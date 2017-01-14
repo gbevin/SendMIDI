@@ -23,6 +23,7 @@ These are all the supported commands:
 ```
   dev   name           Set the name of the MIDI output port (REQUIRED)
   list                 Lists the MIDI output ports
+  panic                Sends all possible Note Offs and relevant panic CCs
   file  path           Loads commands from the specified file
   ch    number         Set MIDI channel for the commands (1-16), defaults to 1
   on    note velocity  Send Note On with note (0-127) and velocity (0-127)
@@ -34,7 +35,8 @@ These are all the supported commands:
   pb    value          Send Pitch Bend value (0-16383)
   rpn   number value   Send RPN number (0-16383) with value (0-16383)
   nrpn  number value   Send NRPN number (0-16383) with value (0-16383)
-  ```
+  --                   Read commands from standard input until it's closed
+```
   
 ## Examples
   

@@ -35,7 +35,18 @@ These are all the supported commands:
   pb    value          Send Pitch Bend value (0-16383)
   rpn   number value   Send RPN number (0-16383) with value (0-16383)
   nrpn  number value   Send NRPN number (0-16383) with value (0-16383)
+  start                Start the current sequence playing
+  stop                 Stop the current sequence
+  cont                 Continue the current sequence
+  spp   beats          Send Song Position Pointer with beat (0-16383)
+  ss    number         Send Song Select with song number (0-127)
   --                   Read commands from standard input until it's closed
+```
+
+Alternatively, you can use the following long versions of the commands:
+```
+  device channel note-on note-off poly-pressure continuous-controller
+  program-change channel-pressure pitch-bend continue song-position song-select
 ```
   
 ## Examples

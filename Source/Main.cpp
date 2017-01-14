@@ -21,6 +21,7 @@ enum CommandIndex
 {
     NONE,
     LIST,
+    PANIC,
     DEVICE,
     TXTFILE,
     CHANNEL,
@@ -33,14 +34,18 @@ enum CommandIndex
     PITCH_BEND,
     RPN,
     NRPN,
-    PANIC
+    START,
+    STOP,
+    CONTINUE,
+    SONG_POSITION,
+    SONG_SELECT
 };
 
 struct ApplicationCommand
 {
     static ApplicationCommand Dummy()
     {
-        return {"", NONE, 0, "", ""};
+        return {"", "", NONE, 0, "", ""};
     }
     
     void clear()
@@ -54,6 +59,7 @@ struct ApplicationCommand
     }
     
     String param_;
+    String altParam_;
     CommandIndex command_;
     unsigned expectedOptions_;
     String optionsDescription_;
@@ -66,20 +72,25 @@ class sendMidiApplication  : public JUCEApplication
 public:
     sendMidiApplication()
     {
-        commands_.add({"dev",   DEVICE,             1, "name",           "Set the name of the MIDI output port (REQUIRED)"});
-        commands_.add({"list",  LIST,               0, "",               "Lists the MIDI output ports"});
-        commands_.add({"panic", PANIC,              0, "",               "Sends all possible Note Offs and relevant panic CCs"});
-        commands_.add({"file",  TXTFILE,            1, "path",           "Loads commands from the specified file"});
-        commands_.add({"ch",    CHANNEL,            1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
-        commands_.add({"on",    NOTE_ON,            2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
-        commands_.add({"off",   NOTE_OFF,           2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
-        commands_.add({"pp",    POLY_PRESSURE,      2, "note value",     "Send Poly Pressure with note (0-127) and pressure (0-127)"});
-        commands_.add({"cc",    CONTROL_CHANGE,     2, "number value",   "Send Continuous Controller (0-127) with value (0-127)"});
-        commands_.add({"pc",    PROGRAM_CHANGE,     1, "number",         "Send Program Change number (0-127)"});
-        commands_.add({"cp",    CHANNEL_PRESSURE,   1, "value",          "Send Channel Pressure value (0-127)"});
-        commands_.add({"pb",    PITCH_BEND,         1, "value",          "Send Pitch Bend value (0-16383)"});
-        commands_.add({"rpn",   RPN,                2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
-        commands_.add({"nrpn",  NRPN,               2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
+        commands_.add({"dev",   "device",                   DEVICE,             1, "name",           "Set the name of the MIDI output port (REQUIRED)"});
+        commands_.add({"list",  "",                         LIST,               0, "",               "Lists the MIDI output ports"});
+        commands_.add({"panic", "",                         PANIC,              0, "",               "Sends all possible Note Offs and relevant panic CCs"});
+        commands_.add({"file",  "",                         TXTFILE,            1, "path",           "Loads commands from the specified file"});
+        commands_.add({"ch",    "channel",                  CHANNEL,            1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
+        commands_.add({"on",    "note-on",                  NOTE_ON,            2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
+        commands_.add({"off",   "note-off",                 NOTE_OFF,           2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
+        commands_.add({"pp",    "poly-pressure",            POLY_PRESSURE,      2, "note value",     "Send Poly Pressure with note (0-127) and pressure (0-127)"});
+        commands_.add({"cc",    "continuous-controller",    CONTROL_CHANGE,     2, "number value",   "Send Continuous Controller (0-127) with value (0-127)"});
+        commands_.add({"pc",    "program-change",           PROGRAM_CHANGE,     1, "number",         "Send Program Change number (0-127)"});
+        commands_.add({"cp",    "channel-pressure",         CHANNEL_PRESSURE,   1, "value",          "Send Channel Pressure value (0-127)"});
+        commands_.add({"pb",    "pitch-bend",               PITCH_BEND,         1, "value",          "Send Pitch Bend value (0-16383)"});
+        commands_.add({"rpn",   "",                         RPN,                2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
+        commands_.add({"nrpn",  "",                         NRPN,               2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
+        commands_.add({"start", "",                         START,              0, "",               "Start the current sequence playing"});
+        commands_.add({"stop",  "",                         STOP,               0, "",               "Stop the current sequence"});
+        commands_.add({"cont",  "continue",                 CONTINUE,           0, "",               "Continue the current sequence"});
+        commands_.add({"spp",   "song-position",            SONG_POSITION,      1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
+        commands_.add({"ss",    "song-select",              SONG_SELECT,        1, "number",         "Send Song Select with song number (0-127)"});
         
         channel_ = 1;
     }
@@ -120,7 +131,7 @@ private:
     {
         for (auto&& cmd : commands_)
         {
-            if (cmd.param_ == param)
+            if (cmd.param_ == param || cmd.altParam_ == param)
             {
                 return &cmd;
             }
@@ -309,6 +320,21 @@ private:
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 100, 0x7f));
                 break;
             }
+            case START:
+                sendMidiMessage(MidiMessage::midiStart());
+                break;
+            case STOP:
+                sendMidiMessage(MidiMessage::midiStop());
+                break;
+            case CONTINUE:
+                sendMidiMessage(MidiMessage::midiContinue());
+                break;
+            case SONG_POSITION:
+                sendMidiMessage(MidiMessage::songPositionPointer(limit14Bit(cmd.opts_[0].getIntValue())));
+                break;
+            case SONG_SELECT:
+                sendMidiMessage(MidiMessage(0xf3, limit7Bit(cmd.opts_[0].getIntValue())));
+                break;
         }
         
         cmd.clear();
@@ -328,8 +354,8 @@ private:
     {
         std::cout << ProjectInfo::projectName << " v" << ProjectInfo::versionString << std::endl;
         std::cout << "https://github.com/gbevin/SendMIDI" << std::endl << std::endl;
-        std::cout << "Usage: " << ProjectInfo::projectName << " [commands] [--]" << std::endl
-        << "Commands:" << std::endl;
+        std::cout << "Usage: " << ProjectInfo::projectName << " [commands] [--]" << std::endl << std::endl
+                  << "Commands:" << std::endl;
         for (auto&& cmd : commands_)
         {
             std::cout << "  " << cmd.param_.paddedRight(' ', 5);
@@ -345,6 +371,23 @@ private:
             std::cout << std::endl;
         }
         std::cout << "  --                   Read commands from standard input until it's closed" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Alternatively, you can use the following long versions of the commands:" << std::endl;
+        String line = " ";
+        for (auto&& cmd : commands_)
+        {
+            if (cmd.altParam_.isNotEmpty())
+            {
+                if (line.length() + cmd.altParam_.length() + 1 >= 80)
+                {
+                    std::cout << line << std::endl;
+                    line = " ";
+                }
+                line << " " << cmd.altParam_;
+            }
+        }
+        std::cout << line << std::endl;
+        std::cout << std::endl;
     }
     
     Array<ApplicationCommand> commands_;

@@ -17,6 +17,8 @@
  */
 #include "JuceHeader.h"
 
+#include <sstream>
+
 enum CommandIndex
 {
     NONE,
@@ -355,12 +357,12 @@ private:
     
     static uint8 limit7Bit(int value)
     {
-        return jlimit(0, 0x7f, value);
+        return (uint8)jlimit(0, 0x7f, value);
     }
     
     static uint16 limit14Bit(int value)
     {
-        return jlimit(0, 0x3fff, value);
+        return (uint16)jlimit(0, 0x3fff, value);
     }
     
     void printUsage()

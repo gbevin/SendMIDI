@@ -24,7 +24,7 @@ These are all the supported commands:
   dev   name           Set the name of the MIDI output port (REQUIRED)
   list                 Lists the MIDI output ports
   panic                Sends all possible Note Offs and relevant panic CCs
-  file  path           Loads commands from the specified file
+  file  path           Loads commands from the specified program file
   ch    number         Set MIDI channel for the commands (1-16), defaults to 1
   on    note velocity  Send Note On with note (0-127) and velocity (0-127)
   off   note velocity  Send Note Off with note (0-127) and velocity (0-127)
@@ -38,6 +38,7 @@ These are all the supported commands:
   start                Start the current sequence playing
   stop                 Stop the current sequence
   cont                 Continue the current sequence
+  clock bpm            Send 2 beats of MIDI Timing Clock for a BPM (1-999)
   spp   beats          Send Song Position Pointer with beat (0-16383)
   ss    number         Send Song Select with song number (0-127)
   --                   Read commands from standard input until it's closed
@@ -48,7 +49,9 @@ Alternatively, you can use the following long versions of the commands:
   device channel note-on note-off poly-pressure continuous-controller
   program-change channel-pressure pitch-bend continue song-position song-select
 ```
-  
+
+The MIDI device name doesn't have to be an exact match. If SendMIDI can't find the exact name that was specified, it will pick the first MIDI output port that contains the provided text, irrespective of case.
+
 ## Examples
   
 Here are a few examples to get you started:

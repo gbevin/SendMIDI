@@ -39,6 +39,7 @@ enum CommandIndex
     START,
     STOP,
     CONTINUE,
+    CLOCK,
     SONG_POSITION,
     SONG_SELECT
 };
@@ -91,6 +92,7 @@ public:
         commands_.add({"start", "",                         START,              0, "",               "Start the current sequence playing"});
         commands_.add({"stop",  "",                         STOP,               0, "",               "Stop the current sequence"});
         commands_.add({"cont",  "continue",                 CONTINUE,           0, "",               "Continue the current sequence"});
+        commands_.add({"clock", "",                         CLOCK,              1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
         commands_.add({"spp",   "song-position",            SONG_POSITION,      1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
         commands_.add({"ss",    "song-select",              SONG_SELECT,        1, "number",         "Send Song Select with song number (0-127)"});
         
@@ -358,6 +360,19 @@ private:
             case CONTINUE:
                 sendMidiMessage(MidiMessage::midiContinue());
                 break;
+            case CLOCK:
+            {
+                uint32 now = Time::getMillisecondCounter();
+                float bpm = float(jlimit(1, 999, cmd.opts_[0].getIntValue()));
+                float msPerTick = (60.f * 1000.f / bpm) / 24.f;
+                sendMidiMessage(MidiMessage::midiClock());
+                for (int ticks = 1; ticks <= 24 * 2; ++ticks)
+                {
+                    Time::waitForMillisecondCounter(now + uint32(float(ticks) * msPerTick));
+                    sendMidiMessage(MidiMessage::midiClock());
+                }
+                break;
+            }
             case SONG_POSITION:
                 sendMidiMessage(MidiMessage::songPositionPointer(limit14Bit(cmd.opts_[0].getIntValue())));
                 break;

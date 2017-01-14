@@ -84,7 +84,7 @@ sendmidi file path/to/some/text/file dev "Network Session 1" pc 10
 
 ## Text File Format
 
-The text file that can be read through the "file" command can contain a list of commands and options, just like when you would have written them manually on the console (without the "sendmidi" executable). You can insert new lines instead of spaces and any line that starts with a dash (#) character is a comment.
+The text file that can be read through the "file" command can contain a list of commands and options, just like when you would have written them manually on the console (without the "sendmidi" executable). You can insert new lines instead of spaces and any line that starts with a hash (#) character is a comment.
 
 For instance, this is a text file for one of the examples above:
 ```

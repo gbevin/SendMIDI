@@ -9,6 +9,13 @@ The project website is https://github.com/gbevin/SendMIDI
 ## Purpose
 This tool is mainly intended for configuration or setup through Continuous Control, RPN and NRPN messages, but many other MIDI messages can be sent
 
+## Download
+
+You can download pre-built binaries from the releases section:
+https://github.com/gbevin/SendMIDI/releases
+
+Since SendMIDI is free and open-source, you can also easily build it yourself. Just take a look into the Builds directory when you download the sources.
+
 ## Usage
 To use it, simply type "sendmidi" on the command line and follow it with a series of commands that you want to execute. These commands have purposefully been chosen to be concise and easy to remember, so that it's extremely fast and intuitive to quickly shoot out a few MIDI messages.
 

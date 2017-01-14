@@ -75,7 +75,7 @@ public:
         commands_.add({"dev",   "device",                   DEVICE,             1, "name",           "Set the name of the MIDI output port (REQUIRED)"});
         commands_.add({"list",  "",                         LIST,               0, "",               "Lists the MIDI output ports"});
         commands_.add({"panic", "",                         PANIC,              0, "",               "Sends all possible Note Offs and relevant panic CCs"});
-        commands_.add({"file",  "",                         TXTFILE,            1, "path",           "Loads commands from the specified file"});
+        commands_.add({"file",  "",                         TXTFILE,            1, "path",           "Loads commands from the specified program file"});
         commands_.add({"ch",    "channel",                  CHANNEL,            1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
         commands_.add({"on",    "note-on",                  NOTE_ON,            2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
         commands_.add({"off",   "note-off",                 NOTE_OFF,           2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
@@ -160,10 +160,18 @@ private:
         ApplicationCommand currentCommand = ApplicationCommand::Dummy();
         for (String param : parameters)
         {
-            ApplicationCommand* command = findApplicationCommand(param);
-            if (command)
+            ApplicationCommand* cmd = findApplicationCommand(param);
+            if (cmd)
             {
-                currentCommand = *command;
+                currentCommand = *cmd;
+            }
+            else if (currentCommand.command_ == NONE)
+            {
+                File file = File::getCurrentWorkingDirectory().getChildFile(param);
+                if (file.existsAsFile())
+                {
+                    parseFile(file);
+                }
             }
             else
             {
@@ -179,6 +187,20 @@ private:
                 executeCommand(currentCommand);
             }
         }
+    }
+    
+    void parseFile(File file)
+    {
+        StringArray parameters;
+        
+        StringArray lines;
+        file.readLines(lines);
+        for (String line : lines)
+        {
+            parameters.addArray(parseLineAsParameters(line));
+        }
+        
+        parseParameters(parameters);
     }
     
     void sendMidiMessage(MidiMessage&& msg)
@@ -244,16 +266,7 @@ private:
                 File file = File::getCurrentWorkingDirectory().getChildFile(path);
                 if (file.existsAsFile())
                 {
-                    StringArray parameters;
-                    
-                    StringArray lines;
-                    file.readLines(lines);
-                    for (String line : lines)
-                    {
-                        parameters.addArray(parseLineAsParameters(line));
-                    }
-                    
-                    parseParameters(parameters);
+                    parseFile(file);
                 }
                 else
                 {
@@ -354,7 +367,7 @@ private:
     {
         std::cout << ProjectInfo::projectName << " v" << ProjectInfo::versionString << std::endl;
         std::cout << "https://github.com/gbevin/SendMIDI" << std::endl << std::endl;
-        std::cout << "Usage: " << ProjectInfo::projectName << " [commands] [--]" << std::endl << std::endl
+        std::cout << "Usage: " << ProjectInfo::projectName << " [ commands ] [ programfile ] [ -- ]" << std::endl << std::endl
                   << "Commands:" << std::endl;
         for (auto&& cmd : commands_)
         {

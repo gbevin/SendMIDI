@@ -75,26 +75,26 @@ class sendMidiApplication  : public JUCEApplication
 public:
     sendMidiApplication()
     {
-        commands_.add({"dev",   "device",                   DEVICE,             1, "name",           "Set the name of the MIDI output port (REQUIRED)"});
-        commands_.add({"list",  "",                         LIST,               0, "",               "Lists the MIDI output ports"});
-        commands_.add({"panic", "",                         PANIC,              0, "",               "Sends all possible Note Offs and relevant panic CCs"});
-        commands_.add({"file",  "",                         TXTFILE,            1, "path",           "Loads commands from the specified program file"});
-        commands_.add({"ch",    "channel",                  CHANNEL,            1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
-        commands_.add({"on",    "note-on",                  NOTE_ON,            2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
-        commands_.add({"off",   "note-off",                 NOTE_OFF,           2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
-        commands_.add({"pp",    "poly-pressure",            POLY_PRESSURE,      2, "note value",     "Send Poly Pressure with note (0-127) and pressure (0-127)"});
-        commands_.add({"cc",    "continuous-controller",    CONTROL_CHANGE,     2, "number value",   "Send Continuous Controller (0-127) with value (0-127)"});
-        commands_.add({"pc",    "program-change",           PROGRAM_CHANGE,     1, "number",         "Send Program Change number (0-127)"});
-        commands_.add({"cp",    "channel-pressure",         CHANNEL_PRESSURE,   1, "value",          "Send Channel Pressure value (0-127)"});
-        commands_.add({"pb",    "pitch-bend",               PITCH_BEND,         1, "value",          "Send Pitch Bend value (0-16383)"});
-        commands_.add({"rpn",   "",                         RPN,                2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
-        commands_.add({"nrpn",  "",                         NRPN,               2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
-        commands_.add({"start", "",                         START,              0, "",               "Start the current sequence playing"});
-        commands_.add({"stop",  "",                         STOP,               0, "",               "Stop the current sequence"});
-        commands_.add({"cont",  "continue",                 CONTINUE,           0, "",               "Continue the current sequence"});
-        commands_.add({"clock", "",                         CLOCK,              1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
-        commands_.add({"spp",   "song-position",            SONG_POSITION,      1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
-        commands_.add({"ss",    "song-select",              SONG_SELECT,        1, "number",         "Send Song Select with song number (0-127)"});
+        commands_.add({"dev",   "device",           DEVICE,             1, "name",           "Set the name of the MIDI output port (REQUIRED)"});
+        commands_.add({"list",  "",                 LIST,               0, "",               "Lists the MIDI output ports"});
+        commands_.add({"panic", "",                 PANIC,              0, "",               "Sends all possible Note Offs and relevant panic CCs"});
+        commands_.add({"file",  "",                 TXTFILE,            1, "path",           "Loads commands from the specified program file"});
+        commands_.add({"ch",    "channel",          CHANNEL,            1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
+        commands_.add({"on",    "note-on",          NOTE_ON,            2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
+        commands_.add({"off",   "note-off",         NOTE_OFF,           2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
+        commands_.add({"pp",    "poly-pressure",    POLY_PRESSURE,      2, "note value",     "Send Poly Pressure with note (0-127) and pressure (0-127)"});
+        commands_.add({"cc",    "control-change",   CONTROL_CHANGE,     2, "number value",   "Send Control Change number (0-127) with value (0-127)"});
+        commands_.add({"pc",    "program-change",   PROGRAM_CHANGE,     1, "number",         "Send Program Change number (0-127)"});
+        commands_.add({"cp",    "channel-pressure", CHANNEL_PRESSURE,   1, "value",          "Send Channel Pressure value (0-127)"});
+        commands_.add({"pb",    "pitch-bend",       PITCH_BEND,         1, "value",          "Send Pitch Bend value (0-16383)"});
+        commands_.add({"rpn",   "",                 RPN,                2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
+        commands_.add({"nrpn",  "",                 NRPN,               2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
+        commands_.add({"start", "",                 START,              0, "",               "Start the current sequence playing"});
+        commands_.add({"stop",  "",                 STOP,               0, "",               "Stop the current sequence"});
+        commands_.add({"cont",  "continue",         CONTINUE,           0, "",               "Continue the current sequence"});
+        commands_.add({"clock", "",                 CLOCK,              1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
+        commands_.add({"spp",   "song-position",    SONG_POSITION,      1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
+        commands_.add({"ss",    "song-select",      SONG_SELECT,        1, "number",         "Send Song Select with song number (0-127)"});
         
         channel_ = 1;
     }

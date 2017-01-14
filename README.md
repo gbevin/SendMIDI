@@ -7,7 +7,7 @@ All the heavy lifting is done by the wonderful JUCE library.
 The project website is https://github.com/gbevin/SendMIDI
 
 ## Purpose
-This tool is mainly intended for configuration or setup through Continuous Control, RPN and NRPN messages, but many other MIDI messages can be sent
+This tool is mainly intended for configuration or setup through Control Change, RPN and NRPN messages, but many other MIDI messages can be sent
 
 ## Download
 
@@ -29,7 +29,7 @@ These are all the supported commands:
   on    note velocity  Send Note On with note (0-127) and velocity (0-127)
   off   note velocity  Send Note Off with note (0-127) and velocity (0-127)
   pp    note value     Send Poly Pressure with note (0-127) and pressure (0-127)
-  cc    number value   Send Continuous Controller (0-127) with value (0-127)
+  cc    number value   Send Control Change number (0-127) with value (0-127)
   pc    number         Send Program Change number (0-127)
   cp    value          Send Channel Pressure value (0-127)
   pb    value          Send Pitch Bend value (0-16383)
@@ -46,8 +46,8 @@ These are all the supported commands:
 
 Alternatively, you can use the following long versions of the commands:
 ```
-  device channel note-on note-off poly-pressure continuous-controller
-  program-change channel-pressure pitch-bend continue song-position song-select
+  device channel note-on note-off poly-pressure control-change program-change
+  channel-pressure pitch-bend continue song-position song-select
 ```
 
 The MIDI device name doesn't have to be an exact match.

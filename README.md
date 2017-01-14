@@ -50,7 +50,8 @@ Alternatively, you can use the following long versions of the commands:
   program-change channel-pressure pitch-bend continue song-position song-select
 ```
 
-The MIDI device name doesn't have to be an exact match. If SendMIDI can't find the exact name that was specified, it will pick the first MIDI output port that contains the provided text, irrespective of case.
+The MIDI device name doesn't have to be an exact match.
+If SendMIDI can't find the exact name that was specified, it will pick the first MIDI output port that contains the provided text, irrespective of case.
 
 ## Examples
   

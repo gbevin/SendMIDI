@@ -73,7 +73,7 @@ struct ApplicationCommand
 
 inline float sign(float value)
 {
-    return (value > 0.) - (value < 0.);
+    return (float)(value > 0.) - (value < 0.);
 }
 
 class sendMidiApplication  : public JUCEApplication

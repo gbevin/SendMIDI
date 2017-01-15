@@ -32,7 +32,7 @@ These are all the supported commands:
   cc    number value   Send Control Change number (0-127) with value (0-127)
   pc    number         Send Program Change number (0-127)
   cp    value          Send Channel Pressure value (0-127)
-  pb    value          Send Pitch Bend value (0-16383)
+  pb    value          Send Pitch Bend value (0-16383 or value/range)
   rpn   number value   Send RPN number (0-16383) with value (0-16383)
   nrpn  number value   Send NRPN number (0-16383) with value (0-16383)
   start                Start the current sequence playing
@@ -41,6 +41,7 @@ These are all the supported commands:
   clock bpm            Send 2 beats of MIDI Timing Clock for a BPM (1-999)
   spp   beats          Send Song Position Pointer with beat (0-16383)
   ss    number         Send Song Select with song number (0-127)
+  mpe   zone,range     Send MPE Configuration for zone (1-2) with range (0-15)
   --                   Read commands from standard input until it's closed
 ```
 

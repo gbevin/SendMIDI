@@ -41,7 +41,8 @@ enum CommandIndex
     CONTINUE,
     CLOCK,
     SONG_POSITION,
-    SONG_SELECT
+    SONG_SELECT,
+    MPE_CONFIGURATION
 };
 
 struct ApplicationCommand
@@ -70,6 +71,11 @@ struct ApplicationCommand
     StringArray opts_;
 };
 
+inline float sign(float value)
+{
+    return (value > 0.) - (value < 0.);
+}
+
 class sendMidiApplication  : public JUCEApplication
 {
 public:
@@ -86,7 +92,7 @@ public:
         commands_.add({"cc",    "control-change",   CONTROL_CHANGE,     2, "number value",   "Send Control Change number (0-127) with value (0-127)"});
         commands_.add({"pc",    "program-change",   PROGRAM_CHANGE,     1, "number",         "Send Program Change number (0-127)"});
         commands_.add({"cp",    "channel-pressure", CHANNEL_PRESSURE,   1, "value",          "Send Channel Pressure value (0-127)"});
-        commands_.add({"pb",    "pitch-bend",       PITCH_BEND,         1, "value",          "Send Pitch Bend value (0-16383)"});
+        commands_.add({"pb",    "pitch-bend",       PITCH_BEND,         1, "value",          "Send Pitch Bend value (0-16383 or value/range)"});
         commands_.add({"rpn",   "",                 RPN,                2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
         commands_.add({"nrpn",  "",                 NRPN,               2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
         commands_.add({"start", "",                 START,              0, "",               "Start the current sequence playing"});
@@ -95,6 +101,7 @@ public:
         commands_.add({"clock", "",                 CLOCK,              1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
         commands_.add({"spp",   "song-position",    SONG_POSITION,      1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
         commands_.add({"ss",    "song-select",      SONG_SELECT,        1, "number",         "Send Song Select with song number (0-127)"});
+        commands_.add({"mpe",   "",                 MPE_CONFIGURATION,  2, "zone,range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
         
         channel_ = 1;
     }
@@ -324,9 +331,28 @@ private:
                                                                    limit7Bit(cmd.opts_[0].getIntValue())));
                 break;
             case PITCH_BEND:
-                sendMidiMessage(MidiMessage::pitchWheel(channel_,
-                                                        limit14Bit(cmd.opts_[0].getIntValue())));
+            {
+                String arg = cmd.opts_[0];
+                int value = 0;
+                if (arg.containsChar('/'))
+                {
+                    String numerator = arg.upToFirstOccurrenceOf("/", false, true);
+                    String denominator = arg.substring(numerator.length()+1);
+                    float numVal = numerator.getFloatValue();
+                    float denomVal = denominator.getFloatValue();
+                    if (fabs(numVal) > denomVal)
+                    {
+                        numVal = sign(numVal)*denomVal;
+                    }
+                    value = limit14Bit(MidiMessage::pitchbendToPitchwheelPos(numVal, denomVal));
+                }
+                else
+                {
+                    value = limit14Bit(arg.getIntValue());
+                }
+                sendMidiMessage(MidiMessage::pitchWheel(channel_, value));
                 break;
+            }
             case NRPN:
             {
                 int number = limit14Bit(cmd.opts_[0].getIntValue());
@@ -341,14 +367,7 @@ private:
             }
             case RPN:
             {
-                int number = limit14Bit(cmd.opts_[0].getIntValue());
-                int value = limit14Bit(cmd.opts_[1].getIntValue());
-                sendMidiMessage(MidiMessage::controllerEvent(channel_, 101, number >> 7));
-                sendMidiMessage(MidiMessage::controllerEvent(channel_, 100, number & 0x7f));
-                sendMidiMessage(MidiMessage::controllerEvent(channel_, 6, value >> 7));
-                sendMidiMessage(MidiMessage::controllerEvent(channel_, 38, value & 0x7f));
-                sendMidiMessage(MidiMessage::controllerEvent(channel_, 101, 0x7f));
-                sendMidiMessage(MidiMessage::controllerEvent(channel_, 100, 0x7f));
+                sendRPN(channel_, cmd.opts_[0].getIntValue(), cmd.opts_[1].getIntValue());
                 break;
             }
             case START:
@@ -379,9 +398,28 @@ private:
             case SONG_SELECT:
                 sendMidiMessage(MidiMessage(0xf3, limit7Bit(cmd.opts_[0].getIntValue())));
                 break;
+            case MPE_CONFIGURATION:
+            {
+                int zone = jlimit(1, 2, cmd.opts_[0].getIntValue());
+                int range = jlimit(0, 15, cmd.opts_[1].getIntValue());
+                sendRPN(zone == 1 ? 1 : 16, 6, range);
+                break;
+            }
         }
         
         cmd.clear();
+    }
+    
+    void sendRPN(int channel, int number, int value)
+    {
+        number = limit14Bit(number);
+        value = limit14Bit(value);
+        sendMidiMessage(MidiMessage::controllerEvent(channel, 101, number >> 7));
+        sendMidiMessage(MidiMessage::controllerEvent(channel, 100, number & 0x7f));
+        sendMidiMessage(MidiMessage::controllerEvent(channel, 6, value >> 7));
+        sendMidiMessage(MidiMessage::controllerEvent(channel, 38, value & 0x7f));
+        sendMidiMessage(MidiMessage::controllerEvent(channel, 101, 0x7f));
+        sendMidiMessage(MidiMessage::controllerEvent(channel, 100, 0x7f));
     }
     
     static uint8 limit7Bit(int value)

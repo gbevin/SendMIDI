@@ -44,10 +44,12 @@
         <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </VS2015>
-    <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraCompilerFlags="-mtune=generic"
+                extraLinkerFlags="">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="sendmidi"/>
-        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="sendmidi"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="sendmidi"
+                       linuxArchitecture=""/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core" path="../../JUCE/modules"/>

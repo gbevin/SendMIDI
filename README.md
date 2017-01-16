@@ -48,7 +48,7 @@ These are all the supported commands:
   clock bpm            Send 2 beats of MIDI Timing Clock for a BPM (1-999)
   spp   beats          Send Song Position Pointer with beat (0-16383)
   ss    number         Send Song Select with song number (0-127)
-  syx   length bytes   Send SysEx with a series bytes of the declared length
+  syx   bytes          Send SysEx with a series of 7-bit bytes
   tun                  Send Tune Request
   as                   Send Active Sensing
   rst                  Send Reset

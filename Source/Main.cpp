@@ -71,7 +71,7 @@ struct ApplicationCommand
     String param_;
     String altParam_;
     CommandIndex command_;
-    unsigned expectedOptions_;
+    int expectedOptions_;
     String optionsDescription_;
     String commandDescription_;
     StringArray opts_;
@@ -109,7 +109,7 @@ public:
         commands_.add({"clock", "",                 CLOCK,              1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
         commands_.add({"spp",   "song-position",    SONG_POSITION,      1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
         commands_.add({"ss",    "song-select",      SONG_SELECT,        1, "number",         "Send Song Select with song number (0-127)"});
-        commands_.add({"syx",   "system-exclusive", SYSTEM_EXCLUSIVE,   1, "length bytes",   "Send SysEx with a series bytes of the declared length"});
+        commands_.add({"syx",   "system-exclusive", SYSTEM_EXCLUSIVE,  -1, "bytes",          "Send SysEx with a series of 7-bit bytes"});
         commands_.add({"tun",   "tune-request",     TUNE_REQUEST,       0, "",               "Send Tune Request"});
         commands_.add({"as",    "active-sensing",   ACTIVE_SENSING,     0, "",               "Send Active Sensing"});
         commands_.add({"rst",   "reset",            RESET,              0, "",               "Send Reset"});
@@ -117,6 +117,7 @@ public:
         
         channel_ = 1;
         useHexadecimalsByDefault_ = false;
+        currentCommand_ = ApplicationCommand::Dummy();
     }
     
     const String getApplicationName() override       { return ProjectInfo::projectName; }
@@ -185,15 +186,20 @@ private:
     
     void parseParameters(StringArray& parameters)
     {
-        ApplicationCommand currentCommand = ApplicationCommand::Dummy();
         for (String param : parameters)
         {
             ApplicationCommand* cmd = findApplicationCommand(param);
             if (cmd)
             {
-                currentCommand = *cmd;
+                // handle variable arg commands
+                if (currentCommand_.expectedOptions_ < 0)
+                {
+                    executeCommand(currentCommand_);
+                }
+                
+                currentCommand_ = *cmd;
             }
-            else if (currentCommand.command_ == NONE)
+            else if (currentCommand_.command_ == NONE)
             {
                 File file = File::getCurrentWorkingDirectory().getChildFile(param);
                 if (file.existsAsFile())
@@ -201,19 +207,23 @@ private:
                     parseFile(file);
                 }
             }
-            else
+            else if (currentCommand_.expectedOptions_ != 0)
             {
-                if (currentCommand.expectedOptions_ > 0)
-                {
-                    currentCommand.opts_.add(param);
-                    currentCommand.expectedOptions_ -= 1;
-                }
+                currentCommand_.opts_.add(param);
+                currentCommand_.expectedOptions_ -= 1;
             }
             
-            if (currentCommand.expectedOptions_ == 0)
+            // handle fixed arg commands
+            if (currentCommand_.expectedOptions_ == 0)
             {
-                executeCommand(currentCommand);
+                executeCommand(currentCommand_);
             }
+        }
+        
+        // handle variable arg commands
+        if (currentCommand_.expectedOptions_ < 0)
+        {
+            executeCommand(currentCommand_);
         }
     }
     
@@ -430,20 +440,12 @@ private:
             }
             case SYSTEM_EXCLUSIVE:
             {
-                if (cmd.opts_.size() == 1)
+                MemoryBlock mem(cmd.opts_.size(), true);
+                for (int i = 0; i < cmd.opts_.size(); ++i)
                 {
-                    cmd.expectedOptions_ = asDecOrHexIntValue(cmd.opts_[0]);
-                    cmd.opts_.clear();
+                    mem[i] = asDecOrHex7BitValue(cmd.opts_[i]);
                 }
-                else
-                {
-                    MemoryBlock mem(cmd.opts_.size(), true);
-                    for (int i = 0; i < cmd.opts_.size(); ++i)
-                    {
-                        mem[i] = asDecOrHex7BitValue(cmd.opts_[i]);
-                    }
-                    sendMidiMessage(MidiMessage::createSysExMessage(mem.getData(), mem.getSize()));
-                }
+                sendMidiMessage(MidiMessage::createSysExMessage(mem.getData(), mem.getSize()));
                 break;
             }
             case TUNE_REQUEST:
@@ -457,10 +459,7 @@ private:
                 break;
         }
         
-        if (cmd.expectedOptions_ == 0)
-        {
-            cmd.clear();
-        }
+        cmd.clear();
     }
     
     void sendRPN(int channel, int number, int value)
@@ -568,6 +567,7 @@ private:
     String midiOutName_;
     ScopedPointer<MidiOutput> midiOut_;
     bool useHexadecimalsByDefault_;
+    ApplicationCommand currentCommand_;
 };
 
 START_JUCE_APPLICATION (sendMidiApplication)

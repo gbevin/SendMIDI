@@ -62,7 +62,5 @@
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="1"/>
   </MODULES>
   <JUCEOPTIONS JUCE_USE_XSHM="disabled" JUCE_USE_XRENDER="disabled" JUCE_USE_XCURSOR="disabled"
-               JUCE_USE_CURL="disabled" JUCE_ASIO="disabled" JUCE_WASAPI="disabled"
-               JUCE_WASAPI_EXCLUSIVE="disabled" JUCE_DIRECTSOUND="disabled"
-               JUCE_ALSA="disabled" JUCE_JACK="disabled" JUCE_USE_ANDROID_OPENSLES="disabled"/>
+               JUCE_USE_CURL="disabled"/>
 </JUCERPROJECT>

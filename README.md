@@ -16,6 +16,11 @@ https://github.com/gbevin/SendMIDI/releases
 
 Since SendMIDI is free and open-source, you can also easily build it yourself. Just take a look into the Builds directory when you download the sources.
 
+If you're using the macOS Homebrew package manager, you can install SendMIDI with:
+```
+brew install gbevin/tools/sendmidi
+```
+
 ## Usage
 To use it, simply type "sendmidi" or "sendmidi.exe" on the command line and follow it with a series of commands that you want to execute. These commands have purposefully been chosen to be concise and easy to remember, so that it's extremely fast and intuitive to quickly shoot out a few MIDI messages.
 

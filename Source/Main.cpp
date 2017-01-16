@@ -42,7 +42,8 @@ enum CommandIndex
     CLOCK,
     SONG_POSITION,
     SONG_SELECT,
-    MPE_CONFIGURATION
+    MPE_CONFIGURATION,
+    SYSTEM_EXCLUSIVE
 };
 
 struct ApplicationCommand
@@ -101,6 +102,7 @@ public:
         commands_.add({"clock", "",                 CLOCK,              1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
         commands_.add({"spp",   "song-position",    SONG_POSITION,      1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
         commands_.add({"ss",    "song-select",      SONG_SELECT,        1, "number",         "Send Song Select with song number (0-127)"});
+        commands_.add({"syx",   "system-exclusive", SYSTEM_EXCLUSIVE,   1, "length,bytes",   "Send SysEx with a series bytes of the declared length"});
         commands_.add({"mpe",   "",                 MPE_CONFIGURATION,  2, "zone,range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
         
         channel_ = 1;
@@ -300,35 +302,35 @@ private:
                 break;
             }
             case CHANNEL:
-                channel_ = limit7Bit(cmd.opts_[0].getIntValue());
+                channel_ = asDecOrHex7BitValue(cmd.opts_[0]);
                 break;
             case NOTE_ON:
                 sendMidiMessage(MidiMessage::noteOn(channel_,
-                                                    limit7Bit(cmd.opts_[0].getIntValue()),
-                                                    limit7Bit(cmd.opts_[1].getIntValue())));
+                                                    asDecOrHex7BitValue(cmd.opts_[0]),
+                                                    asDecOrHex7BitValue(cmd.opts_[1])));
                 break;
             case NOTE_OFF:
                 sendMidiMessage(MidiMessage::noteOff(channel_,
-                                                     limit7Bit(cmd.opts_[0].getIntValue()),
-                                                     limit7Bit(cmd.opts_[1].getIntValue())));
+                                                     asDecOrHex7BitValue(cmd.opts_[0]),
+                                                     asDecOrHex7BitValue(cmd.opts_[1])));
                 break;
             case POLY_PRESSURE:
                 sendMidiMessage(MidiMessage::aftertouchChange(channel_,
-                                                              limit7Bit(cmd.opts_[0].getIntValue()),
-                                                              limit7Bit(cmd.opts_[1].getIntValue())));
+                                                              asDecOrHex7BitValue(cmd.opts_[0]),
+                                                              asDecOrHex7BitValue(cmd.opts_[1])));
                 break;
             case CONTROL_CHANGE:
                 sendMidiMessage(MidiMessage::controllerEvent(channel_,
-                                                             limit7Bit(cmd.opts_[0].getIntValue()),
-                                                             limit7Bit(cmd.opts_[1].getIntValue())));
+                                                             asDecOrHex7BitValue(cmd.opts_[0]),
+                                                             asDecOrHex7BitValue(cmd.opts_[1])));
                 break;
             case PROGRAM_CHANGE:
                 sendMidiMessage(MidiMessage::programChange(channel_,
-                                                           limit7Bit(cmd.opts_[0].getIntValue())));
+                                                           asDecOrHex7BitValue(cmd.opts_[0])));
                 break;
             case CHANNEL_PRESSURE:
                 sendMidiMessage(MidiMessage::channelPressureChange(channel_,
-                                                                   limit7Bit(cmd.opts_[0].getIntValue())));
+                                                                   asDecOrHex7BitValue(cmd.opts_[0])));
                 break;
             case PITCH_BEND:
             {
@@ -348,15 +350,15 @@ private:
                 }
                 else
                 {
-                    value = limit14Bit(arg.getIntValue());
+                    value = asDecOrHex14BitValue(arg);
                 }
                 sendMidiMessage(MidiMessage::pitchWheel(channel_, value));
                 break;
             }
             case NRPN:
             {
-                int number = limit14Bit(cmd.opts_[0].getIntValue());
-                int value = limit14Bit(cmd.opts_[1].getIntValue());
+                int number = asDecOrHex14BitValue(cmd.opts_[0]);
+                int value = asDecOrHex14BitValue(cmd.opts_[1]);
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 99, number >> 7));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 98, number & 0x7f));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 6, value >> 7));
@@ -367,7 +369,7 @@ private:
             }
             case RPN:
             {
-                sendRPN(channel_, cmd.opts_[0].getIntValue(), cmd.opts_[1].getIntValue());
+                sendRPN(channel_, asDecOrHexIntValue(cmd.opts_[0]), asDecOrHexIntValue(cmd.opts_[1]));
                 break;
             }
             case START:
@@ -382,7 +384,7 @@ private:
             case CLOCK:
             {
                 uint32 now = Time::getMillisecondCounter();
-                float bpm = float(jlimit(1, 999, cmd.opts_[0].getIntValue()));
+                float bpm = float(jlimit(1, 999, asDecOrHexIntValue(cmd.opts_[0])));
                 float msPerTick = (60.f * 1000.f / bpm) / 24.f;
                 sendMidiMessage(MidiMessage::midiClock());
                 for (int ticks = 1; ticks <= 24 * 2; ++ticks)
@@ -393,21 +395,42 @@ private:
                 break;
             }
             case SONG_POSITION:
-                sendMidiMessage(MidiMessage::songPositionPointer(limit14Bit(cmd.opts_[0].getIntValue())));
+                sendMidiMessage(MidiMessage::songPositionPointer(asDecOrHex14BitValue(cmd.opts_[0])));
                 break;
             case SONG_SELECT:
-                sendMidiMessage(MidiMessage(0xf3, limit7Bit(cmd.opts_[0].getIntValue())));
+                sendMidiMessage(MidiMessage(0xf3, asDecOrHex7BitValue(cmd.opts_[0])));
                 break;
             case MPE_CONFIGURATION:
             {
-                int zone = jlimit(1, 2, cmd.opts_[0].getIntValue());
-                int range = jlimit(0, 15, cmd.opts_[1].getIntValue());
+                int zone = jlimit(1, 2, asDecOrHexIntValue(cmd.opts_[0]));
+                int range = jlimit(0, 15, asDecOrHexIntValue(cmd.opts_[1]));
                 sendRPN(zone == 1 ? 1 : 16, 6, range);
+                break;
+            }
+            case SYSTEM_EXCLUSIVE:
+            {
+                if (cmd.opts_.size() == 1)
+                {
+                    cmd.expectedOptions_ = asDecOrHexIntValue(cmd.opts_[0]);
+                    cmd.opts_.clear();
+                }
+                else
+                {
+                    MemoryBlock mem(cmd.opts_.size(), true);
+                    for (int i = 0; i < cmd.opts_.size(); ++i)
+                    {
+                        mem[i] = asDecOrHex7BitValue(cmd.opts_[i]);
+                    }
+                    sendMidiMessage(MidiMessage::createSysExMessage(mem.getData(), mem.getSize()));
+                }
                 break;
             }
         }
         
-        cmd.clear();
+        if (cmd.expectedOptions_ == 0)
+        {
+            cmd.clear();
+        }
     }
     
     void sendRPN(int channel, int number, int value)
@@ -420,6 +443,28 @@ private:
         sendMidiMessage(MidiMessage::controllerEvent(channel, 38, value & 0x7f));
         sendMidiMessage(MidiMessage::controllerEvent(channel, 101, 0x7f));
         sendMidiMessage(MidiMessage::controllerEvent(channel, 100, 0x7f));
+    }
+    
+    static uint8 asDecOrHex7BitValue(String value)
+    {
+        return (uint8)limit7Bit(asDecOrHexIntValue(value));
+    }
+    
+    static uint16 asDecOrHex14BitValue(String value)
+    {
+        return (uint16)limit14Bit(asDecOrHexIntValue(value));
+    }
+    
+    static int asDecOrHexIntValue(String value)
+    {
+        if (value.endsWithIgnoreCase("H"))
+        {
+            return value.dropLastCharacters(1).getHexValue32();
+        }
+        else
+        {
+            return value.getIntValue();
+        }
     }
     
     static uint8 limit7Bit(int value)
@@ -469,6 +514,9 @@ private:
             }
         }
         std::cout << line << std::endl << std::endl;
+        std::cout << "Any number can be entered as regular decimal values, or in hexadecimal by" << std::endl
+                  << "suffixing the number with the 'H' character." << std::endl;
+        std::cout << std::endl;
         std::cout << "The MIDI device name doesn't have to be an exact match." << std::endl;
         std::cout << "If SendMIDI can't find the exact name that was specified, it will pick the first" << std::endl
                   << "MIDI output port that contains the provided text, irrespective of case." << std::endl;

@@ -44,6 +44,9 @@ These are all the supported commands:
   spp   beats          Send Song Position Pointer with beat (0-16383)
   ss    number         Send Song Select with song number (0-127)
   syx   length bytes   Send SysEx with a series bytes of the declared length
+  tun                  Send Tune Request
+  as                   Send Active Sensing
+  rst                  Send Reset
   mpe   zone range     Send MPE Configuration for zone (1-2) with range (0-15)
   --                   Read commands from standard input until it's closed
 ```

@@ -26,6 +26,8 @@ enum CommandIndex
     PANIC,
     DEVICE,
     TXTFILE,
+    DECIMAL,
+    HEXADECIMAL,
     CHANNEL,
     NOTE_ON,
     NOTE_OFF,
@@ -44,8 +46,9 @@ enum CommandIndex
     SONG_SELECT,
     MPE_CONFIGURATION,
     SYSTEM_EXCLUSIVE,
-    DECIMAL,
-    HEXADECIMAL
+    TUNE_REQUEST,
+    ACTIVE_SENSING,
+    RESET
 };
 
 struct ApplicationCommand
@@ -107,6 +110,9 @@ public:
         commands_.add({"spp",   "song-position",    SONG_POSITION,      1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
         commands_.add({"ss",    "song-select",      SONG_SELECT,        1, "number",         "Send Song Select with song number (0-127)"});
         commands_.add({"syx",   "system-exclusive", SYSTEM_EXCLUSIVE,   1, "length bytes",   "Send SysEx with a series bytes of the declared length"});
+        commands_.add({"tun",   "tune-request",     TUNE_REQUEST,       0, "",               "Send Tune Request"});
+        commands_.add({"as",    "active-sensing",   ACTIVE_SENSING,     0, "",               "Send Active Sensing"});
+        commands_.add({"rst",   "reset",            RESET,              0, "",               "Send Reset"});
         commands_.add({"mpe",   "",                 MPE_CONFIGURATION,  2, "zone range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
         
         channel_ = 1;
@@ -436,6 +442,15 @@ private:
                 }
                 break;
             }
+            case TUNE_REQUEST:
+                sendMidiMessage(MidiMessage(0xf6));
+                break;
+            case ACTIVE_SENSING:
+                sendMidiMessage(MidiMessage(0xfe));
+                break;
+            case RESET:
+                sendMidiMessage(MidiMessage(0xff));
+                break;
         }
         
         if (cmd.expectedOptions_ == 0)

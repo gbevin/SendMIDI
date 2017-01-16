@@ -41,6 +41,7 @@ These are all the supported commands:
   clock bpm            Send 2 beats of MIDI Timing Clock for a BPM (1-999)
   spp   beats          Send Song Position Pointer with beat (0-16383)
   ss    number         Send Song Select with song number (0-127)
+  syx   length,bytes   Send SysEx with a series bytes of the declared length
   mpe   zone,range     Send MPE Configuration for zone (1-2) with range (0-15)
   --                   Read commands from standard input until it's closed
 ```
@@ -49,7 +50,10 @@ Alternatively, you can use the following long versions of the commands:
 ```
   device channel note-on note-off poly-pressure control-change program-change
   channel-pressure pitch-bend continue song-position song-select
+  system-exclusive
 ```
+
+Any number can be entered as regular decimal values, or in hexadecimal by suffixing the number with the 'H' character.
 
 The MIDI device name doesn't have to be an exact match.
 

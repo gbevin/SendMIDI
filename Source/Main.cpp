@@ -102,8 +102,8 @@ public:
         commands_.add({"clock", "",                 CLOCK,              1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
         commands_.add({"spp",   "song-position",    SONG_POSITION,      1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
         commands_.add({"ss",    "song-select",      SONG_SELECT,        1, "number",         "Send Song Select with song number (0-127)"});
-        commands_.add({"syx",   "system-exclusive", SYSTEM_EXCLUSIVE,   1, "length,bytes",   "Send SysEx with a series bytes of the declared length"});
-        commands_.add({"mpe",   "",                 MPE_CONFIGURATION,  2, "zone,range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
+        commands_.add({"syx",   "system-exclusive", SYSTEM_EXCLUSIVE,   1, "length bytes",   "Send SysEx with a series bytes of the declared length"});
+        commands_.add({"mpe",   "",                 MPE_CONFIGURATION,  2, "zone range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
         
         channel_ = 1;
     }

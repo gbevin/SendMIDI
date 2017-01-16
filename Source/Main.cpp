@@ -43,7 +43,9 @@ enum CommandIndex
     SONG_POSITION,
     SONG_SELECT,
     MPE_CONFIGURATION,
-    SYSTEM_EXCLUSIVE
+    SYSTEM_EXCLUSIVE,
+    DECIMAL,
+    HEXADECIMAL
 };
 
 struct ApplicationCommand
@@ -86,10 +88,12 @@ public:
         commands_.add({"list",  "",                 LIST,               0, "",               "Lists the MIDI output ports"});
         commands_.add({"panic", "",                 PANIC,              0, "",               "Sends all possible Note Offs and relevant panic CCs"});
         commands_.add({"file",  "",                 TXTFILE,            1, "path",           "Loads commands from the specified program file"});
+        commands_.add({"dec",   "decimal",          DECIMAL,            0, "",               "Interpret the next numbers as decimals by default"});
+        commands_.add({"hex",   "hexadecimal",      HEXADECIMAL,        0, "",               "Interpret the next numbers as hexadecimals by default"});
         commands_.add({"ch",    "channel",          CHANNEL,            1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
         commands_.add({"on",    "note-on",          NOTE_ON,            2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
         commands_.add({"off",   "note-off",         NOTE_OFF,           2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
-        commands_.add({"pp",    "poly-pressure",    POLY_PRESSURE,      2, "note value",     "Send Poly Pressure with note (0-127) and pressure (0-127)"});
+        commands_.add({"pp",    "poly-pressure",    POLY_PRESSURE,      2, "note value",     "Send Poly Pressure with note (0-127) and value (0-127)"});
         commands_.add({"cc",    "control-change",   CONTROL_CHANGE,     2, "number value",   "Send Control Change number (0-127) with value (0-127)"});
         commands_.add({"pc",    "program-change",   PROGRAM_CHANGE,     1, "number",         "Send Program Change number (0-127)"});
         commands_.add({"cp",    "channel-pressure", CHANNEL_PRESSURE,   1, "value",          "Send Channel Pressure value (0-127)"});
@@ -106,6 +110,7 @@ public:
         commands_.add({"mpe",   "",                 MPE_CONFIGURATION,  2, "zone range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
         
         channel_ = 1;
+        useHexadecimalsByDefault_ = false;
     }
     
     const String getApplicationName() override       { return ProjectInfo::projectName; }
@@ -144,7 +149,7 @@ private:
     {
         for (auto&& cmd : commands_)
         {
-            if (cmd.param_ == param || cmd.altParam_ == param)
+            if (cmd.param_.equalsIgnoreCase(param) || cmd.altParam_.equalsIgnoreCase(param))
             {
                 return &cmd;
             }
@@ -301,6 +306,12 @@ private:
                 }
                 break;
             }
+            case DECIMAL:
+                useHexadecimalsByDefault_ = false;
+                break;
+            case HEXADECIMAL:
+                useHexadecimalsByDefault_ = true;
+                break;
             case CHANNEL:
                 channel_ = asDecOrHex7BitValue(cmd.opts_[0]);
                 break;
@@ -445,21 +456,29 @@ private:
         sendMidiMessage(MidiMessage::controllerEvent(channel, 100, 0x7f));
     }
     
-    static uint8 asDecOrHex7BitValue(String value)
+    uint8 asDecOrHex7BitValue(String value)
     {
         return (uint8)limit7Bit(asDecOrHexIntValue(value));
     }
     
-    static uint16 asDecOrHex14BitValue(String value)
+    uint16 asDecOrHex14BitValue(String value)
     {
         return (uint16)limit14Bit(asDecOrHexIntValue(value));
     }
     
-    static int asDecOrHexIntValue(String value)
+    int asDecOrHexIntValue(String value)
     {
         if (value.endsWithIgnoreCase("H"))
         {
             return value.dropLastCharacters(1).getHexValue32();
+        }
+        else if (value.endsWithIgnoreCase("D"))
+        {
+            return value.getIntValue();
+        }
+        else if (useHexadecimalsByDefault_)
+        {
+            return value.getHexValue32();
         }
         else
         {
@@ -514,12 +533,14 @@ private:
             }
         }
         std::cout << line << std::endl << std::endl;
-        std::cout << "Any number can be entered as regular decimal values, or in hexadecimal by" << std::endl
-                  << "suffixing the number with the 'H' character." << std::endl;
+        std::cout << "By default, numbers are interpreted in the decimal system, this can be changed" << std::endl
+                  << "to hexadecimal by sending the \"hex\" command. Additionally, by suffixing a " << std::endl
+                  << "number with \"D\" or \"H\", it will be interpreted as a decimal or hexadecimal" << std::endl
+                  << "respectively." << std::endl;
         std::cout << std::endl;
         std::cout << "The MIDI device name doesn't have to be an exact match." << std::endl;
-        std::cout << "If SendMIDI can't find the exact name that was specified, it will pick the first" << std::endl
-                  << "MIDI output port that contains the provided text, irrespective of case." << std::endl;
+        std::cout << "If SendMIDI can't find the exact name that was specified, it will pick the" << std::endl
+                  << "first MIDI output port that contains the provided text, irrespective of case." << std::endl;
         std::cout << std::endl;
     }
     
@@ -527,6 +548,7 @@ private:
     int channel_;
     String midiOutName_;
     ScopedPointer<MidiOutput> midiOut_;
+    bool useHexadecimalsByDefault_;
 };
 
 START_JUCE_APPLICATION (sendMidiApplication)

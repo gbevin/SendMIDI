@@ -25,10 +25,12 @@ These are all the supported commands:
   list                 Lists the MIDI output ports
   panic                Sends all possible Note Offs and relevant panic CCs
   file  path           Loads commands from the specified program file
+  dec                  Interpret the next numbers as decimals by default
+  hex                  Interpret the next numbers as hexadecimals by default
   ch    number         Set MIDI channel for the commands (1-16), defaults to 1
   on    note velocity  Send Note On with note (0-127) and velocity (0-127)
   off   note velocity  Send Note Off with note (0-127) and velocity (0-127)
-  pp    note value     Send Poly Pressure with note (0-127) and pressure (0-127)
+  pp    note value     Send Poly Pressure with note (0-127) and value (0-127)
   cc    number value   Send Control Change number (0-127) with value (0-127)
   pc    number         Send Program Change number (0-127)
   cp    value          Send Channel Pressure value (0-127)
@@ -48,12 +50,13 @@ These are all the supported commands:
 
 Alternatively, you can use the following long versions of the commands:
 ```
-  device channel note-on note-off poly-pressure control-change program-change
-  channel-pressure pitch-bend continue song-position song-select
-  system-exclusive
+  device decimal hexadecimal channel note-on note-off poly-pressure
+  control-change program-change channel-pressure pitch-bend continue
+  song-position song-select system-exclusive
 ```
 
-Any number can be entered as regular decimal values, or in hexadecimal by suffixing the number with the 'H' character.
+By default, numbers are interpreted in the decimal system, this can be changed to hexadecimal by sending the "hex" command.
+Additionally, by suffixing a number with "D" or "H", it will be interpreted as a decimal or hexadecimal respectively.
 
 The MIDI device name doesn't have to be an exact match.
 

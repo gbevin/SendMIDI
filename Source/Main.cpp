@@ -82,7 +82,7 @@ inline float sign(float value)
     return (float)(value > 0.) - (value < 0.);
 }
 
-class sendMidiApplication  : public JUCEApplication
+class sendMidiApplication  : public JUCEApplicationBase
 {
 public:
     sendMidiApplication()
@@ -122,6 +122,7 @@ public:
     const String getApplicationName() override       { return ProjectInfo::projectName; }
     const String getApplicationVersion() override    { return ProjectInfo::versionString; }
     bool moreThanOneInstanceAllowed() override       { return true; }
+    void systemRequestedQuit() override              { quit(); }
     
     void initialise(const String&) override
     {
@@ -148,7 +149,10 @@ public:
     }
     
     void shutdown() override {}
+    void suspended() override {}
+    void resumed() override {}
     void anotherInstanceStarted(const String&) override {}
+    void unhandledException(const std::exception*, const String&, int) override { jassertfalse; }
     
 private:
     ApplicationCommand* findApplicationCommand(const String& param)

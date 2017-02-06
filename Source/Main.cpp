@@ -191,13 +191,25 @@ private:
             ApplicationCommand* cmd = findApplicationCommand(param);
             if (cmd)
             {
-                // handle variable arg commands
-                if (currentCommand_.expectedOptions_ < 0)
+                // handle configuration commands immediately without setting up a new
+                switch (cmd->command_)
                 {
-                    executeCommand(currentCommand_);
+                    case DECIMAL:
+                        useHexadecimalsByDefault_ = false;
+                        break;
+                    case HEXADECIMAL:
+                        useHexadecimalsByDefault_ = true;
+                        break;
+                    default:
+                        // handle variable arg commands
+                        if (currentCommand_.expectedOptions_ < 0)
+                        {
+                            executeCommand(currentCommand_);
+                        }
+                        
+                        currentCommand_ = *cmd;
+                        break;
                 }
-                
-                currentCommand_ = *cmd;
             }
             else if (currentCommand_.command_ == NONE)
             {
@@ -327,10 +339,10 @@ private:
                 break;
             }
             case DECIMAL:
-                useHexadecimalsByDefault_ = false;
-                break;
             case HEXADECIMAL:
-                useHexadecimalsByDefault_ = true;
+                // these are not commands but rather configuration options
+                // allow them to be inlined anywhere by handling them immediately in the
+                // parseParameters method
                 break;
             case CHANNEL:
                 channel_ = asDecOrHex7BitValue(cmd.opts_[0]);

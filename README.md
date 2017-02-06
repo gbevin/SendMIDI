@@ -49,6 +49,7 @@ These are all the supported commands:
   spp   beats          Send Song Position Pointer with beat (0-16383)
   ss    number         Send Song Select with song number (0-127)
   syx   bytes          Send SysEx with a series of 7-bit bytes
+  syf   path           Send SysEx from a .syx file
   tun                  Send Tune Request
   as                   Send Active Sensing
   rst                  Send Reset
@@ -96,6 +97,12 @@ Load the commands from a text file on your system and execute them, afterwards s
   
 ```
 sendmidi file path/to/some/text/file dev "Network Session 1" pc 10
+```
+
+Change parameters on a Yamaha FS1R over SysEx:
+
+```
+sendmidi dev "iConnectMIDI4+ DIN 1" hex syx 43 10 5e 10 00 10 00 7f
 ```
 
 ## Text File Format

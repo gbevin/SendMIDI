@@ -61,7 +61,8 @@ Alternatively, you can use the following long versions of the commands:
 ```
   device decimal hexadecimal channel note-on note-off poly-pressure
   control-change program-change channel-pressure pitch-bend continue
-  song-position song-select system-exclusive
+  song-position song-select system-exclusive system-exclusive-file tune-request
+  active-sensing reset
 ```
 
 By default, numbers are interpreted in the decimal system, this can be changed to hexadecimal by sending the "hex" command.

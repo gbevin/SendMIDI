@@ -66,7 +66,7 @@ Alternatively, you can use the following long versions of the commands:
 ```
 
 By default, numbers are interpreted in the decimal system, this can be changed to hexadecimal by sending the "hex" command.
-Additionally, by suffixing a number with "D" or "H", it will be interpreted as a decimal or hexadecimal respectively.
+Additionally, by suffixing a number with "M" or "H", it will be interpreted as a decimal or hexadecimal respectively.
 
 The MIDI device name doesn't have to be an exact match.
 

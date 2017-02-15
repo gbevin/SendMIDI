@@ -523,7 +523,7 @@ private:
         {
             return value.dropLastCharacters(1).getHexValue32();
         }
-        else if (value.endsWithIgnoreCase("D"))
+        else if (value.endsWithIgnoreCase("M"))
         {
             return value.getIntValue();
         }
@@ -586,7 +586,7 @@ private:
         std::cout << line << std::endl << std::endl;
         std::cout << "By default, numbers are interpreted in the decimal system, this can be changed" << std::endl
                   << "to hexadecimal by sending the \"hex\" command. Additionally, by suffixing a " << std::endl
-                  << "number with \"D\" or \"H\", it will be interpreted as a decimal or hexadecimal" << std::endl
+                  << "number with \"M\" or \"H\", it will be interpreted as a decimal or hexadecimal" << std::endl
                   << "respectively." << std::endl;
         std::cout << std::endl;
         std::cout << "The MIDI device name doesn't have to be an exact match." << std::endl;

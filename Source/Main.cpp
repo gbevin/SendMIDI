@@ -260,7 +260,7 @@ private:
                         // wait for the required time
                         if (delta > 0)
                         {
-                            Time::waitForMillisecondCounter(now_counter + delta);
+                            Time::waitForMillisecondCounter(uint32(now_counter + delta));
                         }
                     }
                     

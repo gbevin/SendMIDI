@@ -38,18 +38,20 @@ enum CommandIndex
     PITCH_BEND,
     RPN,
     NRPN,
+    CLOCK,
+    MIDI_CLOCK,
     START,
     STOP,
     CONTINUE,
-    CLOCK,
-    SONG_POSITION,
-    SONG_SELECT,
-    MPE_CONFIGURATION,
+    ACTIVE_SENSING,
+    RESET,
     SYSTEM_EXCLUSIVE,
     SYSTEM_EXCLUSIVE_FILE,
+    TIME_CODE,
+    SONG_POSITION,
+    SONG_SELECT,
     TUNE_REQUEST,
-    ACTIVE_SENSING,
-    RESET
+    MPE_CONFIGURATION,
 };
 
 struct ApplicationCommand
@@ -104,17 +106,19 @@ public:
         commands_.add({"pb",    "pitch-bend",               PITCH_BEND,             1, "value",          "Send Pitch Bend value (0-16383 or value/range)"});
         commands_.add({"rpn",   "",                         RPN,                    2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
         commands_.add({"nrpn",  "",                         NRPN,                   2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
+        commands_.add({"clock", "",                         CLOCK,                  1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
+        commands_.add({"mc",    "midi-clock",               MIDI_CLOCK,             0, "",               "Send one MIDI Timing Clock"});
         commands_.add({"start", "",                         START,                  0, "",               "Start the current sequence playing"});
         commands_.add({"stop",  "",                         STOP,                   0, "",               "Stop the current sequence"});
         commands_.add({"cont",  "continue",                 CONTINUE,               0, "",               "Continue the current sequence"});
-        commands_.add({"clock", "",                         CLOCK,                  1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
-        commands_.add({"spp",   "song-position",            SONG_POSITION,          1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
-        commands_.add({"ss",    "song-select",              SONG_SELECT,            1, "number",         "Send Song Select with song number (0-127)"});
-        commands_.add({"syx",   "system-exclusive",         SYSTEM_EXCLUSIVE,      -1, "bytes",          "Send SysEx from a series of bytes (no F0/F7 delimiters)"});
-        commands_.add({"syf",   "system-exclusive-file",    SYSTEM_EXCLUSIVE_FILE,  1, "path",           "Send SysEx from a .syx file"});
-        commands_.add({"tun",   "tune-request",             TUNE_REQUEST,           0, "",               "Send Tune Request"});
         commands_.add({"as",    "active-sensing",           ACTIVE_SENSING,         0, "",               "Send Active Sensing"});
         commands_.add({"rst",   "reset",                    RESET,                  0, "",               "Send Reset"});
+        commands_.add({"syx",   "system-exclusive",         SYSTEM_EXCLUSIVE,      -1, "bytes",          "Send SysEx from a series of bytes (no F0/F7 delimiters)"});
+        commands_.add({"syf",   "system-exclusive-file",    SYSTEM_EXCLUSIVE_FILE,  1, "path",           "Send SysEx from a .syx file"});
+        commands_.add({"tc",    "time-code",                TIME_CODE,              2, "type value",     "Send MIDI Time Code with type (0-7) and value (0-15)"});
+        commands_.add({"spp",   "song-position",            SONG_POSITION,          1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
+        commands_.add({"ss",    "song-select",              SONG_SELECT,            1, "number",         "Send Song Select with song number (0-127)"});
+        commands_.add({"tun",   "tune-request",             TUNE_REQUEST,           0, "",               "Send Tune Request"});
         commands_.add({"mpe",   "",                         MPE_CONFIGURATION,      2, "zone range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
         
         channel_ = 1;
@@ -266,7 +270,7 @@ private:
             static bool missingOutputPortWarningPrinted = false;
             if (!missingOutputPortWarningPrinted)
             {
-                std::cout << "No valid MIDI output port was specified for some of the messages" << std::endl;
+                std::cerr << "No valid MIDI output port was specified for some of the messages" << std::endl;
                 missingOutputPortWarningPrinted = true;
             }
         }
@@ -308,7 +312,7 @@ private:
                 }
                 if (midiOut_ == nullptr)
                 {
-                    std::cout << "Couldn't find MIDI output port \"" << midiOutName_ << "\"" << std::endl;
+                    std::cerr << "Couldn't find MIDI output port \"" << midiOutName_ << "\"" << std::endl;
                 }
                 break;
             }
@@ -336,7 +340,7 @@ private:
                 }
                 else
                 {
-                    std::cout << "Couldn't find file \"" << path << "\"" << std::endl;
+                    std::cerr << "Couldn't find file \"" << path << "\"" << std::endl;
                 }
                 break;
             }
@@ -417,15 +421,6 @@ private:
                 sendRPN(channel_, asDecOrHexIntValue(cmd.opts_[0]), asDecOrHexIntValue(cmd.opts_[1]));
                 break;
             }
-            case START:
-                sendMidiMessage(MidiMessage::midiStart());
-                break;
-            case STOP:
-                sendMidiMessage(MidiMessage::midiStop());
-                break;
-            case CONTINUE:
-                sendMidiMessage(MidiMessage::midiContinue());
-                break;
             case CLOCK:
             {
                 uint32 now = Time::getMillisecondCounter();
@@ -439,19 +434,33 @@ private:
                 }
                 break;
             }
+            case MIDI_CLOCK:
+                sendMidiMessage(MidiMessage::midiClock());
+                break;
+            case START:
+                sendMidiMessage(MidiMessage::midiStart());
+                break;
+            case STOP:
+                sendMidiMessage(MidiMessage::midiStop());
+                break;
+            case CONTINUE:
+                sendMidiMessage(MidiMessage::midiContinue());
+                break;
+            case ACTIVE_SENSING:
+                sendMidiMessage(MidiMessage(0xfe));
+                break;
+            case RESET:
+                sendMidiMessage(MidiMessage(0xff));
+                break;
+            case TIME_CODE:
+                sendMidiMessage(MidiMessage::quarterFrame(asDecOrHex14BitValue(cmd.opts_[0]), asDecOrHex14BitValue(cmd.opts_[1])));
+                break;
             case SONG_POSITION:
                 sendMidiMessage(MidiMessage::songPositionPointer(asDecOrHex14BitValue(cmd.opts_[0])));
                 break;
             case SONG_SELECT:
                 sendMidiMessage(MidiMessage(0xf3, asDecOrHex7BitValue(cmd.opts_[0])));
                 break;
-            case MPE_CONFIGURATION:
-            {
-                int zone = jlimit(1, 2, asDecOrHexIntValue(cmd.opts_[0]));
-                int range = jlimit(0, 15, asDecOrHexIntValue(cmd.opts_[1]));
-                sendRPN(zone == 1 ? 1 : 16, 6, range);
-                break;
-            }
             case SYSTEM_EXCLUSIVE:
             {
                 MemoryBlock mem(cmd.opts_.size(), true);
@@ -477,19 +486,20 @@ private:
                 }
                 else
                 {
-                    std::cout << "Couldn't find file \"" << path << "\"" << std::endl;
+                    std::cerr << "Couldn't find file \"" << path << "\"" << std::endl;
                 }
                 break;
             }
             case TUNE_REQUEST:
                 sendMidiMessage(MidiMessage(0xf6));
                 break;
-            case ACTIVE_SENSING:
-                sendMidiMessage(MidiMessage(0xfe));
+            case MPE_CONFIGURATION:
+            {
+                int zone = jlimit(1, 2, asDecOrHexIntValue(cmd.opts_[0]));
+                int range = jlimit(0, 15, asDecOrHexIntValue(cmd.opts_[1]));
+                sendRPN(zone == 1 ? 1 : 16, 6, range);
                 break;
-            case RESET:
-                sendMidiMessage(MidiMessage(0xff));
-                break;
+            }
         }
         
         cmd.clear();

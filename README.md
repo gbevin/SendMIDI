@@ -42,17 +42,19 @@ These are all the supported commands:
   pb    value          Send Pitch Bend value (0-16383 or value/range)
   rpn   number value   Send RPN number (0-16383) with value (0-16383)
   nrpn  number value   Send NRPN number (0-16383) with value (0-16383)
+  clock bpm            Send 2 beats of MIDI Timing Clock for a BPM (1-999)
+  mc                   Send one MIDI Timing Clock
   start                Start the current sequence playing
   stop                 Stop the current sequence
   cont                 Continue the current sequence
-  clock bpm            Send 2 beats of MIDI Timing Clock for a BPM (1-999)
-  spp   beats          Send Song Position Pointer with beat (0-16383)
-  ss    number         Send Song Select with song number (0-127)
-  syx   bytes          Send SysEx from a series of bytes (no F0/F7 delimiters)
-  syf   path           Send SysEx from a .syx file
-  tun                  Send Tune Request
   as                   Send Active Sensing
   rst                  Send Reset
+  syx   bytes          Send SysEx from a series of bytes (no F0/F7 delimiters)
+  syf   path           Send SysEx from a .syx file
+  tc    type value     Send MIDI Time Code with type (0-7) and value (0-15)
+  spp   beats          Send Song Position Pointer with beat (0-16383)
+  ss    number         Send Song Select with song number (0-127)
+  tun                  Send Tune Request
   mpe   zone range     Send MPE Configuration for zone (1-2) with range (0-15)
   --                   Read commands from standard input until it's closed
 ```
@@ -60,9 +62,9 @@ These are all the supported commands:
 Alternatively, you can use the following long versions of the commands:
 ```
   device decimal hexadecimal channel note-on note-off poly-pressure
-  control-change program-change channel-pressure pitch-bend continue
-  song-position song-select system-exclusive system-exclusive-file tune-request
-  active-sensing reset
+  control-change program-change channel-pressure pitch-bend midi-clock continue
+  active-sensing reset system-exclusive system-exclusive-file time-code
+  song-position song-select tune-request
 ```
 
 By default, numbers are interpreted in the decimal system, this can be changed to hexadecimal by sending the "hex" command.

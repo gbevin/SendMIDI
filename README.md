@@ -121,3 +121,9 @@ cc 20 5
 cc 21 0
 cc 22 1
 ```
+
+## ReceiveMIDI compatibility
+
+The input of the SendMIDI tool is compatible with the ReceiveMIDI tool, allowing you to play MIDI message sequences that were stored earlier. By using Unix-style pipes on the command-line, it's even possible to chain the receivemidi and sendmidi commands in order to redirect MIDI messages.
+
+ReceiveMIDI can be downloaded from https://github.com/gbevin/ReceiveMIDI

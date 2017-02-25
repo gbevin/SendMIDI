@@ -51,7 +51,7 @@ enum CommandIndex
     SONG_POSITION,
     SONG_SELECT,
     TUNE_REQUEST,
-    MPE_CONFIGURATION,
+    MPE_CONFIGURATION
 };
 
 struct ApplicationCommand
@@ -124,6 +124,8 @@ public:
         channel_ = 1;
         useHexadecimalsByDefault_ = false;
         currentCommand_ = ApplicationCommand::Dummy();
+        lastTimeStampCounter_ = 0;
+        lastTimeStamp_ = 0;
     }
     
     const String getApplicationName() override       { return ProjectInfo::projectName; }
@@ -190,6 +192,11 @@ private:
         return parameters;
     }
     
+    static bool isNumeric(const String& string)
+    {
+        return string.containsOnly("1234567890");
+    }
+    
     void parseParameters(StringArray& parameters)
     {
         for (String param : parameters)
@@ -219,10 +226,55 @@ private:
             }
             else if (currentCommand_.command_ == NONE)
             {
-                File file = File::getCurrentWorkingDirectory().getChildFile(param);
-                if (file.existsAsFile())
+                // check if this is a time stamp
+                int64_t timestamp = 0;
+                if (param.length() == 12 && param[2] == ':' && param[5] == ':' && param[8] == '.')
                 {
-                    parseFile(file);
+                    String hours = param.substring(0, 2);
+                    String minutes = param.substring(3, 5);
+                    String seconds = param.substring(6, 8);
+                    String millis = param.substring(9);
+                    if (isNumeric(hours) && isNumeric(minutes) && isNumeric(seconds) && isNumeric(millis))
+                    {
+                        Time now = Time();
+                        timestamp = Time(now.getYear(), now.getMonth(), now.getDayOfMonth(),
+                                         hours.getIntValue(), minutes.getIntValue(), seconds.getIntValue(), millis.getIntValue()).toMilliseconds();
+                    }
+                }
+
+                // handle the timestamp
+                if (timestamp)
+                {
+                    if (lastTimeStamp_ != 0)
+                    {
+                        // wait for the time that needs to have elapsed since the previous timestamp
+                        uint32 now_counter = Time::getMillisecondCounter();
+                        int64_t delta = (timestamp - lastTimeStamp_) - (now_counter - lastTimeStampCounter_);
+                        
+                        // compensate for day boundary wrap around
+                        if (timestamp < lastTimeStamp_)
+                        {
+                            delta += 24 * 60 * 60 * 1000;
+                        }
+                        
+                        // wait for the required time
+                        if (delta > 0)
+                        {
+                            Time::waitForMillisecondCounter(now_counter + delta);
+                        }
+                    }
+                    
+                    lastTimeStampCounter_ = Time::getMillisecondCounter();
+                    lastTimeStamp_ = timestamp;
+                }
+                // treat it as a file
+                else
+                {
+                    File file = File::getCurrentWorkingDirectory().getChildFile(param);
+                    if (file.existsAsFile())
+                    {
+                        parseFile(file);
+                    }
                 }
             }
             else if (currentCommand_.expectedOptions_ != 0)
@@ -603,6 +655,12 @@ private:
         std::cout << "If SendMIDI can't find the exact name that was specified, it will pick the" << std::endl
                   << "first MIDI output port that contains the provided text, irrespective of case." << std::endl;
         std::cout << std::endl;
+        std::cout << "In between commands, timestamps can be added in the format: HH:MM:SS.MIL," << std::endl
+                  << "standing for hours, minutes, seconds and milliseconds" << std::endl
+                  << "(for example: 08:10:17.056). All the digits need to be present, possibly" << std::endl
+                  << "requiring leading zeros. When a timestamp is detected, SendMIDI ensures that" << std::endl
+                  << "the time difference since the previous timestamp has elapsed." << std::endl;
+        std::cout << std::endl;
     }
     
     Array<ApplicationCommand> commands_;
@@ -611,6 +669,8 @@ private:
     ScopedPointer<MidiOutput> midiOut_;
     bool useHexadecimalsByDefault_;
     ApplicationCommand currentCommand_;
+    uint32 lastTimeStampCounter_;
+    int64_t lastTimeStamp_;
 };
 
 START_JUCE_APPLICATION (sendMidiApplication)

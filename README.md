@@ -7,7 +7,7 @@ All the heavy lifting is done by the wonderful JUCE library.
 The project website is https://github.com/gbevin/SendMIDI
 
 ## Purpose
-This tool is mainly intended for configuration or setup through Control Change, RPN and NRPN messages, but many other MIDI messages can be sent
+This tool is mainly intended for configuration or setup through Control Change, RPN and NRPN messages, but many other MIDI messages can be sent.
 
 ## Download
 
@@ -71,8 +71,9 @@ By default, numbers are interpreted in the decimal system, this can be changed t
 Additionally, by suffixing a number with "M" or "H", it will be interpreted as a decimal or hexadecimal respectively.
 
 The MIDI device name doesn't have to be an exact match.
-
 If SendMIDI can't find the exact name that was specified, it will pick the first MIDI output port that contains the provided text, irrespective of case.
+
+In between commands, timestamps can be added in the format: HH:MM:SS.MIL, standing for hours, minutes, seconds and milliseconds (for example: 08:10:17.056). All the digits need to be present, possibly requiring leading zeros. When a timestamp is detected, SendMIDI ensures that the time difference since the previous timestamp has elapsed.
 
 ## Examples
   

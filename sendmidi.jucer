@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="U5JfXz" name="sendmidi" projectType="consoleapp" version="1.0.7"
+<JUCERPROJECT id="U5JfXz" name="sendmidi" projectType="consoleapp" version="1.0.8"
               bundleIdentifier="com.uwyn.sendmidi" includeBinaryInAppConfig="1"
               jucerVersion="4.3.1" companyName="Uwyn" companyWebsite="http://www.uwyn.com"
               companyEmail="info@uwyn.com">

@@ -588,7 +588,7 @@ private:
             String first = value.substring(0, 1);
             if (first.containsOnly("CDEFGABH") && value.substring(value.length()-1).containsOnly("1234567890"))
             {
-                int note;
+                int note = 0;
                 switch (first[0])
                 {
                     case 'C': note = 0; break;

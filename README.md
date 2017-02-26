@@ -74,6 +74,8 @@ Additionally, by suffixing a number with "M" or "H", it will be interpreted as a
 The MIDI device name doesn't have to be an exact match.
 If SendMIDI can't find the exact name that was specified, it will pick the first MIDI output port that contains the provided text, irrespective of case.
 
+Where notes can be provided as arguments, they can also be written as note names, from C0 to G10 which corresponds to the note numbers 0 to 127. Sharps can be added by using the '#' symbol after the note letter, and flats by using the letter 'b'.
+
 In between commands, timestamps can be added in the format: HH:MM:SS.MIL, standing for hours, minutes, seconds and milliseconds (for example: 08:10:17.056). All the digits need to be present, possibly requiring leading zeros. When a timestamp is detected, SendMIDI ensures that the time difference since the previous timestamp has elapsed.
 
 ## Examples

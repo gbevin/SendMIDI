@@ -409,17 +409,17 @@ private:
                 break;
             case NOTE_ON:
                 sendMidiMessage(MidiMessage::noteOn(channel_,
-                                                    asDecOrHex7BitValue(cmd.opts_[0]),
+                                                    asNoteNumber(cmd.opts_[0]),
                                                     asDecOrHex7BitValue(cmd.opts_[1])));
                 break;
             case NOTE_OFF:
                 sendMidiMessage(MidiMessage::noteOff(channel_,
-                                                     asDecOrHex7BitValue(cmd.opts_[0]),
+                                                     asNoteNumber(cmd.opts_[0]),
                                                      asDecOrHex7BitValue(cmd.opts_[1])));
                 break;
             case POLY_PRESSURE:
                 sendMidiMessage(MidiMessage::aftertouchChange(channel_,
-                                                              asDecOrHex7BitValue(cmd.opts_[0]),
+                                                              asNoteNumber(cmd.opts_[0]),
                                                               asDecOrHex7BitValue(cmd.opts_[1])));
                 break;
             case CONTROL_CHANGE:
@@ -580,6 +580,45 @@ private:
         sendMidiMessage(MidiMessage::controllerEvent(channel, 100, 0x7f));
     }
     
+    uint8 asNoteNumber(String value)
+    {
+        if (value.length() >= 2)
+        {
+            value = value.toUpperCase();
+            String first = value.substring(0, 1);
+            if (first.containsOnly("CDEFGABH") && value.substring(value.length()-1).containsOnly("1234567890"))
+            {
+                int note;
+                switch (first[0])
+                {
+                    case 'C': note = 0; break;
+                    case 'D': note = 2; break;
+                    case 'E': note = 4; break;
+                    case 'F': note = 5; break;
+                    case 'G': note = 7; break;
+                    case 'A': note = 9; break;
+                    case 'B': note = 11; break;
+                    case 'H': note = 11; break;
+                }
+                
+                if (value[1] == 'B')
+                {
+                    note -= 1;
+                }
+                else if (value[1] == '#')
+                {
+                    note += 1;
+                }
+                
+                note += value.getTrailingIntValue() * 12;
+                
+                return (uint8)limit7Bit(note);
+            }
+        }
+        
+        return (uint8)limit7Bit(asDecOrHexIntValue(value));
+    }
+    
     uint8 asDecOrHex7BitValue(String value)
     {
         return (uint8)limit7Bit(asDecOrHexIntValue(value));
@@ -665,6 +704,11 @@ private:
         std::cout << "The MIDI device name doesn't have to be an exact match." << std::endl;
         std::cout << "If SendMIDI can't find the exact name that was specified, it will pick the" << std::endl
                   << "first MIDI output port that contains the provided text, irrespective of case." << std::endl;
+        std::cout << std::endl;
+        std::cout << "Where notes can be provided as arguments, they can also be written as note" << std::endl
+                  << "names, from C0 to G10 which corresponds to the note numbers 0 to 127." << std::endl
+                  << "Sharps can be added by using the '#' symbol after the note letter, and flats" << std::endl
+                  << "by using the letter 'b'. " << std::endl;
         std::cout << std::endl;
         std::cout << "In between commands, timestamps can be added in the format: HH:MM:SS.MIL," << std::endl
                   << "standing for hours, minutes, seconds and milliseconds" << std::endl

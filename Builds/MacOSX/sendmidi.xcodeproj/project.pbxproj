@@ -942,6 +942,7 @@
 					34074C549B134B42C03A1A7A,
 					CDAC0E7D477449C520CB95C6, ); name = Source; sourceTree = "<group>"; };
 		F65F2292588FF010F26B66CB = {isa = XCBuildConfiguration; buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -958,11 +959,12 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = ("../../JuceLibraryCode", "../../JuceLibraryCode/modules", "$(inherited)");
 				INSTALL_PATH = "/usr/bin";
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MACOSX_DEPLOYMENT_TARGET_ppc = 10.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.uwyn.sendmidi;
 				SDKROOT_ppc = macosx10.5; }; name = Debug; };
 		99DEB3BA267EFFBC73356EAB = {isa = XCBuildConfiguration; buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -980,7 +982,7 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = ("../../JuceLibraryCode", "../../JuceLibraryCode/modules", "$(inherited)");
 				INSTALL_PATH = "/usr/bin";
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MACOSX_DEPLOYMENT_TARGET_ppc = 10.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.uwyn.sendmidi;
 				SDKROOT_ppc = macosx10.5; }; name = Release; };
@@ -997,7 +999,6 @@
 				GCC_WARN_NON_VIRTUAL_DESTRUCTOR = YES;
 				GCC_WARN_TYPECHECK_CALLS_TO_PRINTF = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "sendmidi";
 				WARNING_CFLAGS = -Wreorder;
 				ZERO_LINK = NO; }; name = Debug; };

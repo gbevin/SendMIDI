@@ -953,8 +953,8 @@
 					"_DEBUG=1",
 					"DEBUG=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.8",
-					"JUCE_APP_VERSION_HEX=0x10008", );
+					"JUCE_APP_VERSION=1.0.9",
+					"JUCE_APP_VERSION_HEX=0x10009", );
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = ("../../JuceLibraryCode", "../../JuceLibraryCode/modules", "$(inherited)");
 				INSTALL_PATH = "/usr/bin";
@@ -974,8 +974,8 @@
 					"_NDEBUG=1",
 					"NDEBUG=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.8",
-					"JUCE_APP_VERSION_HEX=0x10008", );
+					"JUCE_APP_VERSION=1.0.9",
+					"JUCE_APP_VERSION_HEX=0x10009", );
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = ("../../JuceLibraryCode", "../../JuceLibraryCode/modules", "$(inherited)");

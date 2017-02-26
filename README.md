@@ -56,6 +56,7 @@ These are all the supported commands:
   ss    number         Send Song Select with song number (0-127)
   tun                  Send Tune Request
   mpe   zone range     Send MPE Configuration for zone (1-2) with range (0-15)
+  raw   bytes          Send raw MIDI from a series of bytes
   --                   Read commands from standard input until it's closed
 ```
 
@@ -64,7 +65,7 @@ Alternatively, you can use the following long versions of the commands:
   device decimal hexadecimal channel note-on note-off poly-pressure
   control-change program-change channel-pressure pitch-bend midi-clock continue
   active-sensing reset system-exclusive system-exclusive-file time-code
-  song-position song-select tune-request
+  song-position song-select tune-request raw-midi
 ```
 
 By default, numbers are interpreted in the decimal system, this can be changed to hexadecimal by sending the "hex" command.

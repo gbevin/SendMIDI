@@ -51,7 +51,8 @@ enum CommandIndex
     SONG_POSITION,
     SONG_SELECT,
     TUNE_REQUEST,
-    MPE_CONFIGURATION
+    MPE_CONFIGURATION,
+    RAW_MIDI
 };
 
 struct ApplicationCommand
@@ -120,6 +121,7 @@ public:
         commands_.add({"ss",    "song-select",              SONG_SELECT,            1, "number",         "Send Song Select with song number (0-127)"});
         commands_.add({"tun",   "tune-request",             TUNE_REQUEST,           0, "",               "Send Tune Request"});
         commands_.add({"mpe",   "",                         MPE_CONFIGURATION,      2, "zone range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
+        commands_.add({"raw",   "raw-midi",                 RAW_MIDI,              -1, "bytes",          "Send raw MIDI from a series of bytes"});
         
         channel_ = 1;
         useHexadecimalsByDefault_ = false;
@@ -551,6 +553,15 @@ private:
                 int range = jlimit(0, 15, asDecOrHexIntValue(cmd.opts_[1]));
                 sendRPN(zone == 1 ? 1 : 16, 6, range);
                 break;
+            }
+            case RAW_MIDI:
+            {
+                MemoryBlock mem(cmd.opts_.size(), true);
+                for (int i = 0; i < cmd.opts_.size(); ++i)
+                {
+                    mem[i] = (uint8)asDecOrHexIntValue(cmd.opts_[i]);
+                }
+                sendMidiMessage(MidiMessage(mem.getData(), mem.getSize()));
             }
         }
         

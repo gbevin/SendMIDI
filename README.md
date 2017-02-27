@@ -9,6 +9,10 @@ The project website is https://github.com/gbevin/SendMIDI
 ## Purpose
 This tool is mainly intended for configuration or setup through Control Change, RPN and NRPN messages, but many other MIDI messages can be sent.
 
+Here's a tutorial video about both SendMIDI and ReceiveMIDI, including some tips and tricks of how to use the command-line on macOS:
+
+<a href="https://www.youtube.com/watch?v=_o1kg0IbetY" target="_blank"><img src="https://i.ytimg.com/vi/_o1kg0IbetY/maxresdefault.jpg" alt="Tutorial Video" width="640" height="360" border="0" /></a>
+
 ## Download
 
 You can download pre-built binaries from the release section:

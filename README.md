@@ -37,6 +37,7 @@ These are all the supported commands:
   dec                  Interpret the next numbers as decimals by default
   hex                  Interpret the next numbers as hexadecimals by default
   ch    number         Set MIDI channel for the commands (1-16), defaults to 1
+  omc   number         Set octave for middle C, defaults to 5
   on    note velocity  Send Note On with note (0-127) and velocity (0-127)
   off   note velocity  Send Note Off with note (0-127) and velocity (0-127)
   pp    note value     Send Poly Pressure with note (0-127) and value (0-127)
@@ -66,10 +67,11 @@ These are all the supported commands:
 
 Alternatively, you can use the following long versions of the commands:
 ```
-  device decimal hexadecimal channel note-on note-off poly-pressure
-  control-change program-change channel-pressure pitch-bend midi-clock continue
-  active-sensing reset system-exclusive system-exclusive-file time-code
-  song-position song-select tune-request raw-midi
+  device decimal hexadecimal channel octave-middle-c note-on note-off
+  poly-pressure control-change program-change channel-pressure pitch-bend
+  midi-clock continue active-sensing reset system-exclusive
+  system-exclusive-file time-code song-position song-select tune-request
+  raw-midi
 ```
 
 By default, numbers are interpreted in the decimal system, this can be changed to hexadecimal by sending the "hex" command.
@@ -78,7 +80,7 @@ Additionally, by suffixing a number with "M" or "H", it will be interpreted as a
 The MIDI device name doesn't have to be an exact match.
 If SendMIDI can't find the exact name that was specified, it will pick the first MIDI output port that contains the provided text, irrespective of case.
 
-Where notes can be provided as arguments, they can also be written as note names, from C0 to G10 which corresponds to the note numbers 0 to 127. Sharps can be added by using the '#' symbol after the note letter, and flats by using the letter 'b'.
+Where notes can be provided as arguments, they can also be written as note names, by default from C0 to G10 which corresponds to note numbers 0 to 127. By setting the octave for middle C, the note name range can be changed. Sharps can be added by using the '#' symbol after the note letter, and flats by using the letter 'b'.
 
 In between commands, timestamps can be added in the format: HH:MM:SS.MIL, standing for hours, minutes, seconds and milliseconds (for example: 08:10:17.056). All the digits need to be present, possibly requiring leading zeros. When a timestamp is detected, SendMIDI ensures that the time difference since the previous timestamp has elapsed.
 

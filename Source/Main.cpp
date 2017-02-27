@@ -29,6 +29,7 @@ enum CommandIndex
     DECIMAL,
     HEXADECIMAL,
     CHANNEL,
+    OCTAVE_MIDDLE_C,
     NOTE_ON,
     NOTE_OFF,
     POLY_PRESSURE,
@@ -54,6 +55,8 @@ enum CommandIndex
     MPE_CONFIGURATION,
     RAW_MIDI
 };
+
+static const int DEFAULT_OCTAVE_MIDDLE_C = 5;
 
 struct ApplicationCommand
 {
@@ -98,6 +101,7 @@ public:
         commands_.add({"dec",   "decimal",                  DECIMAL,                0, "",               "Interpret the next numbers as decimals by default"});
         commands_.add({"hex",   "hexadecimal",              HEXADECIMAL,            0, "",               "Interpret the next numbers as hexadecimals by default"});
         commands_.add({"ch",    "channel",                  CHANNEL,                1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
+        commands_.add({"omc",   "octave-middle-c",          OCTAVE_MIDDLE_C,        1, "number",         "Set octave for middle C, defaults to 5"});
         commands_.add({"on",    "note-on",                  NOTE_ON,                2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
         commands_.add({"off",   "note-off",                 NOTE_OFF,               2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
         commands_.add({"pp",    "poly-pressure",            POLY_PRESSURE,          2, "note value",     "Send Poly Pressure with note (0-127) and value (0-127)"});
@@ -124,6 +128,7 @@ public:
         commands_.add({"raw",   "raw-midi",                 RAW_MIDI,              -1, "bytes",          "Send raw MIDI from a series of bytes"});
         
         channel_ = 1;
+        octaveMiddleC_ = DEFAULT_OCTAVE_MIDDLE_C;
         useHexadecimalsByDefault_ = false;
         currentCommand_ = ApplicationCommand::Dummy();
         lastTimeStampCounter_ = 0;
@@ -407,6 +412,9 @@ private:
             case CHANNEL:
                 channel_ = asDecOrHex7BitValue(cmd.opts_[0]);
                 break;
+            case OCTAVE_MIDDLE_C:
+                octaveMiddleC_ = asDecOrHex7BitValue(cmd.opts_[0]);
+                break;
             case NOTE_ON:
                 sendMidiMessage(MidiMessage::noteOn(channel_,
                                                     asNoteNumber(cmd.opts_[0]),
@@ -610,7 +618,7 @@ private:
                     note += 1;
                 }
                 
-                note += value.getTrailingIntValue() * 12;
+                note += (value.getTrailingIntValue() + DEFAULT_OCTAVE_MIDDLE_C - octaveMiddleC_) * 12;
                 
                 return (uint8)limit7Bit(note);
             }
@@ -706,7 +714,8 @@ private:
                   << "first MIDI output port that contains the provided text, irrespective of case." << std::endl;
         std::cout << std::endl;
         std::cout << "Where notes can be provided as arguments, they can also be written as note" << std::endl
-                  << "names, from C0 to G10 which corresponds to the note numbers 0 to 127." << std::endl
+                  << "names, by default from C0 to G10 which corresponds to note numbers 0 to 127." << std::endl
+                  << "By setting the octave for middle C, the note name range can be changed. " << std::endl
                   << "Sharps can be added by using the '#' symbol after the note letter, and flats" << std::endl
                   << "by using the letter 'b'. " << std::endl;
         std::cout << std::endl;
@@ -720,9 +729,10 @@ private:
     
     Array<ApplicationCommand> commands_;
     int channel_;
+    int octaveMiddleC_;
+    bool useHexadecimalsByDefault_;
     String midiOutName_;
     ScopedPointer<MidiOutput> midiOut_;
-    bool useHexadecimalsByDefault_;
     ApplicationCommand currentCommand_;
     uint32 lastTimeStampCounter_;
     int64_t lastTimeStamp_;

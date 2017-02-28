@@ -32,8 +32,8 @@
 namespace ProjectInfo
 {
     const char* const  projectName    = "sendmidi";
-    const char* const  versionString  = "1.0.10";
-    const int          versionNumber  = 0x1000a;
+    const char* const  versionString  = "1.0.11";
+    const int          versionNumber  = 0x1000b;
 }
 #endif
 

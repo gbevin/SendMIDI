@@ -25,6 +25,7 @@ enum CommandIndex
     LIST,
     PANIC,
     DEVICE,
+    VIRTUAL,
     TXTFILE,
     DECIMAL,
     HEXADECIMAL,
@@ -56,7 +57,8 @@ enum CommandIndex
     RAW_MIDI
 };
 
-static const int DEFAULT_OCTAVE_MIDDLE_C = 5;
+static const int DEFAULT_OCTAVE_MIDDLE_C = 3;
+static const String& DEFAULT_VIRTUAL_NAME = "SendMIDI";
 
 struct ApplicationCommand
 {
@@ -94,14 +96,15 @@ class sendMidiApplication  : public JUCEApplicationBase
 public:
     sendMidiApplication()
     {
-        commands_.add({"dev",   "device",                   DEVICE,                 1, "name",           "Set the name of the MIDI output port (REQUIRED)"});
+        commands_.add({"dev",   "device",                   DEVICE,                 1, "name",           "Set the name of the MIDI output port"});
+        commands_.add({"virt",  "virtual",                  VIRTUAL,               -1, "(name)",         "Use virtual MIDI port with optional name (Linux/macOS)"});
         commands_.add({"list",  "",                         LIST,                   0, "",               "Lists the MIDI output ports"});
         commands_.add({"panic", "",                         PANIC,                  0, "",               "Sends all possible Note Offs and relevant panic CCs"});
         commands_.add({"file",  "",                         TXTFILE,                1, "path",           "Loads commands from the specified program file"});
         commands_.add({"dec",   "decimal",                  DECIMAL,                0, "",               "Interpret the next numbers as decimals by default"});
         commands_.add({"hex",   "hexadecimal",              HEXADECIMAL,            0, "",               "Interpret the next numbers as hexadecimals by default"});
         commands_.add({"ch",    "channel",                  CHANNEL,                1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
-        commands_.add({"omc",   "octave-middle-c",          OCTAVE_MIDDLE_C,        1, "number",         "Set octave for middle C, defaults to 5"});
+        commands_.add({"omc",   "octave-middle-c",          OCTAVE_MIDDLE_C,        1, "number",         "Set octave for middle C, defaults to 3"});
         commands_.add({"on",    "note-on",                  NOTE_ON,                2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
         commands_.add({"off",   "note-off",                 NOTE_OFF,               2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
         commands_.add({"pp",    "poly-pressure",            POLY_PRESSURE,          2, "note value",     "Send Poly Pressure with note (0-127) and value (0-127)"});
@@ -203,15 +206,64 @@ private:
     {
         return string.containsOnly("1234567890");
     }
+
+    int64_t parseTimestamp(const String& param)
+    {
+        int64_t timestamp = 0;
+        if (param.length() == 12 && param[2] == ':' && param[5] == ':' && param[8] == '.')
+        {
+            String hours = param.substring(0, 2);
+            String minutes = param.substring(3, 5);
+            String seconds = param.substring(6, 8);
+            String millis = param.substring(9);
+            if (isNumeric(hours) && isNumeric(minutes) && isNumeric(seconds) && isNumeric(millis))
+            {
+                Time now = Time();
+                timestamp = Time(now.getYear(), now.getMonth(), now.getDayOfMonth(),
+                                 hours.getIntValue(), minutes.getIntValue(), seconds.getIntValue(), millis.getIntValue()).toMilliseconds();
+            }
+        }
+        else if (param.length() == 13 && param[0] == '+' && param[3] == ':' && param[6] == ':' && param[9] == '.')
+        {
+            String hours = param.substring(1, 3);
+            String minutes = param.substring(4, 6);
+            String seconds = param.substring(7, 9);
+            String millis = param.substring(10);
+            if (isNumeric(hours) && isNumeric(minutes) && isNumeric(seconds) && isNumeric(millis))
+            {
+                timestamp = (((int64_t(hours.getIntValue()) * 60 + int64_t(minutes.getIntValue())) * 60) + int64_t(seconds.getIntValue())) * 1000 + millis.getIntValue();
+            }
+        }
+        else if (param.length() == 7 && param[0] == '+' && param[3] == '.')
+        {
+            String seconds = param.substring(1, 3);
+            String millis = param.substring(4);
+            if (isNumeric(seconds) && isNumeric(millis))
+            {
+                timestamp = (int64_t(seconds.getIntValue())) * 1000 + millis.getIntValue();
+            }
+        }
+        return timestamp;
+    }
+    
+    void handleVarArgCommand()
+    {
+        if (currentCommand_.expectedOptions_ < 0)
+        {
+            executeCommand(currentCommand_);
+        }
+    }
     
     void parseParameters(StringArray& parameters)
     {
         for (String param : parameters)
         {
+            if (param == "--") continue;
+            
             ApplicationCommand* cmd = findApplicationCommand(param);
             if (cmd)
             {
-                // handle configuration commands immediately without setting up a new
+                // handle configuration commands immediately without setting up a new one
                 switch (cmd->command_)
                 {
                     case DECIMAL:
@@ -221,38 +273,24 @@ private:
                         useHexadecimalsByDefault_ = true;
                         break;
                     default:
-                        // handle variable arg commands
-                        if (currentCommand_.expectedOptions_ < 0)
-                        {
-                            executeCommand(currentCommand_);
-                        }
+                        handleVarArgCommand();
                         
                         currentCommand_ = *cmd;
                         break;
                 }
             }
-            else if (currentCommand_.command_ == NONE)
+            else
             {
-                // check if this is a time stamp
-                int64_t timestamp = 0;
-                if (param.length() == 12 && param[2] == ':' && param[5] == ':' && param[8] == '.')
-                {
-                    String hours = param.substring(0, 2);
-                    String minutes = param.substring(3, 5);
-                    String seconds = param.substring(6, 8);
-                    String millis = param.substring(9);
-                    if (isNumeric(hours) && isNumeric(minutes) && isNumeric(seconds) && isNumeric(millis))
-                    {
-                        Time now = Time();
-                        timestamp = Time(now.getYear(), now.getMonth(), now.getDayOfMonth(),
-                                         hours.getIntValue(), minutes.getIntValue(), seconds.getIntValue(), millis.getIntValue()).toMilliseconds();
-                    }
-                }
-
-                // handle the timestamp
+                int64_t timestamp = parseTimestamp(param);
                 if (timestamp)
                 {
-                    if (lastTimeStamp_ != 0)
+                    handleVarArgCommand();
+                    
+                    if (param[0] == '+')
+                    {
+                        Time::waitForMillisecondCounter(uint32(Time::getMillisecondCounter() + timestamp));
+                    }
+                    else if (lastTimeStamp_ != 0)
                     {
                         // wait for the time that needs to have elapsed since the previous timestamp
                         uint32 now_counter = Time::getMillisecondCounter();
@@ -274,8 +312,7 @@ private:
                     lastTimeStampCounter_ = Time::getMillisecondCounter();
                     lastTimeStamp_ = timestamp;
                 }
-                // treat it as a file
-                else
+                else if (currentCommand_.command_ == NONE)
                 {
                     File file = File::getCurrentWorkingDirectory().getChildFile(param);
                     if (file.existsAsFile())
@@ -283,11 +320,11 @@ private:
                         parseFile(file);
                     }
                 }
-            }
-            else if (currentCommand_.expectedOptions_ != 0)
-            {
-                currentCommand_.opts_.add(param);
-                currentCommand_.expectedOptions_ -= 1;
+                else if (currentCommand_.expectedOptions_ != 0)
+                {
+                    currentCommand_.opts_.add(param);
+                    currentCommand_.expectedOptions_ -= 1;
+                }
             }
             
             // handle fixed arg commands
@@ -297,11 +334,7 @@ private:
             }
         }
         
-        // handle variable arg commands
-        if (currentCommand_.expectedOptions_ < 0)
-        {
-            executeCommand(currentCommand_);
-        }
+        handleVarArgCommand();
     }
     
     void parseFile(File file)
@@ -373,6 +406,28 @@ private:
                 {
                     std::cerr << "Couldn't find MIDI output port \"" << midiOutName_ << "\"" << std::endl;
                 }
+                break;
+            }
+            case VIRTUAL:
+            {
+#if (JUCE_LINUX || JUCE_MAC)
+                String name = DEFAULT_VIRTUAL_NAME;
+                if (cmd.opts_.size())
+                {
+                    name = cmd.opts_[0];
+                }
+                midiOut_ = MidiOutput::createNewDevice(name);
+                if (midiOut_ == nullptr)
+                {
+                    std::cerr << "Couldn't create virtual MIDI output port \"" << name << "\"" << std::endl;
+                }
+                else
+                {
+                    midiOutName_ = cmd.opts_[0];
+                }
+#else
+                std::cerr << "Virtual MIDI output ports are not supported on Windows" << std::endl;
+#endif
                 break;
             }
             case PANIC:
@@ -618,7 +673,7 @@ private:
                     note += 1;
                 }
                 
-                note += (value.getTrailingIntValue() + DEFAULT_OCTAVE_MIDDLE_C - octaveMiddleC_) * 12;
+                note += (value.getTrailingIntValue() + 5 - octaveMiddleC_) * 12;
                 
                 return (uint8)limit7Bit(note);
             }
@@ -714,7 +769,7 @@ private:
                   << "first MIDI output port that contains the provided text, irrespective of case." << std::endl;
         std::cout << std::endl;
         std::cout << "Where notes can be provided as arguments, they can also be written as note" << std::endl
-                  << "names, by default from C0 to G10 which corresponds to note numbers 0 to 127." << std::endl
+                  << "names, by default from C-2 to G8 which corresponds to note numbers 0 to 127." << std::endl
                   << "By setting the octave for middle C, the note name range can be changed. " << std::endl
                   << "Sharps can be added by using the '#' symbol after the note letter, and flats" << std::endl
                   << "by using the letter 'b'. " << std::endl;
@@ -724,6 +779,13 @@ private:
                   << "(for example: 08:10:17.056). All the digits need to be present, possibly" << std::endl
                   << "requiring leading zeros. When a timestamp is detected, SendMIDI ensures that" << std::endl
                   << "the time difference since the previous timestamp has elapsed." << std::endl;
+        std::cout << std::endl;
+        std::cout << "When a timestamp is prefixed with a plus sign, it's considered relative and" << std::endl
+                  << "will be processed as a time offset instead of an absolute time. For example" << std::endl
+                  << "+00:00:01.060 will execute the next command one second and 60 milliseconds"  << std::endl
+                  << "later. For convenience, a relative timestamp can also be shortened to +SS.MIL"  << std::endl
+                  << "(for example: +01.060)." << std::endl;
+
         std::cout << std::endl;
     }
     

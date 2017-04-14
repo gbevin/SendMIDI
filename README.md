@@ -63,6 +63,8 @@ These are all the supported commands:
   tun                  Send Tune Request
   mpe   zone range     Send MPE Configuration for zone (1-2) with range (0-15)
   raw   bytes          Send raw MIDI from a series of bytes
+  -h  or  --help       Print Help (this message) and exit
+  --version            Print version information and exit
   --                   Read commands from standard input until it's closed
 ```
 

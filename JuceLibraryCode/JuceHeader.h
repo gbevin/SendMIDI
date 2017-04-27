@@ -10,8 +10,7 @@
 
 */
 
-#ifndef __APPHEADERFILE_U5JFXZ__
-#define __APPHEADERFILE_U5JFXZ__
+#pragma once
 
 #include "AppConfig.h"
 
@@ -32,9 +31,7 @@
 namespace ProjectInfo
 {
     const char* const  projectName    = "sendmidi";
-    const char* const  versionString  = "1.0.12";
-    const int          versionNumber  = 0x1000c;
+    const char* const  versionString  = "1.0.13";
+    const int          versionNumber  = 0x1000d;
 }
 #endif
-
-#endif   // __APPHEADERFILE_U5JFXZ__

@@ -598,7 +598,7 @@ private:
                 {
                     mem[i] = asDecOrHex7BitValue(cmd.opts_[i]);
                 }
-                sendMidiMessage(MidiMessage::createSysExMessage(mem.getData(), mem.getSize()));
+                sendMidiMessage(MidiMessage::createSysExMessage(mem.getData(), (int)mem.getSize()));
                 break;
             }
             case SYSTEM_EXCLUSIVE_FILE:
@@ -611,7 +611,7 @@ private:
                     bool readSuccess = file.loadFileAsData(mem);
                     if (readSuccess)
                     {
-                        sendMidiMessage(MidiMessage(mem.getData(), mem.getSize()));
+                        sendMidiMessage(MidiMessage(mem.getData(), (int)mem.getSize()));
                     }
                 }
                 else
@@ -637,7 +637,7 @@ private:
                 {
                     mem[i] = (uint8)asDecOrHexIntValue(cmd.opts_[i]);
                 }
-                sendMidiMessage(MidiMessage(mem.getData(), mem.getSize()));
+                sendMidiMessage(MidiMessage(mem.getData(), (int)mem.getSize()));
             }
         }
         

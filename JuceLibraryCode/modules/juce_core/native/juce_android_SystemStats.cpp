@@ -20,6 +20,15 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
+#define JNI_CLASS_MEMBERS(METHOD, STATICMETHOD, FIELD, STATICFIELD) \
+ STATICMETHOD (newProxyInstance, "newProxyInstance", "(Ljava/lang/ClassLoader;[Ljava/lang/Class;Ljava/lang/reflect/InvocationHandler;)Ljava/lang/Object;") \
+
+ DECLARE_JNI_CLASS (JavaProxy, "java/lang/reflect/Proxy");
+#undef JNI_CLASS_MEMBERS
+
 JNIClassBase::JNIClassBase (const char* cp)   : classPath (cp), classRef (0)
 {
     getClasses().add (this);
@@ -38,7 +47,7 @@ Array<JNIClassBase*>& JNIClassBase::getClasses()
 
 void JNIClassBase::initialise (JNIEnv* env)
 {
-    classRef = (jclass) env->NewGlobalRef (env->FindClass (classPath));
+    classRef = (jclass) env->NewGlobalRef (LocalRef<jobject> (env->FindClass (classPath)));
     jassert (classRef != 0);
 
     initialiseFields (env);
@@ -92,6 +101,106 @@ jfieldID JNIClassBase::resolveStaticField (JNIEnv* env, const char* fieldName, c
 }
 
 //==============================================================================
+LocalRef<jobject> CreateJavaInterface (AndroidInterfaceImplementer* implementer,
+                                       const StringArray& interfaceNames,
+                                       LocalRef<jobject> subclass)
+{
+    auto* env = getEnv();
+
+    implementer->javaSubClass = GlobalRef (subclass);
+
+    // you need to override at least one interface
+    jassert (interfaceNames.size() > 0);
+
+    auto classArray = LocalRef<jobject> (env->NewObjectArray (interfaceNames.size(), JavaClass, nullptr));
+    LocalRef<jobject> classLoader;
+
+    for (auto i = 0; i < interfaceNames.size(); ++i)
+    {
+        auto aClass = LocalRef<jobject> (env->FindClass (interfaceNames[i].toRawUTF8()));
+
+        if (aClass != nullptr)
+        {
+            if (i == 0)
+                classLoader = LocalRef<jobject> (env->CallObjectMethod (aClass, JavaClass.getClassLoader));
+
+            env->SetObjectArrayElement ((jobjectArray) classArray.get(), i, aClass);
+        }
+        else
+        {
+            // interface class not found
+            jassertfalse;
+        }
+    }
+
+    auto invocationHandler = LocalRef<jobject> (env->CallObjectMethod (android.activity,
+                                                                       JuceAppActivity.createInvocationHandler,
+                                                                       reinterpret_cast<jlong> (implementer)));
+
+    // CreateJavaInterface() is expected to be called just once for a given implementer
+    jassert (implementer->invocationHandler == nullptr);
+
+    implementer->invocationHandler = GlobalRef (invocationHandler);
+
+    return LocalRef<jobject> (env->CallStaticObjectMethod (JavaProxy, JavaProxy.newProxyInstance,
+                                                           classLoader.get(), classArray.get(),
+                                                           invocationHandler.get()));
+}
+
+LocalRef<jobject> CreateJavaInterface (AndroidInterfaceImplementer* implementer,
+                                       const StringArray& interfaceNames)
+{
+    return CreateJavaInterface (implementer, interfaceNames,
+                                LocalRef<jobject> (getEnv()->NewObject (JavaObject,
+                                                                        JavaObject.constructor)));
+}
+
+LocalRef<jobject> CreateJavaInterface (AndroidInterfaceImplementer* implementer,
+                                       const String& interfaceName)
+{
+    return CreateJavaInterface (implementer, StringArray (interfaceName));
+}
+
+AndroidInterfaceImplementer::~AndroidInterfaceImplementer()
+
+{
+    if (invocationHandler != nullptr)
+        getEnv()->CallVoidMethod (android.activity,
+                                  JuceAppActivity.invocationHandlerContextDeleted,
+                                  invocationHandler.get());
+}
+
+jobject AndroidInterfaceImplementer::invoke (jobject /*proxy*/, jobject method, jobjectArray args)
+{
+    auto* env = getEnv();
+    return env->CallObjectMethod (method, JavaMethod.invoke, javaSubClass.get(), args);
+}
+
+jobject juce_invokeImplementer (JNIEnv* env, jlong thisPtr, jobject proxy, jobject method, jobjectArray args)
+{
+    setEnv (env);
+    return reinterpret_cast<AndroidInterfaceImplementer*> (thisPtr)->invoke (proxy, method, args);
+}
+
+void juce_dispatchDelete (JNIEnv* env, jlong thisPtr)
+{
+    setEnv (env);
+    delete reinterpret_cast<AndroidInterfaceImplementer*> (thisPtr);
+}
+
+JUCE_JNI_CALLBACK (JUCE_JOIN_MACRO (JUCE_ANDROID_ACTIVITY_CLASSNAME, _00024NativeInvocationHandler), dispatchInvoke,
+                   jobject, (JNIEnv* env, jobject /*object*/, jlong thisPtr, jobject proxy, jobject method, jobjectArray args))
+{
+    return juce_invokeImplementer (env, thisPtr, proxy, method, args);
+}
+
+JUCE_JNI_CALLBACK (JUCE_JOIN_MACRO (JUCE_ANDROID_ACTIVITY_CLASSNAME, _00024NativeInvocationHandler), dispatchFinalize,
+                   void, (JNIEnv* env, jobject /*object*/, jlong thisPtr))
+{
+    juce_dispatchDelete (env, thisPtr);
+}
+
+//==============================================================================
 JavaVM* androidJNIJavaVM = nullptr;
 
 class JniEnvThreadHolder
@@ -116,16 +225,7 @@ public:
         return *instance;
     }
 
-    static JNIEnv* getEnv()
-    {
-        JNIEnv* env = reinterpret_cast<JNIEnv*> (pthread_getspecific (getInstance().threadKey));
-
-        // You are trying to use a JUCE function on a thread that was not created by JUCE.
-        // You need to first call setEnv on this thread before using JUCE
-        jassert (env != nullptr);
-
-        return env;
-    }
+    static JNIEnv* getEnv()   { return reinterpret_cast<JNIEnv*> (pthread_getspecific (getInstance().threadKey)); }
 
     static void setEnv (JNIEnv* env)
     {
@@ -167,7 +267,30 @@ private:
 JniEnvThreadHolder* JniEnvThreadHolder::instance = nullptr;
 
 //==============================================================================
-JNIEnv* getEnv() noexcept            { return JniEnvThreadHolder::getEnv(); }
+JNIEnv* attachAndroidJNI() noexcept
+{
+    auto* env = JniEnvThreadHolder::getEnv();
+
+    if (env == nullptr)
+    {
+        androidJNIJavaVM->AttachCurrentThread (&env, nullptr);
+        setEnv (env);
+    }
+
+    return env;
+}
+
+JNIEnv* getEnv() noexcept
+{
+    auto* env = JniEnvThreadHolder::getEnv();
+
+    // You are trying to use a JUCE function on a thread that was not created by JUCE.
+    // You need to first call setEnv on this thread before using JUCE
+    jassert (env != nullptr);
+
+    return env;
+}
+
 void setEnv (JNIEnv* env) noexcept   { JniEnvThreadHolder::setEnv (env); }
 
 extern "C" jint JNI_OnLoad (JavaVM* vm, void*)
@@ -257,6 +380,11 @@ String SystemStats::getDeviceDescription()
             + "-" + AndroidStatsHelpers::getAndroidOsBuildValue ("SERIAL");
 }
 
+String SystemStats::getDeviceManufacturer()
+{
+    return AndroidStatsHelpers::getAndroidOsBuildValue ("MANUFACTURER");
+}
+
 bool SystemStats::isOperatingSystem64Bit()
 {
    #if JUCE_64BIT
@@ -298,7 +426,7 @@ int SystemStats::getMemorySizeInMegabytes()
     struct sysinfo sysi;
 
     if (sysinfo (&sysi) == 0)
-        return (static_cast<int> (sysi.totalram * sysi.mem_unit) / (1024 * 1024));
+        return static_cast<int> ((sysi.totalram * sysi.mem_unit) / (1024 * 1024));
    #endif
 
     return 0;
@@ -343,7 +471,36 @@ String SystemStats::getDisplayLanguage() { return getUserLanguage() + "-" + getU
 //==============================================================================
 void CPUInformation::initialise() noexcept
 {
-    numPhysicalCPUs = numLogicalCPUs = jmax ((int) 1, (int) sysconf (_SC_NPROCESSORS_ONLN));
+    numPhysicalCPUs = numLogicalCPUs = jmax ((int) 1, (int) android_getCpuCount());
+
+    auto cpuFamily   = android_getCpuFamily();
+    auto cpuFeatures = android_getCpuFeatures();
+
+    if (cpuFamily == ANDROID_CPU_FAMILY_X86 || cpuFamily == ANDROID_CPU_FAMILY_X86_64)
+    {
+        hasMMX = hasSSE = hasSSE2 = (cpuFamily == ANDROID_CPU_FAMILY_X86_64);
+
+        hasSSSE3 = ((cpuFeatures & ANDROID_CPU_X86_FEATURE_SSSE3)  != 0);
+        hasSSE41 = ((cpuFeatures & ANDROID_CPU_X86_FEATURE_SSE4_1) != 0);
+        hasSSE42 = ((cpuFeatures & ANDROID_CPU_X86_FEATURE_SSE4_2) != 0);
+        hasAVX   = ((cpuFeatures & ANDROID_CPU_X86_FEATURE_AVX)    != 0);
+        hasAVX2  = ((cpuFeatures & ANDROID_CPU_X86_FEATURE_AVX2)   != 0);
+
+        // Google does not distinguish between MMX, SSE, SSE2, SSE3 and SSSE3. So
+        // I assume (and quick Google searches seem to confirm this) that there are
+        // only devices out there that either support all of this or none of this.
+        if (hasSSSE3)
+            hasMMX = hasSSE = hasSSE2 = hasSSE3 = true;
+    }
+    else if (cpuFamily == ANDROID_CPU_FAMILY_ARM)
+    {
+        hasNeon = ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_NEON) != 0);
+    }
+    else if (cpuFamily == ANDROID_CPU_FAMILY_ARM64)
+    {
+        // all arm 64-bit cpus have neon
+        hasNeon = true;
+    }
 }
 
 //==============================================================================
@@ -378,3 +535,5 @@ bool Time::setSystemTimeToThisTime() const
     jassertfalse;
     return false;
 }
+
+} // namespace juce

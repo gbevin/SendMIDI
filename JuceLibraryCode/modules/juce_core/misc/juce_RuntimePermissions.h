@@ -20,7 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -57,6 +58,8 @@
                  audioDeviceManager.initialise (2, 2, nullptr, true, String(), nullptr);
             }
         );
+
+    @tags{Core}
 */
 class JUCE_API  RuntimePermissions
 {
@@ -75,15 +78,17 @@ public:
             otherwise no devices will be found.
         */
         bluetoothMidi = 2,
+
+        /** Permission to read from external storage such as SD cards */
+        readExternalStorage = 3,
+
+        /** Permission to write to external storage such as SD cards */
+        writeExternalStorage = 4
     };
 
     //==============================================================================
     /** Function type of runtime permission request callbacks. */
-   #if JUCE_COMPILER_SUPPORTS_LAMBDAS
     typedef std::function<void (bool)> Callback;
-   #else
-    typedef void (*Callback) (bool);
-   #endif
 
     //==============================================================================
     /** Call this method to request a runtime permission.
@@ -119,3 +124,5 @@ public:
     */
     static bool isGranted (PermissionID permission);
 };
+
+} // namespace juce

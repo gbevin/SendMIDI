@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -32,6 +32,8 @@
     so it can easily use a midi input or keyboard component as its source.
 
     @see MidiMessage, MidiInput
+
+    @tags{Audio}
 */
 class JUCE_API  MidiMessageCollector    : public MidiKeyboardStateListener,
                                           public MidiInputCallback
@@ -89,10 +91,15 @@ public:
 
 private:
     //==============================================================================
-    double lastCallbackTime;
+    double lastCallbackTime = 0;
     CriticalSection midiCallbackLock;
     MidiBuffer incomingMessages;
-    double sampleRate;
+    double sampleRate = 44100.0;
+   #if JUCE_DEBUG
+    bool hasCalledReset = false;
+   #endif
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiMessageCollector)
 };
+
+} // namespace juce

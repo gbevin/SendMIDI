@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -31,6 +31,8 @@
     some or all of the virtual functions to implement their behaviour.
 
     @see InputStream, MemoryOutputStream, FileOutputStream
+
+    @tags{Core}
 */
 class JUCE_API  OutputStream
 {
@@ -265,3 +267,5 @@ JUCE_API OutputStream& JUCE_CALLTYPE operator<< (OutputStream& stream, InputStre
     @see OutputStream::setNewLineString
 */
 JUCE_API OutputStream& JUCE_CALLTYPE operator<< (OutputStream& stream, const NewLine&);
+
+} // namespace juce

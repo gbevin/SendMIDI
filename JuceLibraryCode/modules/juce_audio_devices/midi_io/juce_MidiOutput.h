@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -31,6 +31,8 @@
     available output devices, then use the openDevice() method to try to open one.
 
     @see MidiInput
+
+    @tags{Audio}
 */
 class JUCE_API  MidiOutput  : private Thread
 {
@@ -139,3 +141,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiOutput)
 };
+
+} // namespace juce

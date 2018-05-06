@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -74,7 +74,9 @@
     };
 
     @endcode
- */
+
+    @tags{Core}
+*/
 template <typename SharedObjectType>
 class SharedResourcePointer
 {
@@ -126,7 +128,7 @@ public:
     int getReferenceCount() const noexcept              { return getSharedObjectHolder().refCount; }
 
 private:
-    struct SharedObjectHolder  : public ReferenceCountedObject
+    struct SharedObjectHolder
     {
         SpinLock lock;
         ScopedPointer<SharedObjectType> sharedInstance;
@@ -154,7 +156,9 @@ private:
 
     // There's no need to assign to a SharedResourcePointer because every
     // instance of the class is exactly the same!
-    SharedResourcePointer& operator= (const SharedResourcePointer&) JUCE_DELETED_FUNCTION;
+    SharedResourcePointer& operator= (const SharedResourcePointer&) = delete;
 
     JUCE_LEAK_DETECTOR (SharedResourcePointer)
 };
+
+} // namespace juce

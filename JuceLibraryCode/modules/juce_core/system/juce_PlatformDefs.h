@@ -20,7 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
+namespace juce
+{
 
 //==============================================================================
 /*  This file defines miscellaneous macros for debugging, assertions, etc.
@@ -35,7 +36,7 @@
  #endif
 #endif
 
-/** This macro defines the C calling convention used as the standard for Juce calls. */
+/** This macro defines the C calling convention used as the standard for JUCE calls. */
 #if JUCE_MSVC
  #define JUCE_CALLTYPE   __stdcall
  #define JUCE_CDECL      __cdecl
@@ -81,7 +82,7 @@
 #if JUCE_CLANG && defined (__has_feature) && ! defined (JUCE_ANALYZER_NORETURN)
  #if __has_feature (attribute_analyzer_noreturn)
   inline void __attribute__((analyzer_noreturn)) juce_assert_noreturn() {}
-  #define JUCE_ANALYZER_NORETURN juce_assert_noreturn();
+  #define JUCE_ANALYZER_NORETURN juce::juce_assert_noreturn();
  #endif
 #endif
 
@@ -190,8 +191,8 @@
     };@endcode
 */
 #define JUCE_DECLARE_NON_COPYABLE(className) \
-    className (const className&) JUCE_DELETED_FUNCTION;\
-    className& operator= (const className&) JUCE_DELETED_FUNCTION;
+    className (const className&) = delete;\
+    className& operator= (const className&) = delete;
 
 /** This is a shorthand way of writing both a JUCE_DECLARE_NON_COPYABLE and
     JUCE_LEAK_DETECTOR macro for a class.
@@ -205,8 +206,8 @@
 */
 #define JUCE_PREVENT_HEAP_ALLOCATION \
    private: \
-    static void* operator new (size_t) JUCE_DELETED_FUNCTION; \
-    static void operator delete (void*) JUCE_DELETED_FUNCTION;
+    static void* operator new (size_t) = delete; \
+    static void operator delete (void*) = delete;
 
 //==============================================================================
 #if JUCE_MSVC && ! defined (DOXYGEN)
@@ -259,12 +260,15 @@
  #define JUCE_DEPRECATED(functionDef)
  #define JUCE_DEPRECATED_WITH_BODY(functionDef, body)
 #elif JUCE_MSVC && ! JUCE_NO_DEPRECATION_WARNINGS
- #define JUCE_DEPRECATED(functionDef)                   __declspec(deprecated) functionDef
- #define JUCE_DEPRECATED_WITH_BODY(functionDef, body)   __declspec(deprecated) functionDef body
+ #define JUCE_DEPRECATED_ATTRIBUTE                      __declspec(deprecated)
+ #define JUCE_DEPRECATED(functionDef)                   JUCE_DEPRECATED_ATTRIBUTE functionDef
+ #define JUCE_DEPRECATED_WITH_BODY(functionDef, body)   JUCE_DEPRECATED_ATTRIBUTE functionDef body
 #elif (JUCE_GCC || JUCE_CLANG) && ! JUCE_NO_DEPRECATION_WARNINGS
- #define JUCE_DEPRECATED(functionDef)                   functionDef __attribute__ ((deprecated))
- #define JUCE_DEPRECATED_WITH_BODY(functionDef, body)   functionDef __attribute__ ((deprecated)) body
+ #define JUCE_DEPRECATED_ATTRIBUTE                      __attribute__ ((deprecated))
+ #define JUCE_DEPRECATED(functionDef)                   functionDef JUCE_DEPRECATED_ATTRIBUTE
+ #define JUCE_DEPRECATED_WITH_BODY(functionDef, body)   functionDef JUCE_DEPRECATED_ATTRIBUTE body
 #else
+ #define JUCE_DEPRECATED_ATTRIBUTE
  #define JUCE_DEPRECATED(functionDef)                   functionDef
  #define JUCE_DEPRECATED_WITH_BODY(functionDef, body)   functionDef body
 #endif
@@ -293,3 +297,5 @@
 #else
  #define JUCE_NO_ASSOCIATIVE_MATH_OPTIMISATIONS
 #endif
+
+} // namespace juce

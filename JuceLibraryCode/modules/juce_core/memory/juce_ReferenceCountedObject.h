@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -54,6 +54,8 @@
     version, use SingleThreadedReferenceCountedObject instead.
 
     @see ReferenceCountedObjectPtr, ReferenceCountedArray, SingleThreadedReferenceCountedObject
+
+    @tags{Core}
 */
 class JUCE_API  ReferenceCountedObject
 {
@@ -99,6 +101,15 @@ protected:
     /** Creates the reference-counted object (with an initial ref count of zero). */
     ReferenceCountedObject() {}
 
+    /** Copying from another object does not affect this one's reference-count. */
+    ReferenceCountedObject (const ReferenceCountedObject&) noexcept {}
+    /** Copying from another object does not affect this one's reference-count. */
+    ReferenceCountedObject (ReferenceCountedObject&&) noexcept {}
+    /** Copying from another object does not affect this one's reference-count. */
+    ReferenceCountedObject& operator= (const ReferenceCountedObject&) noexcept  { return *this; }
+    /** Copying from another object does not affect this one's reference-count. */
+    ReferenceCountedObject& operator= (ReferenceCountedObject&&) noexcept       { return *this; }
+
     /** Destructor. */
     virtual ~ReferenceCountedObject()
     {
@@ -116,10 +127,8 @@ protected:
 
 private:
     //==============================================================================
-    Atomic <int> refCount;
-
+    Atomic<int> refCount { 0 };
     friend struct ContainerDeletePolicy<ReferenceCountedObject>;
-    JUCE_DECLARE_NON_COPYABLE (ReferenceCountedObject)
 };
 
 
@@ -133,6 +142,8 @@ private:
     For more details on how to use it, see the ReferenceCountedObject class notes.
 
     @see ReferenceCountedObject, ReferenceCountedObjectPtr, ReferenceCountedArray
+
+    @tags{Core}
 */
 class JUCE_API  SingleThreadedReferenceCountedObject
 {
@@ -176,7 +187,16 @@ public:
 protected:
     //==============================================================================
     /** Creates the reference-counted object (with an initial ref count of zero). */
-    SingleThreadedReferenceCountedObject() : refCount (0)  {}
+    SingleThreadedReferenceCountedObject() {}
+
+    /** Copying from another object does not affect this one's reference-count. */
+    SingleThreadedReferenceCountedObject (const SingleThreadedReferenceCountedObject&) {}
+    /** Copying from another object does not affect this one's reference-count. */
+    SingleThreadedReferenceCountedObject (SingleThreadedReferenceCountedObject&&) {}
+    /** Copying from another object does not affect this one's reference-count. */
+    SingleThreadedReferenceCountedObject& operator= (const SingleThreadedReferenceCountedObject&) { return *this; }
+    /** Copying from another object does not affect this one's reference-count. */
+    SingleThreadedReferenceCountedObject& operator= (SingleThreadedReferenceCountedObject&&) { return *this; }
 
     /** Destructor. */
     virtual ~SingleThreadedReferenceCountedObject()
@@ -187,10 +207,8 @@ protected:
 
 private:
     //==============================================================================
-    int refCount;
-
+    int refCount = 0;
     friend struct ContainerDeletePolicy<ReferenceCountedObject>;
-    JUCE_DECLARE_NON_COPYABLE (SingleThreadedReferenceCountedObject)
 };
 
 
@@ -212,9 +230,12 @@ private:
     {
         typedef ReferenceCountedObjectPtr<MyClass> Ptr;
         ...
+    }
     @endcode
 
     @see ReferenceCountedObject, ReferenceCountedObjectArray
+
+    @tags{Core}
 */
 template <class ReferenceCountedObjectClass>
 class ReferenceCountedObjectPtr
@@ -225,10 +246,10 @@ public:
 
     //==============================================================================
     /** Creates a pointer to a null object. */
-    ReferenceCountedObjectPtr() noexcept
-        : referencedObject (nullptr)
-    {
-    }
+    ReferenceCountedObjectPtr() noexcept {}
+
+    /** Creates a pointer to a null object. */
+    ReferenceCountedObjectPtr (decltype (nullptr)) noexcept {}
 
     /** Creates a pointer to an object.
         This will increment the object's reference-count.
@@ -237,12 +258,6 @@ public:
         : referencedObject (refCountedObject)
     {
         incIfNotNull (refCountedObject);
-    }
-
-    /** Creates a pointer to a null object. */
-    ReferenceCountedObjectPtr (decltype (nullptr)) noexcept
-        : referencedObject (nullptr)
-    {
     }
 
     /** Copies another pointer.
@@ -293,7 +308,7 @@ public:
         if (referencedObject != newObject)
         {
             incIfNotNull (newObject);
-            ReferencedType* const oldObject = referencedObject;
+            auto* oldObject = referencedObject;
             referencedObject = newObject;
             decIfNotNull (oldObject);
         }
@@ -349,7 +364,7 @@ public:
 
 private:
     //==============================================================================
-    ReferencedType* referencedObject;
+    ReferencedType* referencedObject = nullptr;
 
     static void incIfNotNull (ReferencedType* o) noexcept
     {
@@ -407,3 +422,5 @@ bool operator!= (ReferenceCountedObjectClass* object1, const ReferenceCountedObj
 {
     return object1 != object2.get();
 }
+
+} // namespace juce

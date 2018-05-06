@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -32,6 +32,8 @@
     formatted to meet the RFC 4122 version 4 standard.
 
     The class includes methods for saving the ID as a string or as raw binary data.
+
+    @tags{Core}
 */
 class JUCE_API  Uuid
 {
@@ -58,6 +60,10 @@ public:
 
     bool operator== (const Uuid&) const noexcept;
     bool operator!= (const Uuid&) const noexcept;
+    bool operator<  (const Uuid&) const noexcept;
+    bool operator>  (const Uuid&) const noexcept;
+    bool operator<= (const Uuid&) const noexcept;
+    bool operator>= (const Uuid&) const noexcept;
 
     //==============================================================================
     /** Returns a stringified version of this UUID.
@@ -86,6 +92,20 @@ public:
 
 
     //==============================================================================
+    /** Returns the time-low section of the UUID. */
+    uint32 getTimeLow() const noexcept;
+    /** Returns the time-mid section of the UUID. */
+    uint16 getTimeMid() const noexcept;
+    /** Returns the time-high-and-version section of the UUID. */
+    uint16 getTimeHighAndVersion() const noexcept;
+    /** Returns the clock-seq-and-reserved section of the UUID. */
+    uint8  getClockSeqAndReserved() const noexcept;
+    /** Returns the clock-seq-low section of the UUID. */
+    uint8  getClockSeqLow() const noexcept;
+    /** Returns the node section of the UUID. */
+    uint64 getNode() const noexcept;
+
+    //==============================================================================
     /** Returns a pointer to the internal binary representation of the ID.
 
         This is an array of 16 bytes. To reconstruct a Uuid from its data, use
@@ -106,6 +126,9 @@ private:
     //==============================================================================
     uint8 uuid[16];
     String getHexRegion (int, int) const;
+    int compare (Uuid) const noexcept;
 
     JUCE_LEAK_DETECTOR (Uuid)
 };
+
+} // namespace juce

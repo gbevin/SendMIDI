@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -45,6 +45,8 @@
     internally, each one identified by an ID number.
 
     @see HighResolutionTimer, MultiTimer
+
+    @tags{Events}
 */
 class JUCE_API  Timer
 {
@@ -114,10 +116,8 @@ public:
     int getTimerInterval() const noexcept                   { return timerPeriodMs; }
 
     //==============================================================================
-   #if JUCE_COMPILER_SUPPORTS_LAMBDAS
     /** Invokes a lambda after a given number of milliseconds. */
     static void JUCE_CALLTYPE callAfterDelay (int milliseconds, std::function<void()> functionToCall);
-   #endif
 
     //==============================================================================
     /** For internal use only: invokes any timers that need callbacks.
@@ -128,8 +128,10 @@ public:
 private:
     class TimerThread;
     friend class TimerThread;
-    int timerCountdownMs, timerPeriodMs; // NB: these member variable names are a little verbose
-    Timer* previousTimer, *nextTimer;    // to reduce risk of name-clashes with user subclasses
+    size_t positionInQueue = (size_t) -1;
+    int timerPeriodMs = 0;
 
-    Timer& operator= (const Timer&) JUCE_DELETED_FUNCTION;
+    Timer& operator= (const Timer&) = delete;
 };
+
+} // namespace juce

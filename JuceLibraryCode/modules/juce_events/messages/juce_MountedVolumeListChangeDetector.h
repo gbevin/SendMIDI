@@ -20,7 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
+namespace juce
+{
 
 #if JUCE_MAC || JUCE_WINDOWS || defined (DOXYGEN)
 
@@ -33,6 +34,8 @@
     to get the callbacks, there's no need to do anything else.
 
     @see File::findFileSystemRoots()
+
+    @tags{Events}
 */
 class JUCE_API  MountedVolumeListChangeDetector
 {
@@ -52,3 +55,5 @@ private:
 };
 
 #endif
+
+} // namespace juce

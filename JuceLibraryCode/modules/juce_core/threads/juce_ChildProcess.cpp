@@ -20,6 +20,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 ChildProcess::ChildProcess() {}
 ChildProcess::~ChildProcess() {}
 
@@ -45,12 +48,14 @@ uint32 ChildProcess::getExitCode() const
 
 bool ChildProcess::waitForProcessToFinish (const int timeoutMs) const
 {
-    const uint32 timeoutTime = Time::getMillisecondCounter() + (uint32) timeoutMs;
+    auto timeoutTime = Time::getMillisecondCounter() + (uint32) timeoutMs;
 
     do
     {
         if (! isRunning())
             return true;
+
+        Thread::sleep (2);
     }
     while (timeoutMs < 0 || Time::getMillisecondCounter() < timeoutTime);
 
@@ -63,8 +68,8 @@ String ChildProcess::readAllProcessOutput()
 
     for (;;)
     {
-        char buffer [512];
-        const int num = readProcessOutput (buffer, sizeof (buffer));
+        char buffer[512];
+        auto num = readProcessOutput (buffer, sizeof (buffer));
 
         if (num <= 0)
             break;
@@ -81,7 +86,7 @@ String ChildProcess::readAllProcessOutput()
 class ChildProcessTests  : public UnitTest
 {
 public:
-    ChildProcessTests() : UnitTest ("ChildProcess") {}
+    ChildProcessTests() : UnitTest ("ChildProcess", "Threads") {}
 
     void runTest() override
     {
@@ -105,3 +110,5 @@ public:
 static ChildProcessTests childProcessUnitTests;
 
 #endif
+
+} // namespace juce

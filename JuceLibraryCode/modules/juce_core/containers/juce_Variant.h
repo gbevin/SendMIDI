@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -35,6 +35,8 @@
     using writeToStream()/readFromStream(), or as JSON by using the JSON class.
 
     @see JSON, DynamicObject
+
+    @tags{Core}
 */
 class JUCE_API  var
 {
@@ -47,18 +49,15 @@ public:
     {
         NativeFunctionArgs (const var& thisObject, const var* args, int numArgs) noexcept;
 
+        // Suppress a VS2013 compiler warning
+        NativeFunctionArgs& operator= (const NativeFunctionArgs&) = delete;
+
         const var& thisObject;
         const var* arguments;
         int numArguments;
-
-        JUCE_DECLARE_NON_COPYABLE (NativeFunctionArgs)
     };
 
-   #if JUCE_COMPILER_SUPPORTS_LAMBDAS
     using NativeFunction = std::function<var (const NativeFunctionArgs&)>;
-   #else
-    typedef var (*NativeFunction) (const NativeFunctionArgs&);
-   #endif
 
     //==============================================================================
     /** Creates a void variant. */
@@ -66,11 +65,6 @@ public:
 
     /** Destructor. */
     ~var() noexcept;
-
-   #if JUCE_ALLOW_STATIC_NULL_VARIABLES
-    /** A static var object that can be used where you need an empty variant object. */
-    static const var null;
-   #endif
 
     var (const var& valueToCopy);
     var (int value) noexcept;
@@ -246,6 +240,8 @@ public:
     /** If this variant is an object, this returns one of its properties, or a default
         fallback value if the property is not set. */
     var getProperty (const Identifier& propertyName, const var& defaultReturnValue) const;
+    /** Returns true if this variant is an object and if it has the given property. */
+    bool hasProperty (const Identifier& propertyName) const noexcept;
 
     /** Invokes a named method call with no arguments. */
     var call (const Identifier& method) const;
@@ -277,6 +273,18 @@ public:
         @see JSON
     */
     static var readFromStream (InputStream& input);
+
+   #if JUCE_ALLOW_STATIC_NULL_VARIABLES
+    /** This was a static empty var object, but is now deprecated as it's too easy to accidentally
+        use it indirectly during a static constructor, leading to hard-to-find order-of-initialisation
+        problems.
+        @deprecated If you need a default-constructed var, just use var() or {}.
+        The only time you might miss having var::null available might be if you need to return an
+        empty var from a function by reference, but if you need to do that, it's easy enough to use
+        a function-local static var and return that, avoiding any order-of-initialisation issues.
+    */
+    static const var null;
+   #endif
 
 private:
     //==============================================================================
@@ -322,7 +330,10 @@ JUCE_API bool operator== (const var&, const char*);
 JUCE_API bool operator!= (const var&, const char*);
 
 //==============================================================================
-/** This template-overloaded class can be used to convert between var and custom types. */
+/** This template-overloaded class can be used to convert between var and custom types.
+
+    @tags{Core}
+*/
 template <typename Type>
 struct VariantConverter
 {
@@ -330,10 +341,13 @@ struct VariantConverter
     static var toVar (const Type& t)               { return t; }
 };
 
-/** This template-overloaded class can be used to convert between var and custom types. */
+#ifndef DOXYGEN
 template <>
 struct VariantConverter<String>
 {
     static String fromVar (const var& v)           { return v.toString(); }
     static var toVar (const String& s)             { return s; }
 };
+#endif
+
+} // namespace juce

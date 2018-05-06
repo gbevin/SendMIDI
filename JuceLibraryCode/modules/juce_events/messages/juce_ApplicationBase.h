@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -78,6 +78,8 @@
     @endcode
 
     @see JUCEApplication, START_JUCE_APPLICATION
+
+    @tags{Events}
 */
 class JUCE_API  JUCEApplicationBase
 {
@@ -188,6 +190,22 @@ public:
                                      const String& sourceFilename,
                                      int lineNumber) = 0;
 
+    /** Called by the operating system to indicate that you should reduce your memory
+        footprint.
+
+        You should override this method to free up some memory gracefully, if possible,
+        otherwise the host may forcibly kill your app.
+
+        At the moment this method is only called on iOS.
+    */
+    virtual void memoryWarningReceived()     { jassertfalse; }
+
+    //==============================================================================
+    /** Override this method to be informed when the back button is pressed on a device.
+        This is currently only implemented on Android devices.
+     */
+    virtual void backButtonPressed() {}
+
     //==============================================================================
     /** Signals that the main message loop should stop and the application should terminate.
 
@@ -249,11 +267,15 @@ public:
    #ifndef DOXYGEN
     // The following methods are for internal use only...
     static int main();
-    static int main (int argc, const char* argv[], void*);
+    static int main (int argc, const char* argv[]);
 
     static void appWillTerminateByForce();
     typedef JUCEApplicationBase* (*CreateInstanceFunction)();
     static CreateInstanceFunction createInstance;
+
+   #if JUCE_IOS
+    static void* iOSCustomDelegate;
+   #endif
 
     virtual bool initialiseApp();
     int shutdownApp();
@@ -264,8 +286,8 @@ public:
 private:
     //==============================================================================
     static JUCEApplicationBase* appInstance;
-    int appReturnValue;
-    bool stillInitialising;
+    int appReturnValue = 0;
+    bool stillInitialising = true;
 
     struct MultipleInstanceHandler;
     friend struct MultipleInstanceHandler;
@@ -297,3 +319,5 @@ private:
  #define JUCE_TRY
  #define JUCE_CATCH_EXCEPTION
 #endif
+
+} // namespace juce

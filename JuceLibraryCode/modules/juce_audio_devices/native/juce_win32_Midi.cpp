@@ -20,6 +20,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 struct MidiServiceType
 {
     struct InputWrapper
@@ -27,7 +30,6 @@ struct MidiServiceType
         virtual ~InputWrapper() {}
 
         virtual String getDeviceName() = 0;
-
         virtual void start() = 0;
         virtual void stop() = 0;
     };
@@ -37,7 +39,6 @@ struct MidiServiceType
         virtual ~OutputWrapper() {}
 
         virtual String getDeviceName() = 0;
-
         virtual void sendMessageNow (const MidiMessage&) = 0;
     };
 
@@ -47,10 +48,8 @@ struct MidiServiceType
     virtual StringArray getDevices (bool) = 0;
     virtual int getDefaultDeviceIndex (bool) = 0;
 
-    virtual InputWrapper* createInputWrapper (MidiInput* const,
-                                              const int,
-                                              MidiInputCallback* const callback) = 0;
-    virtual OutputWrapper* createOutputWrapper (const int) = 0;
+    virtual InputWrapper* createInputWrapper (MidiInput*, int, MidiInputCallback*) = 0;
+    virtual OutputWrapper* createOutputWrapper (int) = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiServiceType)
 };
@@ -61,9 +60,8 @@ class WindowsMidiService  : public MidiServiceType
 private:
     struct WindowsInputWrapper  : public InputWrapper
     {
-        class MidiInCollector
+        struct MidiInCollector
         {
-        public:
             MidiInCollector (WindowsMidiService& s,
                              MidiInput* const inputDevice,
                              MidiInputCallback& cb)
@@ -155,7 +153,7 @@ private:
             static void CALLBACK midiInCallback (HMIDIIN, UINT uMsg, DWORD_PTR dwInstance,
                                                  DWORD_PTR midiMessage, DWORD_PTR timeStamp)
             {
-                MidiInCollector* const collector = reinterpret_cast<MidiInCollector*> (dwInstance);
+                auto* collector = reinterpret_cast<MidiInCollector*> (dwInstance);
 
                 if (collector->midiService.activeMidiCollectors.contains (collector))
                 {
@@ -176,9 +174,8 @@ private:
             bool volatile isStarted = false;
             double startTime = 0;
 
-            class MidiHeader
+            struct MidiHeader
             {
-            public:
                 MidiHeader() {}
 
                 void prepare (HMIDIIN device)
@@ -214,7 +211,6 @@ private:
                         write (device);
                 }
 
-            private:
                 MIDIHDR hdr;
                 char data [256];
 
@@ -238,9 +234,9 @@ private:
 
             double convertTimeStamp (uint32 timeStamp)
             {
-                double t = startTime + timeStamp;
+                auto t = startTime + timeStamp;
+                auto now = Time::getMillisecondCounterHiRes();
 
-                const double now = Time::getMillisecondCounterHiRes();
                 if (t > now)
                 {
                     if (t > now + 2.0)
@@ -255,31 +251,19 @@ private:
             JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiInCollector)
         };
 
+        //==============================================================================
         WindowsInputWrapper (WindowsMidiService& parentService,
                              MidiInput* const input,
                              const int index,
                              MidiInputCallback* const callback)
         {
+            auto names = getDevices();
             UINT deviceId = MIDI_MAPPER;
-            int n = 0;
 
-            const UINT num = midiInGetNumDevs();
-
-            for (UINT i = 0; i < num; ++i)
+            if (isPositiveAndBelow (index, names.size()))
             {
-                MIDIINCAPS mc = { 0 };
-
-                if (midiInGetDevCaps (i, &mc, sizeof (mc)) == MMSYSERR_NOERROR)
-                {
-                    if (index == n)
-                    {
-                        deviceId = i;
-                        deviceName = String (mc.szPname, (size_t) numElementsInArray (mc.szPname));
-                        break;
-                    }
-
-                    ++n;
-                }
+                deviceName = names[index];
+                deviceId = index;
             }
 
             collector = new MidiInCollector (parentService, input, *callback);
@@ -308,9 +292,10 @@ private:
                 MIDIINCAPS mc = { 0 };
 
                 if (midiInGetDevCaps (i, &mc, sizeof (mc)) == MMSYSERR_NOERROR)
-                    s.add (String (mc.szPname, sizeof (mc.szPname)));
+                    s.add (String (mc.szPname, (size_t) numElementsInArray (mc.szPname)));
             }
 
+            s.appendNumbersToDuplicates (false, false, CharPointer_UTF8 ("-"), CharPointer_UTF8 (""));
             return s;
         }
 
@@ -333,47 +318,52 @@ private:
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WindowsInputWrapper)
     };
 
+    //==============================================================================
     struct WindowsOutputWrapper  : public OutputWrapper
     {
-        struct MidiOutHandle
+        struct MidiOutHandle    : public ReferenceCountedObject
         {
-            int refCount;
+            using Ptr = ReferenceCountedObjectPtr<MidiOutHandle>;
+
+            MidiOutHandle (WindowsMidiService& parent, UINT id, HMIDIOUT h)
+                : owner (parent), deviceId (id), handle (h)
+            {
+                owner.activeOutputHandles.add (this);
+            }
+
+            ~MidiOutHandle()
+            {
+                if (handle != nullptr)
+                    midiOutClose (handle);
+
+                owner.activeOutputHandles.removeFirstMatchingValue (this);
+            }
+
+            WindowsMidiService& owner;
             UINT deviceId;
             HMIDIOUT handle;
 
-        private:
-            JUCE_LEAK_DETECTOR (MidiOutHandle)
+            JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiOutHandle)
         };
 
-        WindowsOutputWrapper (WindowsMidiService& p, const int index)
-            : parent (p)
+        WindowsOutputWrapper (WindowsMidiService& p, int index) : parent (p)
         {
+            auto names = getDevices();
             UINT deviceId = MIDI_MAPPER;
-            const UINT num = midiOutGetNumDevs();
-            int n = 0;
 
-            for (UINT i = 0; i < num; ++i)
+            if (isPositiveAndBelow (index, names.size()))
             {
-                MIDIOUTCAPS mc = { 0 };
+                deviceName = names[index];
+                deviceId = index;
+            }
 
-                if (midiOutGetDevCaps (i, &mc, sizeof (mc)) == MMSYSERR_NOERROR)
-                {
-                    String name = String (mc.szPname, sizeof (mc.szPname));
-
-                    // use the microsoft sw synth as a default - best not to allow deviceId
-                    // to be MIDI_MAPPER, or else device sharing breaks
-                    if (name.containsIgnoreCase ("microsoft"))
-                        deviceId = i;
-
-                    if (index == n)
-                    {
-                        deviceName = name;
-                        deviceId = i;
-                        break;
-                    }
-
-                    ++n;
-                }
+            if (deviceId == MIDI_MAPPER)
+            {
+                // use the microsoft sw synth as a default - best not to allow deviceId
+                // to be MIDI_MAPPER, or else device sharing breaks
+                for (int i = 0; i < names.size(); ++i)
+                    if (names[i].containsIgnoreCase ("microsoft"))
+                        deviceId = (UINT) i;
             }
 
             for (int i = parent.activeOutputHandles.size(); --i >= 0;)
@@ -382,9 +372,7 @@ private:
 
                 if (activeHandle->deviceId == deviceId)
                 {
-                    activeHandle->refCount++;
                     han = activeHandle;
-
                     return;
                 }
             }
@@ -396,34 +384,17 @@ private:
 
                 if (res == MMSYSERR_NOERROR)
                 {
-                    han = new MidiOutHandle();
-                    han->deviceId = deviceId;
-                    han->refCount = 1;
-                    han->handle = h;
-                    parent.activeOutputHandles.add (han);
-
+                    han = new MidiOutHandle (parent, deviceId, h);
                     return;
                 }
-                else if (res == MMSYSERR_ALLOCATED)
-                {
+
+                if (res == MMSYSERR_ALLOCATED)
                     Sleep (100);
-                }
                 else
-                {
                     break;
-                }
             }
 
             throw std::runtime_error ("Failed to create Windows output device wrapper");
-        }
-
-        ~WindowsOutputWrapper()
-        {
-            if (parent.activeOutputHandles.contains (han.get()) && --(han->refCount) == 0)
-            {
-                midiOutClose (han->handle);
-                parent.activeOutputHandles.removeFirstMatchingValue (han.get());
-            }
         }
 
         void sendMessageNow (const MidiMessage& message) override
@@ -470,9 +441,9 @@ private:
             }
         }
 
-        static StringArray getDevices()
+        static Array<MIDIOUTCAPS> getDeviceCaps()
         {
-            StringArray s;
+            Array<MIDIOUTCAPS> devices;
             const UINT num = midiOutGetNumDevs();
 
             for (UINT i = 0; i < num; ++i)
@@ -480,28 +451,33 @@ private:
                 MIDIOUTCAPS mc = { 0 };
 
                 if (midiOutGetDevCaps (i, &mc, sizeof (mc)) == MMSYSERR_NOERROR)
-                    s.add (String (mc.szPname, sizeof (mc.szPname)));
+                    devices.add (mc);
             }
 
+            return devices;
+        }
+
+        static StringArray getDevices()
+        {
+            StringArray s;
+
+            for (auto& mc : getDeviceCaps())
+                s.add (String (mc.szPname, (size_t) numElementsInArray (mc.szPname)));
+
+            s.appendNumbersToDuplicates (false, false, CharPointer_UTF8 ("-"), CharPointer_UTF8 (""));
             return s;
         }
 
         static int getDefaultDeviceIndex()
         {
-            const UINT num = midiOutGetNumDevs();
             int n = 0;
 
-            for (UINT i = 0; i < num; ++i)
+            for (auto& mc : getDeviceCaps())
             {
-                MIDIOUTCAPS mc = { 0 };
+                if ((mc.wTechnology & MOD_MAPPER) != 0)
+                    return n;
 
-                if (midiOutGetDevCaps (i, &mc, sizeof (mc)) == MMSYSERR_NOERROR)
-                {
-                    if ((mc.wTechnology & MOD_MAPPER) != 0)
-                        return n;
-
-                    ++n;
-                }
+                ++n;
             }
 
             return 0;
@@ -515,7 +491,7 @@ private:
         WindowsMidiService& parent;
         String deviceName;
 
-        ScopedPointer<MidiOutHandle> han;
+        MidiOutHandle::Ptr han;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WindowsOutputWrapper)
     };
@@ -535,14 +511,12 @@ public:
                        : WindowsOutputWrapper::getDefaultDeviceIndex();
     }
 
-    InputWrapper* createInputWrapper (MidiInput* const input,
-                                      const int index,
-                                      MidiInputCallback* const callback) override
+    InputWrapper* createInputWrapper (MidiInput* input, int index, MidiInputCallback* callback) override
     {
         return new WindowsInputWrapper (*this, input, index, callback);
     }
 
-    OutputWrapper* createOutputWrapper (const int index) override
+    OutputWrapper* createOutputWrapper (int index) override
     {
         return new WindowsOutputWrapper (*this, index);
     }
@@ -1026,7 +1000,7 @@ private:
             if (bufferFactory == nullptr)
                 throw std::runtime_error ("Failed to create output buffer factory");
 
-            HRESULT hr = bufferFactory->Create (static_cast<UINT32> (256), buffer.resetAndGetPointerAddress());
+            HRESULT hr = bufferFactory->Create (static_cast<UINT32> (65536), buffer.resetAndGetPointerAddress());
             if (FAILED (hr))
                 throw std::runtime_error ("Failed to create output buffer");
 
@@ -1106,14 +1080,12 @@ public:
                        : outputDeviceWatcher->getDefaultDeviceIndex();
     }
 
-    InputWrapper* createInputWrapper (MidiInput* const input,
-                                      const int index,
-                                      MidiInputCallback* const callback) override
+    InputWrapper* createInputWrapper (MidiInput* input, int index, MidiInputCallback* callback) override
     {
         return new WinRTInputWrapper (*this, input, index, *callback);
     }
 
-    OutputWrapper* createOutputWrapper (const int index) override
+    OutputWrapper* createOutputWrapper (int index) override
     {
         return new WinRTOutputWrapper (*this, index);
     }
@@ -1137,7 +1109,7 @@ public:
 
     MidiServiceType* getService();
 
-    juce_DeclareSingleton (MidiService, false)
+    JUCE_DECLARE_SINGLETON (MidiService, false)
 
 private:
     MidiService();
@@ -1145,7 +1117,7 @@ private:
     ScopedPointer<MidiServiceType> internal;
 };
 
-juce_ImplementSingleton (MidiService)
+JUCE_IMPLEMENT_SINGLETON (MidiService)
 
 MidiService::~MidiService()
 {
@@ -1194,8 +1166,9 @@ MidiInput* MidiInput::openDevice (const int index, MidiInputCallback* const call
     if (callback == nullptr)
         return nullptr;
 
-    ScopedPointer<MidiInput> in (new MidiInput (""));
+    ScopedPointer<MidiInput> in (new MidiInput (String()));
     ScopedPointer<MidiServiceType::InputWrapper> wrapper;
+
     try
     {
         wrapper = MidiService::getInstance()->getService()->createInputWrapper (in, index, callback);
@@ -1232,6 +1205,7 @@ int MidiOutput::getDefaultDeviceIndex()
 MidiOutput* MidiOutput::openDevice (const int index)
 {
     ScopedPointer<MidiServiceType::OutputWrapper> wrapper;
+
     try
     {
         wrapper = MidiService::getInstance()->getService()->createOutputWrapper (index);
@@ -1254,6 +1228,7 @@ MidiOutput::~MidiOutput()
 
 void MidiOutput::sendMessageNow (const MidiMessage& message)
 {
-    auto* const wrapper = static_cast<MidiServiceType::OutputWrapper*> (internal);
-    wrapper->sendMessageNow (message);
+    static_cast<MidiServiceType::OutputWrapper*> (internal)->sendMessageNow (message);
 }
+
+} // namespace juce

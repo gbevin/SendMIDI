@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -33,6 +33,8 @@
     An instance of a DynamicObject can be used to store named properties, and
     by subclassing hasMethod() and invokeMethod(), you can give your object
     methods.
+
+    @tags{Core}
 */
 class JUCE_API  DynamicObject  : public ReferenceCountedObject
 {
@@ -113,16 +115,18 @@ public:
         never need to call it directly, but it's virtual so that custom object types
         can stringify themselves appropriately.
     */
-    virtual void writeAsJSON (OutputStream&, int indentLevel, bool allOnOneLine);
+    virtual void writeAsJSON (OutputStream&, int indentLevel, bool allOnOneLine, int maximumDecimalPlaces);
 
 private:
     //==============================================================================
     NamedValueSet properties;
 
    #if JUCE_CATCH_DEPRECATED_CODE_MISUSE
-    // These methods have been deprecated - use var::invoke instead
+    // This method has been deprecated - use var::invoke instead
     virtual void invokeMethod (const Identifier&, const var*, int) {}
    #endif
 
     JUCE_LEAK_DETECTOR (DynamicObject)
 };
+
+} // namespace juce

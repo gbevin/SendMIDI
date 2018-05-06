@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -31,8 +31,10 @@
     sockets, you could also try the InterprocessConnection class.
 
     @see DatagramSocket, InterprocessConnection, InterprocessConnectionServer
+
+    @tags{Core}
 */
-class JUCE_API  StreamingSocket
+class JUCE_API  StreamingSocket  final
 {
 public:
     //==============================================================================
@@ -74,7 +76,8 @@ public:
 
         This is useful if you need to know to which port the OS has actually bound your
         socket when calling the constructor or bindToPort with zero as the
-        localPortNumber argument. Returns -1 if the function fails. */
+        localPortNumber argument. Returns -1 if the function fails.
+    */
     int getBoundPort() const noexcept;
 
     /** Tries to connect the socket to hostname:port.
@@ -174,8 +177,8 @@ public:
 private:
     //==============================================================================
     String hostName;
-    int volatile portNumber, handle;
-    bool connected, isListener;
+    int volatile portNumber = 0, handle = -1;
+    bool connected = false, isListener = false;
     mutable CriticalSection readLock;
 
     StreamingSocket (const String& hostname, int portNumber, int handle);
@@ -192,8 +195,10 @@ private:
     sockets, you could also try the InterprocessConnection class.
 
     @see StreamingSocket, InterprocessConnection, InterprocessConnectionServer
+
+    @tags{Core}
 */
-class JUCE_API  DatagramSocket
+class JUCE_API  DatagramSocket  final
 {
 public:
     //==============================================================================
@@ -314,17 +319,23 @@ public:
     void shutdown();
 
     //==============================================================================
-    /** Join a multicast group
+    /** Join a multicast group.
 
         @returns true if it succeeds.
     */
     bool joinMulticast (const String& multicastIPAddress);
 
-    /** Leave a multicast group
+    /** Leave a multicast group.
 
         @returns true if it succeeds.
     */
     bool leaveMulticast (const String& multicastIPAddress);
+
+    /** Enables or disables multicast loopback.
+
+        @returns true if it succeeds.
+    */
+    bool setMulticastLoopbackEnabled (bool enableLoopback);
 
     //==============================================================================
     /** Allow other applications to re-use the port.
@@ -339,12 +350,14 @@ public:
 
 private:
     //==============================================================================
-    int handle;
-    bool isBound;
+    int handle = -1;
+    bool isBound = false;
     String lastBindAddress, lastServerHost;
-    int lastServerPort;
-    void* lastServerAddress;
+    int lastServerPort = -1;
+    void* lastServerAddress = nullptr;
     mutable CriticalSection readLock;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DatagramSocket)
 };
+
+} // namespace juce

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="U5JfXz" name="sendmidi" projectType="consoleapp" version="1.0.13"
+<JUCERPROJECT id="U5JfXz" name="sendmidi" projectType="consoleapp" version="1.0.14"
               bundleIdentifier="com.uwyn.sendmidi" includeBinaryInAppConfig="1"
-              jucerVersion="5.0.0" companyName="Uwyn" companyWebsite="http://www.uwyn.com"
+              jucerVersion="5.3.1" companyName="Uwyn" companyWebsite="http://www.uwyn.com"
               companyEmail="info@uwyn.com" displaySplashScreen="1" reportAppUsage="1"
               splashScreenColour="Dark">
   <MAINGROUP id="qBrt8O" name="sendmidi">
@@ -14,9 +14,9 @@
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="sendmidi"
-                       osxSDK="default" osxCompatibility="10.6 SDK" osxArchitecture="64BitUniversal"/>
+                       osxCompatibility="10.6 SDK" osxArchitecture="64BitUniversal"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="sendmidi"
-                       osxCompatibility="10.6 SDK" osxSDK="default" osxArchitecture="64BitUniversal"/>
+                       osxCompatibility="10.6 SDK" osxArchitecture="64BitUniversal"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
@@ -65,5 +65,5 @@
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="1"/>
   </MODULES>
   <JUCEOPTIONS JUCE_USE_XSHM="disabled" JUCE_USE_XRENDER="disabled" JUCE_USE_XCURSOR="disabled"
-               JUCE_USE_CURL="disabled"/>
+               JUCE_USE_CURL="0"/>
 </JUCERPROJECT>

@@ -20,6 +20,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 CriticalSection::CriticalSection() noexcept
 {
     pthread_mutexattr_t atts;
@@ -184,8 +187,14 @@ static MaxNumFileHandlesInitialiser maxNumFileHandlesInitialiser;
 #endif
 
 //==============================================================================
-const juce_wchar File::separator = '/';
-const String File::separatorString ("/");
+#ifndef JUCE_GCC
+ const juce_wchar File::separator = '/';
+ const StringRef File::separatorString ("/");
+#endif
+
+juce_wchar File::getSeparatorChar()    { return '/'; }
+StringRef File::getSeparatorString()   { return "/"; }
+
 
 //==============================================================================
 File File::getCurrentWorkingDirectory()
@@ -348,7 +357,7 @@ bool File::hasWriteAccess() const
         return (hasEffectiveRootFilePermissions()
              || access (fullPath.toUTF8(), W_OK) == 0);
 
-    if ((! isDirectory()) && fullPath.containsChar (separator))
+    if ((! isDirectory()) && fullPath.containsChar (getSeparatorChar()))
         return getParentDirectory().hasWriteAccess();
 
     return false;
@@ -357,6 +366,7 @@ bool File::hasWriteAccess() const
 static bool setFileModeFlags (const String& fullPath, mode_t flags, bool shouldSet) noexcept
 {
     juce_statStruct info;
+
     if (! juce_stat (fullPath, info))
         return false;
 
@@ -393,7 +403,11 @@ void File::getFileTimesInternal (int64& modificationTime, int64& accessTime, int
     {
         modificationTime  = (int64) info.st_mtime * 1000;
         accessTime        = (int64) info.st_atime * 1000;
+       #if (JUCE_MAC && MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5) || JUCE_IOS
+        creationTime      = (int64) info.st_birthtime * 1000;
+       #else
         creationTime      = (int64) info.st_ctime * 1000;
+       #endif
     }
 }
 
@@ -554,23 +568,13 @@ ssize_t FileOutputStream::writeInternal (const void* const data, const size_t nu
     return result;
 }
 
+#ifndef JUCE_ANDROID
 void FileOutputStream::flushInternal()
 {
-    if (fileHandle != 0)
-    {
-        if (fsync (getFD (fileHandle)) == -1)
-            status = getResultForErrno();
-
-       #if JUCE_ANDROID
-        // This stuff tells the OS to asynchronously update the metadata
-        // that the OS has cached aboud the file - this metadata is used
-        // when the device is acting as a USB drive, and unless it's explicitly
-        // refreshed, it'll get out of step with the real file.
-        const LocalRef<jstring> t (javaString (file.getFullPathName()));
-        android.activity.callVoidMethod (JuceAppActivity.scanFile, t.get());
-       #endif
-    }
+    if (fileHandle != 0 && fsync (getFD (fileHandle)) == -1)
+        status = getResultForErrno();
 }
+#endif
 
 Result FileOutputStream::truncate()
 {
@@ -873,10 +877,10 @@ bool InterProcessLock::enter (const int timeOutMillisecs)
 
     if (pimpl == nullptr)
     {
-        pimpl = new Pimpl (name, timeOutMillisecs);
+        pimpl.reset (new Pimpl (name, timeOutMillisecs));
 
         if (pimpl->handle == 0)
-            pimpl = nullptr;
+            pimpl.reset();
     }
     else
     {
@@ -894,7 +898,7 @@ void InterProcessLock::exit()
     jassert (pimpl != nullptr);
 
     if (pimpl != nullptr && --(pimpl->refCount) == 0)
-        pimpl = nullptr;
+        pimpl.reset();
 }
 
 //==============================================================================
@@ -925,8 +929,33 @@ extern "C" void* threadEntryProc (void* userData)
     return nullptr;
 }
 
+#if JUCE_ANDROID && JUCE_MODULE_AVAILABLE_juce_audio_devices && \
+   ((JUCE_USE_ANDROID_OPENSLES || (! defined(JUCE_USE_ANDROID_OPENSLES) && JUCE_ANDROID_API_VERSION > 8)) \
+ || (JUCE_USE_ANDROID_OBOE || (! defined(JUCE_USE_ANDROID_OBOE) && JUCE_ANDROID_API_VERSION > 15)))
+
+  #define JUCE_ANDROID_REALTIME_THREAD_AVAILABLE 1
+#endif
+
+#if JUCE_ANDROID_REALTIME_THREAD_AVAILABLE
+extern pthread_t juce_createRealtimeAudioThread (void* (*entry) (void*), void* userPtr);
+#endif
+
 void Thread::launchThread()
 {
+   #if JUCE_ANDROID
+    if (isAndroidRealtimeThread)
+    {
+       #if JUCE_ANDROID_REALTIME_THREAD_AVAILABLE
+        threadHandle = (void*) juce_createRealtimeAudioThread (threadEntryProc, this);
+        threadId = (ThreadID) threadHandle.get();
+
+        return;
+       #else
+        jassertfalse;
+       #endif
+    }
+   #endif
+
     threadHandle = 0;
     pthread_t handle = 0;
     pthread_attr_t attr;
@@ -943,7 +972,7 @@ void Thread::launchThread()
     {
         pthread_detach (handle);
         threadHandle = (void*) handle;
-        threadId = (ThreadID) threadHandle;
+        threadId = (ThreadID) threadHandle.get();
     }
 
     if (attrPtr != nullptr)
@@ -958,12 +987,12 @@ void Thread::closeThreadHandle()
 
 void Thread::killThread()
 {
-    if (threadHandle != 0)
+    if (threadHandle.get() != 0)
     {
        #if JUCE_ANDROID
         jassertfalse; // pthread_cancel not available!
        #else
-        pthread_cancel ((pthread_t) threadHandle);
+        pthread_cancel ((pthread_t) threadHandle.get());
        #endif
     }
 }
@@ -975,8 +1004,9 @@ void JUCE_CALLTYPE Thread::setCurrentThreadName (const String& name)
     {
         [[NSThread currentThread] setName: juceStringToNS (name)];
     }
-   #elif JUCE_LINUX
-    #if (__GLIBC__ * 1000 + __GLIBC_MINOR__) >= 2012
+   #elif JUCE_LINUX || JUCE_ANDROID
+    #if ((JUCE_LINUX && (__GLIBC__ * 1000 + __GLIBC_MINOR__) >= 2012) \
+          || JUCE_ANDROID && __ANDROID_API__ >= 9)
      pthread_setname_np (pthread_self(), name.toRawUTF8());
     #else
      prctl (PR_SET_NAME, name.toRawUTF8(), 0, 0, 0);
@@ -1036,10 +1066,12 @@ void JUCE_CALLTYPE Thread::setCurrentThreadAffinityMask (const uint32 affinityMa
 
    #if (! JUCE_ANDROID) && ((! JUCE_LINUX) || ((__GLIBC__ * 1000 + __GLIBC_MINOR__) >= 2004))
     pthread_setaffinity_np (pthread_self(), sizeof (cpu_set_t), &affinity);
+   #elif JUCE_ANDROID
+    sched_setaffinity (gettid(), sizeof (cpu_set_t), &affinity);
    #else
     // NB: this call isn't really correct because it sets the affinity of the process,
-    // not the thread. But it's included here as a fallback for people who are using
-    // ridiculously old versions of glibc
+    // (getpid) not the thread (not gettid). But it's included here as a fallback for
+    // people who are using ridiculously old versions of glibc
     sched_setaffinity (getpid(), sizeof (cpu_set_t), &affinity);
    #endif
 
@@ -1095,20 +1127,19 @@ class ChildProcess::ActiveProcess
 {
 public:
     ActiveProcess (const StringArray& arguments, int streamFlags)
-        : childPID (0), pipeHandle (0), readHandle (0)
     {
-        String exe (arguments[0].unquoted());
+        auto exe = arguments[0].unquoted();
 
         // Looks like you're trying to launch a non-existent exe or a folder (perhaps on OSX
         // you're trying to launch the .app folder rather than the actual binary inside it?)
         jassert (File::getCurrentWorkingDirectory().getChildFile (exe).existsAsFile()
-                  || ! exe.containsChar (File::separator));
+                  || ! exe.containsChar (File::getSeparatorChar()));
 
-        int pipeHandles[2] = { 0 };
+        int pipeHandles[2] = {};
 
         if (pipe (pipeHandles) == 0)
         {
-            const pid_t result = fork();
+            auto result = fork();
 
             if (result < 0)
             {
@@ -1133,9 +1164,10 @@ public:
                 close (pipeHandles[1]);
 
                 Array<char*> argv;
-                for (int i = 0; i < arguments.size(); ++i)
-                    if (arguments[i].isNotEmpty())
-                        argv.add (const_cast<char*> (arguments[i].toRawUTF8()));
+
+                for (auto& arg : arguments)
+                    if (arg.isNotEmpty())
+                        argv.add (const_cast<char*> (arg.toRawUTF8()));
 
                 argv.add (nullptr);
 
@@ -1154,7 +1186,7 @@ public:
 
     ~ActiveProcess()
     {
-        if (readHandle != 0)
+        if (readHandle != nullptr)
             fclose (readHandle);
 
         if (pipeHandle != 0)
@@ -1163,28 +1195,26 @@ public:
 
     bool isRunning() const noexcept
     {
-        if (childPID != 0)
-        {
-            int childState;
-            const int pid = waitpid (childPID, &childState, WNOHANG);
-            return pid == 0 || ! (WIFEXITED (childState) || WIFSIGNALED (childState));
-        }
+        if (childPID == 0)
+            return false;
 
-        return false;
+        int childState;
+        auto pid = waitpid (childPID, &childState, WNOHANG);
+        return pid == 0 || ! (WIFEXITED (childState) || WIFSIGNALED (childState));
     }
 
-    int read (void* const dest, const int numBytes) noexcept
+    int read (void* dest, int numBytes) noexcept
     {
-        jassert (dest != nullptr);
+        jassert (dest != nullptr && numBytes > 0);
 
         #ifdef fdopen
-         #error // the zlib headers define this function as NULL!
+         #error // some crazy 3rd party headers (e.g. zlib) define this function as NULL!
         #endif
 
-        if (readHandle == 0 && childPID != 0)
+        if (childPID != 0)
             readHandle = fdopen (pipeHandle, "r");
 
-        if (readHandle != 0)
+        if (readHandle != nullptr)
             return (int) fread (dest, 1, (size_t) numBytes, readHandle);
 
         return 0;
@@ -1200,7 +1230,7 @@ public:
         if (childPID != 0)
         {
             int childState = 0;
-            const int pid = waitpid (childPID, &childState, WNOHANG);
+            auto pid = waitpid (childPID, &childState, WNOHANG);
 
             if (pid >= 0 && WIFEXITED (childState))
                 return WEXITSTATUS (childState);
@@ -1209,11 +1239,9 @@ public:
         return 0;
     }
 
-    int childPID;
-
-private:
-    int pipeHandle;
-    FILE* readHandle;
+    int childPID = 0;
+    int pipeHandle = 0;
+    FILE* readHandle = {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ActiveProcess)
 };
@@ -1228,10 +1256,10 @@ bool ChildProcess::start (const StringArray& args, int streamFlags)
     if (args.size() == 0)
         return false;
 
-    activeProcess = new ActiveProcess (args, streamFlags);
+    activeProcess.reset (new ActiveProcess (args, streamFlags));
 
     if (activeProcess->childPID == 0)
-        activeProcess = nullptr;
+        activeProcess.reset();
 
     return activeProcess != nullptr;
 }
@@ -1478,3 +1506,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE (Pimpl)
 };
+
+} // namespace juce

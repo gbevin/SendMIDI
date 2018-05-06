@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -30,8 +30,10 @@
     Two processes can use NamedPipe objects to exchange blocks of data.
 
     @see InterprocessConnection
+
+    @tags{Core}
 */
-class JUCE_API  NamedPipe
+class JUCE_API  NamedPipe  final
 {
 public:
     //==============================================================================
@@ -94,3 +96,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NamedPipe)
 };
+
+} // namespace juce

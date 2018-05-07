@@ -54,6 +54,7 @@ enum CommandIndex
     SONG_SELECT,
     TUNE_REQUEST,
     MPE_CONFIGURATION,
+    MPE_TEST,
     RAW_MIDI
 };
 
@@ -96,39 +97,40 @@ class sendMidiApplication  : public JUCEApplicationBase
 public:
     sendMidiApplication()
     {
-        commands_.add({"dev",   "device",                   DEVICE,                 1, "name",           "Set the name of the MIDI output port"});
-        commands_.add({"virt",  "virtual",                  VIRTUAL,               -1, "(name)",         "Use virtual MIDI port with optional name (Linux/macOS)"});
-        commands_.add({"list",  "",                         LIST,                   0, "",               "Lists the MIDI output ports"});
-        commands_.add({"panic", "",                         PANIC,                  0, "",               "Sends all possible Note Offs and relevant panic CCs"});
-        commands_.add({"file",  "",                         TXTFILE,                1, "path",           "Loads commands from the specified program file"});
-        commands_.add({"dec",   "decimal",                  DECIMAL,                0, "",               "Interpret the next numbers as decimals by default"});
-        commands_.add({"hex",   "hexadecimal",              HEXADECIMAL,            0, "",               "Interpret the next numbers as hexadecimals by default"});
-        commands_.add({"ch",    "channel",                  CHANNEL,                1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
-        commands_.add({"omc",   "octave-middle-c",          OCTAVE_MIDDLE_C,        1, "number",         "Set octave for middle C, defaults to 3"});
-        commands_.add({"on",    "note-on",                  NOTE_ON,                2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
-        commands_.add({"off",   "note-off",                 NOTE_OFF,               2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
-        commands_.add({"pp",    "poly-pressure",            POLY_PRESSURE,          2, "note value",     "Send Poly Pressure with note (0-127) and value (0-127)"});
-        commands_.add({"cc",    "control-change",           CONTROL_CHANGE,         2, "number value",   "Send Control Change number (0-127) with value (0-127)"});
-        commands_.add({"pc",    "program-change",           PROGRAM_CHANGE,         1, "number",         "Send Program Change number (0-127)"});
-        commands_.add({"cp",    "channel-pressure",         CHANNEL_PRESSURE,       1, "value",          "Send Channel Pressure value (0-127)"});
-        commands_.add({"pb",    "pitch-bend",               PITCH_BEND,             1, "value",          "Send Pitch Bend value (0-16383 or value/range)"});
-        commands_.add({"rpn",   "",                         RPN,                    2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
-        commands_.add({"nrpn",  "",                         NRPN,                   2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
-        commands_.add({"clock", "",                         CLOCK,                  1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
-        commands_.add({"mc",    "midi-clock",               MIDI_CLOCK,             0, "",               "Send one MIDI Timing Clock"});
-        commands_.add({"start", "",                         START,                  0, "",               "Start the current sequence playing"});
-        commands_.add({"stop",  "",                         STOP,                   0, "",               "Stop the current sequence"});
-        commands_.add({"cont",  "continue",                 CONTINUE,               0, "",               "Continue the current sequence"});
-        commands_.add({"as",    "active-sensing",           ACTIVE_SENSING,         0, "",               "Send Active Sensing"});
-        commands_.add({"rst",   "reset",                    RESET,                  0, "",               "Send Reset"});
-        commands_.add({"syx",   "system-exclusive",         SYSTEM_EXCLUSIVE,      -1, "bytes",          "Send SysEx from a series of bytes (no F0/F7 delimiters)"});
-        commands_.add({"syf",   "system-exclusive-file",    SYSTEM_EXCLUSIVE_FILE,  1, "path",           "Send SysEx from a .syx file"});
-        commands_.add({"tc",    "time-code",                TIME_CODE,              2, "type value",     "Send MIDI Time Code with type (0-7) and value (0-15)"});
-        commands_.add({"spp",   "song-position",            SONG_POSITION,          1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
-        commands_.add({"ss",    "song-select",              SONG_SELECT,            1, "number",         "Send Song Select with song number (0-127)"});
-        commands_.add({"tun",   "tune-request",             TUNE_REQUEST,           0, "",               "Send Tune Request"});
-        commands_.add({"mpe",   "",                         MPE_CONFIGURATION,      2, "zone range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
-        commands_.add({"raw",   "raw-midi",                 RAW_MIDI,              -1, "bytes",          "Send raw MIDI from a series of bytes"});
+        commands_.add({"dev",   	"device",                   DEVICE,                 1, "name",           "Set the name of the MIDI output port"});
+        commands_.add({"virt",  	"virtual",                  VIRTUAL,               -1, "(name)",         "Use virtual MIDI port with optional name (Linux/macOS)"});
+        commands_.add({"list",  	"",                         LIST,                   0, "",               "Lists the MIDI output ports"});
+        commands_.add({"panic", 	"",                         PANIC,                  0, "",               "Sends all possible Note Offs and relevant panic CCs"});
+        commands_.add({"file",  	"",                         TXTFILE,                1, "path",           "Loads commands from the specified program file"});
+        commands_.add({"dec",   	"decimal",                  DECIMAL,                0, "",               "Interpret the next numbers as decimals by default"});
+        commands_.add({"hex",   	"hexadecimal",              HEXADECIMAL,            0, "",               "Interpret the next numbers as hexadecimals by default"});
+        commands_.add({"ch",    	"channel",                  CHANNEL,                1, "number",         "Set MIDI channel for the commands (1-16), defaults to 1"});
+        commands_.add({"omc",   	"octave-middle-c",          OCTAVE_MIDDLE_C,        1, "number",         "Set octave for middle C, defaults to 3"});
+        commands_.add({"on",    	"note-on",                  NOTE_ON,                2, "note velocity",  "Send Note On with note (0-127) and velocity (0-127)"});
+        commands_.add({"off",   	"note-off",                 NOTE_OFF,               2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
+        commands_.add({"pp",    	"poly-pressure",            POLY_PRESSURE,          2, "note value",     "Send Poly Pressure with note (0-127) and value (0-127)"});
+        commands_.add({"cc",    	"control-change",           CONTROL_CHANGE,         2, "number value",   "Send Control Change number (0-127) with value (0-127)"});
+        commands_.add({"pc",    	"program-change",           PROGRAM_CHANGE,         1, "number",         "Send Program Change number (0-127)"});
+        commands_.add({"cp",    	"channel-pressure",         CHANNEL_PRESSURE,       1, "value",          "Send Channel Pressure value (0-127)"});
+        commands_.add({"pb",    	"pitch-bend",               PITCH_BEND,             1, "value",          "Send Pitch Bend value (0-16383 or value/range)"});
+        commands_.add({"rpn",   	"",                         RPN,                    2, "number value",   "Send RPN number (0-16383) with value (0-16383)"});
+        commands_.add({"nrpn",  	"",                         NRPN,                   2, "number value",   "Send NRPN number (0-16383) with value (0-16383)"});
+        commands_.add({"clock", 	"",                         CLOCK,                  1, "bpm",            "Send 2 beats of MIDI Timing Clock for a BPM (1-999)"});
+        commands_.add({"mc",    	"midi-clock",               MIDI_CLOCK,             0, "",               "Send one MIDI Timing Clock"});
+        commands_.add({"start", 	"",                         START,                  0, "",               "Start the current sequence playing"});
+        commands_.add({"stop",  	"",                         STOP,                   0, "",               "Stop the current sequence"});
+        commands_.add({"cont",  	"continue",                 CONTINUE,               0, "",               "Continue the current sequence"});
+        commands_.add({"as",    	"active-sensing",           ACTIVE_SENSING,         0, "",               "Send Active Sensing"});
+        commands_.add({"rst",   	"reset",                    RESET,                  0, "",               "Send Reset"});
+        commands_.add({"syx",   	"system-exclusive",         SYSTEM_EXCLUSIVE,      -1, "bytes",          "Send SysEx from a series of bytes (no F0/F7 delimiters)"});
+        commands_.add({"syf",   	"system-exclusive-file",    SYSTEM_EXCLUSIVE_FILE,  1, "path",           "Send SysEx from a .syx file"});
+        commands_.add({"tc",    	"time-code",                TIME_CODE,              2, "type value",     "Send MIDI Time Code with type (0-7) and value (0-15)"});
+        commands_.add({"spp",   	"song-position",            SONG_POSITION,          1, "beats",          "Send Song Position Pointer with beat (0-16383)"});
+        commands_.add({"ss",    	"song-select",              SONG_SELECT,            1, "number",         "Send Song Select with song number (0-127)"});
+        commands_.add({"tun",   	"tune-request",             TUNE_REQUEST,           0, "",               "Send Tune Request"});
+        commands_.add({"mpe",       "",                         MPE_CONFIGURATION,      2, "zone range",     "Send MPE Configuration for zone (1-2) with range (0-15)"});
+        commands_.add({"mpetest",   "mpe-test",                 MPE_TEST,               0, "",               "Send a sequence of MPE messages to test a receiver"});
+        commands_.add({"raw",       "raw-midi",                 RAW_MIDI,              -1, "bytes",          "Send raw MIDI from a series of bytes"});
         
         channel_ = 1;
         octaveMiddleC_ = DEFAULT_OCTAVE_MIDDLE_C;
@@ -630,6 +632,11 @@ private:
                 sendRPN(zone == 1 ? 1 : 16, 6, range);
                 break;
             }
+            case MPE_TEST:
+            {
+                sendMpeTestScenario();
+                break;
+            }
             case RAW_MIDI:
             {
                 MemoryBlock mem(cmd.opts_.size(), true);
@@ -654,6 +661,138 @@ private:
         sendMidiMessage(MidiMessage::controllerEvent(channel, 38, value & 0x7f));
         sendMidiMessage(MidiMessage::controllerEvent(channel, 101, 0x7f));
         sendMidiMessage(MidiMessage::controllerEvent(channel, 100, 0x7f));
+    }
+    
+    void scenarioStep(const String& message)
+    {
+        std::cout << message << " ";
+        for (int i = 0 ; i < 3; ++i)
+        {
+            Thread::sleep(100);
+            std::cout << ".";
+            std::cout.flush();
+        }
+        Thread::sleep(300);
+        std::cout << std::endl;
+        std::cout.flush();
+    }
+    
+    void sendMpeTestScenario()
+    {
+        scenarioStep("MPE Zone 1 with 15 Member Channels");
+        sendMidiMessage(MidiMessage::controllerEvent(1, 0x64, 6));
+        sendMidiMessage(MidiMessage::controllerEvent(1, 0x65, 0));
+        sendMidiMessage(MidiMessage::controllerEvent(1, 0x06, 15));
+        
+        scenarioStep("Pitch Bend Sensitivity on Master Channel to 7 semitones");
+        sendMidiMessage(MidiMessage::controllerEvent(1, 0x64, 0));
+        sendMidiMessage(MidiMessage::controllerEvent(1, 0x65, 0));
+        sendMidiMessage(MidiMessage::controllerEvent(1, 0x06, 7));
+        
+        int note_pbsens = 48;
+        scenarioStep(String("Pitch Bend Sensitivity on Member Channels to ") + String(note_pbsens) + " semitones");
+        sendMidiMessage(MidiMessage::controllerEvent(2, 0x64, 0));
+        sendMidiMessage(MidiMessage::controllerEvent(2, 0x65, 0));
+        sendMidiMessage(MidiMessage::controllerEvent(2, 0x06, note_pbsens));
+        
+        scenarioStep("Major C triad on Member Channels with neutral starting expression");
+        
+        sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000));
+        sendMidiMessage(MidiMessage::controllerEvent(2, 74, 0x00));
+        sendMidiMessage(MidiMessage::channelPressureChange(2, 0));
+        sendMidiMessage(MidiMessage::noteOn(2, 0x3c, (uint8)0x60));
+        
+        sendMidiMessage(MidiMessage::pitchWheel(3, 0x2000));
+        sendMidiMessage(MidiMessage::controllerEvent(3, 74, 0x00));
+        sendMidiMessage(MidiMessage::channelPressureChange(3, 0));
+        sendMidiMessage(MidiMessage::noteOn(3, 0x40, (uint8)0x7f));
+
+        sendMidiMessage(MidiMessage::pitchWheel(16, 0x2000));
+        sendMidiMessage(MidiMessage::controllerEvent(16, 74, 0x00));
+        sendMidiMessage(MidiMessage::channelPressureChange(16, 0));
+        sendMidiMessage(MidiMessage::noteOn(16, 0x43, (uint8)0x80));
+        
+        scenarioStep("Pitch bend into opposite directions, also resulting into Major C triad");
+
+        int bend_interval = 7;
+        int ch02_pitch_target = + (0x1FFF * bend_interval / note_pbsens);
+        int ch16_pitch_target = - (0x1FFF * bend_interval / note_pbsens);
+        int bend_messages = 1000;
+        for (int i = 1; i <= bend_messages; ++i)
+        {
+            sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000 + (ch02_pitch_target * i) / bend_messages));
+            sendMidiMessage(MidiMessage::pitchWheel(16, 0x2000 + (ch16_pitch_target * i) / bend_messages));
+            Thread::sleep(1);
+        }
+        
+        Thread::sleep(2000);
+        
+        scenarioStep("Independent timbral motion across different notes");
+        
+        int timbre_messages = 1000;
+        int ch02_last_timbre = 0;
+        int ch03_last_timbre = 0;
+        int ch16_last_timbre = 0;
+        for (int i = 0; i <= timbre_messages; ++i)
+        {
+            int ch02_val = (0x7F * i) / timbre_messages;
+            if (ch02_last_timbre != ch02_val)
+            {
+                sendMidiMessage(MidiMessage::controllerEvent(2, 74, ch02_val));
+                ch02_last_timbre = ch02_val;
+            }
+            Thread::sleep(1);
+        }
+        for (int i = 0; i <= timbre_messages; ++i)
+        {
+            int ch02_val = 0x7F - (0x7F * i) / timbre_messages;
+            if (ch02_last_timbre != ch02_val)
+            {
+                sendMidiMessage(MidiMessage::controllerEvent(2, 74, ch02_val));
+                ch02_last_timbre = ch02_val;
+            }
+            int ch03_val = (0x7F * i) / timbre_messages;
+            if (ch03_last_timbre != ch03_val)
+            {
+                sendMidiMessage(MidiMessage::controllerEvent(3, 74, ch03_val));
+                ch03_last_timbre = ch03_val;
+            }
+            Thread::sleep(1);
+        }
+        for (int i = 0; i <= timbre_messages; ++i)
+        {
+            int ch03_val = 0x7F - (0x7F * i) / timbre_messages;
+            if (ch03_last_timbre != ch03_val)
+            {
+                sendMidiMessage(MidiMessage::controllerEvent(3, 74, ch03_val));
+                ch03_last_timbre = ch03_val;
+            }
+            int ch16_val = (0x7F * i) / timbre_messages;
+            if (ch16_last_timbre != ch16_val)
+            {
+                sendMidiMessage(MidiMessage::controllerEvent(16, 74, ch16_val));
+                ch16_last_timbre = ch16_val;
+            }
+            Thread::sleep(1);
+        }
+        for (int i = 0; i <= timbre_messages; ++i)
+        {
+            int ch16_val = 0x7F - (0x7F * i) / timbre_messages;
+            if (ch16_last_timbre != ch16_val)
+            {
+                sendMidiMessage(MidiMessage::controllerEvent(16, 74, ch16_val));
+                ch16_last_timbre = ch16_val;
+            }
+            Thread::sleep(1);
+        }
+
+        Thread::sleep(2000);
+
+        scenarioStep("Release the active Notes");
+        
+        sendMidiMessage(MidiMessage::noteOff(2, 0x3c, (uint8)0x40));
+        sendMidiMessage(MidiMessage::noteOff(3, 0x40, (uint8)0x40));
+        sendMidiMessage(MidiMessage::noteOff(16, 0x43, (uint8)0x40));
     }
     
     uint8 asNoteNumber(String value)
@@ -749,16 +888,19 @@ private:
                   << "Commands:" << std::endl;
         for (auto&& cmd : commands_)
         {
-            std::cout << "  " << cmd.param_.paddedRight(' ', 5);
+            String param_option;
+            param_option << "  " << cmd.param_.paddedRight(' ', 5);
             if (cmd.optionsDescription_.isNotEmpty())
             {
-                std::cout << " " << cmd.optionsDescription_.paddedRight(' ', 13);
+                param_option << " " << cmd.optionsDescription_.paddedRight(' ', 13);
             }
             else
             {
-                std::cout << "              ";
+                param_option << "              ";
             }
-            std::cout << "  " << cmd.commandDescription_;
+            param_option << "  ";
+            param_option = param_option.substring(0, 23);
+            std::cout << param_option << cmd.commandDescription_;
             std::cout << std::endl;
         }
         std::cout << "  -h  or  --help       Print Help (this message) and exit" << std::endl;

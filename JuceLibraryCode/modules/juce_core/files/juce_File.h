@@ -681,13 +681,15 @@ public:
         It can also write the 'ff fe' unicode header bytes before the text to indicate
         the endianness of the file.
 
-        Any single \\n characters in the string are replaced with \\r\\n before it is written.
+        If lineEndings is nullptr, then line endings in the text won't be modified. If you
+        pass "\\n" or "\\r\\n" then this function will replace any existing line feeds.
 
         @see replaceWithText
     */
     bool appendText (const String& textToAppend,
                      bool asUnicode = false,
-                     bool writeUnicodeHeaderBytes = false) const;
+                     bool writeUnicodeHeaderBytes = false,
+                     const char* lineEndings = "\r\n") const;
 
     /** Replaces this file's contents with a given text string.
 
@@ -707,7 +709,8 @@ public:
     */
     bool replaceWithText (const String& textToWrite,
                           bool asUnicode = false,
-                          bool writeUnicodeHeaderBytes = false) const;
+                          bool writeUnicodeHeaderBytes = false,
+                          const char* lineEndings = "\r\n") const;
 
     /** Attempts to scan the contents of this file and compare it to another file, returning
         true if this is possible and they match byte-for-byte.
@@ -1045,21 +1048,14 @@ public:
         bool foldersFirst;
     };
 
-   #if (! defined(DOXYGEN)) && (! defined (JUCE_GCC))
-    // Deprecated: use File::getSeparatorChar() and File::getSeparatorString() instead!
-    JUCE_DEPRECATED (static const juce_wchar separator);
-    JUCE_DEPRECATED (static const StringRef separatorString);
-   #endif
-
-    //==============================================================================
-   #if JUCE_ALLOW_STATIC_NULL_VARIABLES
-    /** This was a static empty File object, but is now deprecated as it's too easy to accidentally
-        use it indirectly during a static constructor, leading to hard-to-find order-of-initialisation
-        problems.
-        @deprecated If you need a default-constructed File object, just use File() or {}.
+    /* These static objects are deprecated because it's too easy to accidentally use them indirectly
+       during a static constructor, which leads to very obscure order-of-initialisation bugs.
+       Use File::getSeparatorChar() and File::getSeparatorString(), and instead of File::nonexistent,
+       just use File() or {}.
     */
-    static const File nonexistent;
-   #endif
+    JUCE_DEPRECATED_STATIC (static const juce_wchar separator);
+    JUCE_DEPRECATED_STATIC (static const StringRef separatorString);
+    JUCE_DEPRECATED_STATIC (static const File nonexistent);
 
 private:
     //==============================================================================

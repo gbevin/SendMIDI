@@ -38,7 +38,7 @@ namespace WindowsMessageHelpers
     const unsigned int broadcastMessageMagicNumber = 0xc403;
 
     const TCHAR messageWindowName[] = _T("JUCEWindow");
-    ScopedPointer<HiddenMessageWindow> messageWindow;
+    std::unique_ptr<HiddenMessageWindow> messageWindow;
 
     void dispatchMessageFromLParam (LPARAM lParam)
     {
@@ -199,7 +199,7 @@ void MessageManager::doPlatformSpecificInitialisation()
     OleInitialize (0);
 
     using namespace WindowsMessageHelpers;
-    messageWindow = new HiddenMessageWindow (messageWindowName, (WNDPROC) messageWndProc);
+    messageWindow.reset (new HiddenMessageWindow (messageWindowName, (WNDPROC) messageWndProc));
     juce_messageWindowHandle = messageWindow->getHWND();
 }
 

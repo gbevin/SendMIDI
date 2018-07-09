@@ -629,7 +629,7 @@ private:
             {
                 int zone = jlimit(1, 2, asDecOrHexIntValue(cmd.opts_[0]));
                 int range = jlimit(0, 15, asDecOrHexIntValue(cmd.opts_[1]));
-                sendRPN(zone == 1 ? 1 : 16, 6, range);
+                sendRPN(zone == 1 ? 1 : 16, 6, range << 7);
                 break;
             }
             case MPE_TEST:

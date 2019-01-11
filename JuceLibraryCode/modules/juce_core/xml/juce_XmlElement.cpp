@@ -127,10 +127,10 @@ XmlElement& XmlElement::operator= (const XmlElement& other)
 }
 
 XmlElement::XmlElement (XmlElement&& other) noexcept
-    : nextListItem      (static_cast<LinkedListPointer<XmlElement>&&> (other.nextListItem)),
-      firstChildElement (static_cast<LinkedListPointer<XmlElement>&&> (other.firstChildElement)),
-      attributes        (static_cast<LinkedListPointer<XmlAttributeNode>&&> (other.attributes)),
-      tagName           (static_cast<String&&> (other.tagName))
+    : nextListItem      (std::move (other.nextListItem)),
+      firstChildElement (std::move (other.firstChildElement)),
+      attributes        (std::move (other.attributes)),
+      tagName           (std::move (other.tagName))
 {
 }
 
@@ -141,10 +141,10 @@ XmlElement& XmlElement::operator= (XmlElement&& other) noexcept
     removeAllAttributes();
     deleteAllChildElements();
 
-    nextListItem      = static_cast<LinkedListPointer<XmlElement>&&> (other.nextListItem);
-    firstChildElement = static_cast<LinkedListPointer<XmlElement>&&> (other.firstChildElement);
-    attributes        = static_cast<LinkedListPointer<XmlAttributeNode>&&> (other.attributes);
-    tagName           = static_cast<String&&> (other.tagName);
+    nextListItem      = std::move (other.nextListItem);
+    firstChildElement = std::move (other.firstChildElement);
+    attributes        = std::move (other.attributes);
+    tagName           = std::move (other.tagName);
 
     return *this;
 }
@@ -578,9 +578,26 @@ void XmlElement::setAttribute (const Identifier& attributeName, const int number
     setAttribute (attributeName, String (number));
 }
 
+static String trimTrailingZeros (const String& input)
+{
+    auto pointPos = input.indexOfChar ('.');
+
+    if (pointPos == -1)
+        return input;
+
+    auto start = input.getCharPointer();
+    auto minPos = start + pointPos + 1;
+    auto ptr = start + input.length() - 1;
+
+    while (ptr != minPos && *ptr == '0')
+        --ptr;
+
+    return input.substring (0, (int) (ptr - start) + 1);
+}
+
 void XmlElement::setAttribute (const Identifier& attributeName, const double number)
 {
-    setAttribute (attributeName, String (number, 20));
+    setAttribute (attributeName, trimTrailingZeros ({ number, 20 }));
 }
 
 void XmlElement::removeAttribute (const Identifier& attributeName) noexcept
@@ -922,5 +939,31 @@ void XmlElement::deleteAllTextElements() noexcept
         child = next;
     }
 }
+
+//==============================================================================
+#if JUCE_UNIT_TESTS
+
+class XmlElementTests  : public UnitTest
+{
+public:
+    XmlElementTests() : UnitTest ("XmlElement", "XML") {}
+
+    void runTest() override
+    {
+        {
+            beginTest ("Trailing zeros");
+
+            auto element = std::make_unique<XmlElement> ("test");
+            Identifier d ("d");
+
+            element->setAttribute (d, 3.0);
+            expectEquals (element->getStringAttribute (d), String ("3.0"));
+        }
+    }
+};
+
+static XmlElementTests xmlElementTests;
+
+#endif
 
 } // namespace juce

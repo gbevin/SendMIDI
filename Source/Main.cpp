@@ -344,7 +344,14 @@ private:
                 }
                 else if (currentCommand_.expectedOptions_ != 0)
                 {
-                    currentCommand_.opts_.add(param);
+                    if (currentCommand_.command_ == SYSTEM_EXCLUSIVE)
+                    {
+                        currentCommand_.opts_.add(String(asDecOrHex7BitValue(param)));
+                    }
+                    else
+                    {
+                        currentCommand_.opts_.add(param);
+                    }
                     currentCommand_.expectedOptions_ -= 1;
                 }
             }
@@ -605,7 +612,7 @@ private:
                 MemoryBlock mem(cmd.opts_.size(), true);
                 for (int i = 0; i < cmd.opts_.size(); ++i)
                 {
-                    mem[i] = asDecOrHex7BitValue(cmd.opts_[i]);
+                    mem[i] = cmd.opts_[i].getIntValue();
                 }
                 sendMidiMessage(MidiMessage::createSysExMessage(mem.getData(), (int)mem.getSize()));
                 break;

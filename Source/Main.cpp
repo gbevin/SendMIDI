@@ -693,6 +693,10 @@ private:
     
     void sendMpeTestScenario()
     {
+        int bend_messages = 1000;
+        int pressure_messages = 1000;
+        int timbre_messages = 1000;
+
         scenarioStep("MPE Zone 1 with 15 Member Channels");
         sendMidiMessage(MidiMessage::controllerEvent(1, 0x64, 6));
         sendMidiMessage(MidiMessage::controllerEvent(1, 0x65, 0));
@@ -701,15 +705,15 @@ private:
         scenarioStep("Pitch Bend Sensitivity on Master Channel to 7 semitones");
         sendMidiMessage(MidiMessage::controllerEvent(1, 0x64, 0));
         sendMidiMessage(MidiMessage::controllerEvent(1, 0x65, 0));
-        sendMidiMessage(MidiMessage::controllerEvent(1, 0x06, 7));
+        sendMidiMessage(MidiMessage::controllerEvent(1, 0x00, 7));
         
         int note_pbsens = 48;
         scenarioStep(String("Pitch Bend Sensitivity on Member Channels to ") + String(note_pbsens) + " semitones");
         sendMidiMessage(MidiMessage::controllerEvent(2, 0x64, 0));
         sendMidiMessage(MidiMessage::controllerEvent(2, 0x65, 0));
-        sendMidiMessage(MidiMessage::controllerEvent(2, 0x06, note_pbsens));
+        sendMidiMessage(MidiMessage::controllerEvent(2, 0x00, note_pbsens));
         
-        scenarioStep("Major C triad on Member Channels with neutral starting expression");
+        scenarioStep("Major C triad C3 E3 G3 on Member Channels with neutral starting expression");
         
         sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000));
         sendMidiMessage(MidiMessage::controllerEvent(2, 74, 0x00));
@@ -726,24 +730,86 @@ private:
         sendMidiMessage(MidiMessage::channelPressureChange(16, 0));
         sendMidiMessage(MidiMessage::noteOn(16, 0x43, (uint8)0x80));
         
-        scenarioStep("Pitch bend into opposite directions, also resulting into Major C triad");
+        Thread::sleep(2000);
+
+        scenarioStep("Pitch bend into different directions, resulting into G3 E4 C3");
 
         int bend_interval = 7;
         int ch02_pitch_target = + (0x1FFF * bend_interval / note_pbsens);
+        int ch03_pitch_target = + (0x1FFF * 12 / note_pbsens);
         int ch16_pitch_target = - (0x1FFF * bend_interval / note_pbsens);
-        int bend_messages = 1000;
         for (int i = 1; i <= bend_messages; ++i)
         {
             sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000 + (ch02_pitch_target * i) / bend_messages));
+            sendMidiMessage(MidiMessage::pitchWheel(3, 0x2000 + (ch03_pitch_target * i) / bend_messages));
             sendMidiMessage(MidiMessage::pitchWheel(16, 0x2000 + (ch16_pitch_target * i) / bend_messages));
             Thread::sleep(1);
         }
         
         Thread::sleep(2000);
         
+        scenarioStep("Independent pressure across different notes");
+        
+        int ch02_last_pressure = 0;
+        int ch03_last_pressure = 0;
+        int ch16_last_pressure = 0;
+        for (int i = 0; i <= pressure_messages; ++i)
+        {
+            int ch02_val = (0x7F * i) / pressure_messages;
+            if (ch02_last_pressure != ch02_val)
+            {
+                sendMidiMessage(MidiMessage::channelPressureChange(2, ch02_val));
+                ch02_last_pressure = ch02_val;
+            }
+            Thread::sleep(1);
+        }
+        for (int i = 0; i <= pressure_messages; ++i)
+        {
+            int ch02_val = 0x7F - (0x7F * i) / pressure_messages;
+            if (ch02_last_pressure != ch02_val)
+            {
+                sendMidiMessage(MidiMessage::channelPressureChange(2, ch02_val));
+                ch02_last_pressure = ch02_val;
+            }
+            int ch03_val = (0x7F * i) / pressure_messages;
+            if (ch03_last_pressure != ch03_val)
+            {
+                sendMidiMessage(MidiMessage::channelPressureChange(3, ch03_val));
+                ch03_last_pressure = ch03_val;
+            }
+            Thread::sleep(1);
+        }
+        for (int i = 0; i <= pressure_messages; ++i)
+        {
+            int ch03_val = 0x7F - (0x7F * i) / pressure_messages;
+            if (ch03_last_pressure != ch03_val)
+            {
+                sendMidiMessage(MidiMessage::channelPressureChange(3, ch03_val));
+                ch03_last_pressure = ch03_val;
+            }
+            int ch16_val = (0x7F * i) / pressure_messages;
+            if (ch16_last_pressure != ch16_val)
+            {
+                sendMidiMessage(MidiMessage::channelPressureChange(16, ch16_val));
+                ch16_last_pressure = ch16_val;
+            }
+            Thread::sleep(1);
+        }
+        for (int i = 0; i <= pressure_messages; ++i)
+        {
+            int ch16_val = 0x7F - (0x7F * i) / pressure_messages;
+            if (ch16_last_pressure != ch16_val)
+            {
+                sendMidiMessage(MidiMessage::channelPressureChange(16, ch16_val));
+                ch16_last_pressure = ch16_val;
+            }
+            Thread::sleep(1);
+        }
+
+        Thread::sleep(2000);
+
         scenarioStep("Independent timbral motion across different notes");
         
-        int timbre_messages = 1000;
         int ch02_last_timbre = 0;
         int ch03_last_timbre = 0;
         int ch16_last_timbre = 0;
@@ -799,14 +865,65 @@ private:
             }
             Thread::sleep(1);
         }
-
+        
         Thread::sleep(2000);
 
-        scenarioStep("Release the active Notes");
+        scenarioStep("Release the active notes");
         
         sendMidiMessage(MidiMessage::noteOff(2, 0x3c, (uint8)0x40));
         sendMidiMessage(MidiMessage::noteOff(3, 0x40, (uint8)0x40));
         sendMidiMessage(MidiMessage::noteOff(16, 0x43, (uint8)0x40));
+
+        Thread::sleep(2000);
+        
+        scenarioStep("Different Major C triad G3 E4 C3 on Member Channels with neutral starting expression");
+        
+        sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000));
+        sendMidiMessage(MidiMessage::controllerEvent(2, 74, 0x00));
+        sendMidiMessage(MidiMessage::channelPressureChange(2, 0));
+        sendMidiMessage(MidiMessage::noteOn(2, 0x43, (uint8)0x60));
+        
+        sendMidiMessage(MidiMessage::pitchWheel(3, 0x2000));
+        sendMidiMessage(MidiMessage::controllerEvent(3, 74, 0x00));
+        sendMidiMessage(MidiMessage::channelPressureChange(3, 0));
+        sendMidiMessage(MidiMessage::noteOn(3, 0x4c, (uint8)0x7f));
+        
+        sendMidiMessage(MidiMessage::pitchWheel(16, 0x2000));
+        sendMidiMessage(MidiMessage::controllerEvent(16, 74, 0x00));
+        sendMidiMessage(MidiMessage::channelPressureChange(16, 0));
+        sendMidiMessage(MidiMessage::noteOn(16, 0x3c, (uint8)0x80));
+        
+        Thread::sleep(2000);
+
+        note_pbsens = 96;
+        
+        scenarioStep(String("Pitch Bend Sensitivity on Member Channels to ") + String(note_pbsens) + " semitones");
+        sendMidiMessage(MidiMessage::controllerEvent(2, 0x64, 0));
+        sendMidiMessage(MidiMessage::controllerEvent(2, 0x65, 0));
+        sendMidiMessage(MidiMessage::controllerEvent(2, 0x00, note_pbsens));
+        
+        Thread::sleep(2000);
+        
+        scenarioStep("Pitch bend back to the original Major C triad C3 E3 G3");
+        
+        ch02_pitch_target = - (0x1FFF * bend_interval / note_pbsens);
+        ch03_pitch_target = - (0x1FFF * 12 / note_pbsens);
+        ch16_pitch_target = + (0x1FFF * bend_interval / note_pbsens);
+        for (int i = 1; i <= bend_messages; ++i)
+        {
+            sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000 + (ch02_pitch_target * i) / bend_messages));
+            sendMidiMessage(MidiMessage::pitchWheel(3, 0x2000 + (ch03_pitch_target * i) / bend_messages));
+            sendMidiMessage(MidiMessage::pitchWheel(16, 0x2000 + (ch16_pitch_target * i) / bend_messages));
+            Thread::sleep(1);
+        }
+        
+        Thread::sleep(2000);
+
+        scenarioStep("Release the active notes");
+        
+        sendMidiMessage(MidiMessage::noteOff(2, 0x43, (uint8)0x40));
+        sendMidiMessage(MidiMessage::noteOff(3, 0x4c, (uint8)0x40));
+        sendMidiMessage(MidiMessage::noteOff(16, 0x3c, (uint8)0x40));
     }
     
     uint8 asNoteNumber(String value)

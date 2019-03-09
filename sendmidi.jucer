@@ -41,8 +41,7 @@
         <MODULEPATH id="juce_audio_devices" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </VS2015>
-    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraCompilerFlags="-mtune=core2 -march=core2"
-                extraLinkerFlags="">
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraLinkerFlags="">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="sendmidi"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="sendmidi"

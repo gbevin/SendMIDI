@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -319,7 +319,7 @@ void AudioDataConverters::convertInt32LEToFloat (const void* source, float* dest
     {
         for (int i = 0; i < numSamples; ++i)
         {
-            dest[i] = scale * (int) ByteOrder::swapIfBigEndian (*reinterpret_cast<const uint32*> (intData));
+            dest[i] = scale * (float) ByteOrder::swapIfBigEndian (*reinterpret_cast<const uint32*> (intData));
             intData += srcBytesPerSample;
         }
     }
@@ -330,7 +330,7 @@ void AudioDataConverters::convertInt32LEToFloat (const void* source, float* dest
         for (int i = numSamples; --i >= 0;)
         {
             intData -= srcBytesPerSample;
-            dest[i] = scale * (int) ByteOrder::swapIfBigEndian (*reinterpret_cast<const uint32*> (intData));
+            dest[i] = scale * (float) ByteOrder::swapIfBigEndian (*reinterpret_cast<const uint32*> (intData));
         }
     }
 }
@@ -344,7 +344,7 @@ void AudioDataConverters::convertInt32BEToFloat (const void* source, float* dest
     {
         for (int i = 0; i < numSamples; ++i)
         {
-            dest[i] = scale * (int) ByteOrder::swapIfLittleEndian (*reinterpret_cast<const uint32*> (intData));
+            dest[i] = scale * (float) ByteOrder::swapIfLittleEndian (*reinterpret_cast<const uint32*> (intData));
             intData += srcBytesPerSample;
         }
     }
@@ -355,7 +355,7 @@ void AudioDataConverters::convertInt32BEToFloat (const void* source, float* dest
         for (int i = numSamples; --i >= 0;)
         {
             intData -= srcBytesPerSample;
-            dest[i] = scale * (int) ByteOrder::swapIfLittleEndian (*reinterpret_cast<const uint32*> (intData));
+            dest[i] = scale * (float) ByteOrder::swapIfLittleEndian (*reinterpret_cast<const uint32*> (intData));
         }
     }
 }
@@ -461,12 +461,15 @@ void AudioDataConverters::deinterleaveSamples (const float* source, float** dest
 
 
 //==============================================================================
+//==============================================================================
 #if JUCE_UNIT_TESTS
 
 class AudioConversionTests  : public UnitTest
 {
 public:
-    AudioConversionTests() : UnitTest ("Audio data conversion", "Audio") {}
+    AudioConversionTests()
+        : UnitTest ("Audio data conversion", UnitTestCategories::audio)
+    {}
 
     template <class F1, class E1, class F2, class E2>
     struct Test5
@@ -480,7 +483,9 @@ public:
         static void test (UnitTest& unitTest, bool inPlace, Random& r)
         {
             const int numSamples = 2048;
-            int32 original[numSamples], converted[numSamples], reversed[numSamples];
+            int32 original [(size_t) numSamples],
+                  converted[(size_t) numSamples],
+                  reversed [(size_t) numSamples];
 
             {
                 AudioData::Pointer<F1, E1, AudioData::NonInterleaved, AudioData::NonConst> d (original);

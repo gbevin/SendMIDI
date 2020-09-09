@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -290,7 +290,7 @@ bool InterprocessConnection::readNextMessage()
     uint32 messageHeader[2];
     auto bytes = readData (messageHeader, sizeof (messageHeader));
 
-    if (bytes == sizeof (messageHeader)
+    if (bytes == (int) sizeof (messageHeader)
          && ByteOrder::swapIfBigEndian (messageHeader[0]) == magicMessageHeader)
     {
         auto bytesInMessage = (int) ByteOrder::swapIfBigEndian (messageHeader[1]);

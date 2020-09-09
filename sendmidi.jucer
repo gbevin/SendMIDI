@@ -2,9 +2,9 @@
 
 <JUCERPROJECT id="U5JfXz" name="sendmidi" projectType="consoleapp" version="1.0.15"
               bundleIdentifier="com.uwyn.sendmidi" includeBinaryInAppConfig="1"
-              jucerVersion="5.4.3" companyName="Uwyn" companyWebsite="http://www.uwyn.com"
-              companyEmail="info@uwyn.com" displaySplashScreen="1" reportAppUsage="1"
-              splashScreenColour="Dark">
+              companyName="Uwyn" companyWebsite="http://www.uwyn.com" companyEmail="info@uwyn.com"
+              displaySplashScreen="1" reportAppUsage="1" splashScreenColour="Dark"
+              jucerFormatVersion="1">
   <MAINGROUP id="qBrt8O" name="sendmidi">
     <GROUP id="{77373791-FBB9-12BE-4AF0-C617C2C69BC4}" name="Source">
       <FILE id="hGRRus" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>

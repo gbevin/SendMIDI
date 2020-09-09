@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -39,7 +39,7 @@ class JUCE_API  URL
 public:
     //==============================================================================
     /** Creates an empty URL. */
-    URL() noexcept;
+    URL();
 
     /** Creates a URL from a string.
         This will parse any embedded parameters after a '?' character and store them
@@ -50,16 +50,14 @@ public:
 
     URL (const URL&) = default;
     URL& operator= (const URL&) = default;
-
-    // VS2013 can't default move constructors and assignments
-    URL (URL&&);
-    URL& operator= (URL&&);
+    URL (URL&&) = default;
+    URL& operator= (URL&&) = default;
 
     /** Creates URL referring to a local file on your disk using the file:// scheme. */
     explicit URL (File);
 
     /** Destructor. */
-    ~URL();
+    ~URL() = default;
 
     /** Compares two URLs.
         All aspects of the URLs must be identical for them to match, including any parameters,
@@ -90,8 +88,17 @@ public:
 
     /** Returns the path part of the URL.
         E.g. for "http://www.xyz.com/foo/bar?x=1", this will return "foo/bar".
+
+        If includeGetParameters is true and any parameters have been set with the
+        withParameter() method, then the string will have these appended on the
+        end and url-encoded.
     */
-    String getSubPath() const;
+    String getSubPath (bool includeGetParameters = false) const;
+
+    /** If any parameters are set, returns these URL encoded, including the "?"
+     *  prefix.
+    */
+    String getQueryString() const;
 
     /** Returns the scheme of the URL.
         E.g. for "http://www.xyz.com/foobar", this will return "http". (It won't
@@ -140,6 +147,11 @@ public:
         @see withNewDomainAndPath
     */
     URL withNewSubPath (const String& newPath) const;
+
+    /** Attempts to return a URL which is the parent folder containing this URL.
+        If there isn't a parent, this method will just return a copy of this URL.
+    */
+    URL getParentURL() const;
 
     /** Returns a new URL that refers to a sub-path relative to this one.
         E.g. if the URL is "http://www.xyz.com/foo" and you call this with
@@ -256,7 +268,7 @@ public:
     URL withPOSTData (const MemoryBlock& postData) const;
 
     /** Returns the data that was set using withPOSTData(). */
-    String getPostData() const noexcept                             { return postData.toString(); }
+    String getPostData() const                                      { return postData.toString(); }
 
     /** Returns the data that was set using withPOSTData() as MemoryBlock. */
     const MemoryBlock& getPostDataAsMemoryBlock() const noexcept    { return postData; }
@@ -325,25 +337,24 @@ public:
                                  returning a response (ignored for Android which follows up to 5 redirects)
         @param httpRequestCmd    Specify which HTTP Request to use. If this is empty, then doPostRequest
                                  will determine the HTTP request.
-        @returns    an input stream that the caller must delete, or a null pointer if there was an
-                    error trying to open it.
+        @returns    a valid input stream, or nullptr if there was an error trying to open it.
      */
-    InputStream* createInputStream (bool doPostLikeRequest,
-                                    OpenStreamProgressCallback* progressCallback = nullptr,
-                                    void* progressCallbackContext = nullptr,
-                                    String extraHeaders = String(),
-                                    int connectionTimeOutMs = 0,
-                                    StringPairArray* responseHeaders = nullptr,
-                                    int* statusCode = nullptr,
-                                    int numRedirectsToFollow = 5,
-                                    String httpRequestCmd = String()) const;
+    std::unique_ptr<InputStream> createInputStream (bool doPostLikeRequest,
+                                                    OpenStreamProgressCallback* progressCallback = nullptr,
+                                                    void* progressCallbackContext = nullptr,
+                                                    String extraHeaders = {},
+                                                    int connectionTimeOutMs = 0,
+                                                    StringPairArray* responseHeaders = nullptr,
+                                                    int* statusCode = nullptr,
+                                                    int numRedirectsToFollow = 5,
+                                                    String httpRequestCmd = {}) const;
 
     /** Attempts to open an output stream to a URL for writing
 
         This method can only be used for certain scheme types such as local files
         and content:// URIs on Android.
     */
-    OutputStream* createOutputStream() const;
+    std::unique_ptr<OutputStream> createOutputStream() const;
 
     //==============================================================================
     /** Represents a download task.
@@ -403,7 +414,7 @@ public:
 
     private:
         friend class URL;
-        static DownloadTask* createFallbackDownloader (const URL&, const File&, const String&, Listener*, bool);
+        static std::unique_ptr<DownloadTask> createFallbackDownloader (const URL&, const File&, const String&, Listener*, bool);
 
     public:
        #if JUCE_IOS
@@ -424,10 +435,10 @@ public:
         using a native OS background network task. Such tasks automatically deal with
         network re-connections and continuing your download while your app is suspended.
     */
-    DownloadTask* downloadToFile (const File& targetLocation,
-                                  String extraHeaders = String(),
-                                  DownloadTask::Listener* listener = nullptr,
-                                  bool usePostCommand = false);
+    std::unique_ptr<DownloadTask> downloadToFile (const File& targetLocation,
+                                                  String extraHeaders = String(),
+                                                  DownloadTask::Listener* listener = nullptr,
+                                                  bool usePostCommand = false);
 
     //==============================================================================
     /** Tries to download the entire contents of this URL into a binary data block.
@@ -467,9 +478,6 @@ public:
         If it fails, or if the text that it reads can't be parsed as XML, this will
         return nullptr.
 
-        When it returns a valid XmlElement object, the caller is responsible for deleting
-        this object when no longer needed.
-
         Note that on some platforms (Android, for example) it's not permitted to do any network
         action from the message thread, so you must only call it from a background thread.
 
@@ -478,7 +486,7 @@ public:
 
         @see readEntireBinaryStream, readEntireTextStream
     */
-    XmlElement* readEntireXmlStream (bool usePostCommand = false) const;
+    std::unique_ptr<XmlElement> readEntireXmlStream (bool usePostCommand = false) const;
 
     //==============================================================================
     /** Adds escape sequences to a string to encode any characters that aren't

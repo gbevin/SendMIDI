@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -175,7 +175,7 @@ public:
     int toInt (const ValueUnion& data) const noexcept override       { return (int) data.doubleValue; }
     int64 toInt64 (const ValueUnion& data) const noexcept override   { return (int64) data.doubleValue; }
     double toDouble (const ValueUnion& data) const noexcept override { return data.doubleValue; }
-    String toString (const ValueUnion& data) const override          { return minimiseLengthOfFloatString (String (data.doubleValue, 15, true)); }
+    String toString (const ValueUnion& data) const override          { return serialiseDouble (data.doubleValue); }
     bool toBool (const ValueUnion& data) const noexcept override     { return data.doubleValue != 0.0; }
     bool isDouble() const noexcept override                          { return true; }
     bool isComparable() const noexcept override                      { return true; }
@@ -257,8 +257,8 @@ public:
     }
 
 private:
-    static inline const String* getString (const ValueUnion& data) noexcept { return reinterpret_cast<const String*> (data.stringValue); }
-    static inline String* getString (ValueUnion& data) noexcept             { return reinterpret_cast<String*> (data.stringValue); }
+    static const String* getString (const ValueUnion& data) noexcept { return reinterpret_cast<const String*> (data.stringValue); }
+    static String* getString (ValueUnion& data) noexcept             { return reinterpret_cast<String*> (data.stringValue); }
 };
 
 //==============================================================================

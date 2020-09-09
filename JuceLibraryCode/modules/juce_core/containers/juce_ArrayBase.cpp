@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2018 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -113,7 +113,7 @@ class ArrayBaseTests  : public UnitTest
 
 public:
     ArrayBaseTests()
-        : UnitTest ("ArrayBase", "Containers")
+        : UnitTest ("ArrayBase", UnitTestCategories::containers)
     {}
 
     void runTest() override
@@ -304,7 +304,7 @@ public:
             checkEqual (copyableContainer, noncopyableContainer, referenceContainer);
         }
 
-        beginTest ("add array from initilizer list");
+        beginTest ("add array from initializer_list");
         {
             std::vector<CopyableType> referenceContainer;
             ArrayBase<CopyableType,    DummyCriticalSection> copyableContainer;

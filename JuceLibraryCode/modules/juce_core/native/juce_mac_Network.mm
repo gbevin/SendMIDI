@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -110,7 +110,7 @@ bool JUCE_CALLTYPE Process::openEmailWithAttachments (const String& targetEmailA
 
 //==============================================================================
 // Unfortunately, we need to have this ugly ifdef here as long as some older OS X versions do not support NSURLSession
-#if JUCE_IOS || (defined (__MAC_OS_X_VERSION_MIN_REQUIRED) && defined (__MAC_10_10) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_10)
+#if JUCE_IOS || (defined (MAC_OS_X_VERSION_10_10) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10)
 
 //==============================================================================
 class URLConnectionState   : private Thread
@@ -192,11 +192,11 @@ public:
 
         while (numBytes > 0)
         {
-            const int available = jmin (numBytes, (int) [data length]);
+            const ScopedLock sl (dataLock);
+            auto available = jmin (numBytes, (int) [data length]);
 
             if (available > 0)
             {
-                const ScopedLock sl (dataLock);
                 [data getBytes: dest length: (NSUInteger) available];
                 [data replaceBytesInRange: NSMakeRange (0, (NSUInteger) available) withBytes: nil length: 0];
 
@@ -209,6 +209,7 @@ public:
                 if (hasFailed || hasFinished)
                     break;
 
+                const ScopedUnlock ul (dataLock);
                 Thread::sleep (1);
             }
         }
@@ -331,8 +332,8 @@ public:
     NSMutableData* data = nil;
     NSDictionary* headers = nil;
     int statusCode = 0;
-    std::atomic<bool> initialised { false };
-    bool hasFailed = false, hasFinished = false, isBeingDeleted = false;
+    std::atomic<bool> initialised { false }, hasFailed { false }, hasFinished { false };
+    bool isBeingDeleted = false;
     const int numRedirectsToFollow;
     int numRedirects = 0;
     int64 latestTotalBytes = 0;
@@ -425,7 +426,8 @@ struct BackgroundDownloadTask  : public URL::DownloadTask
         DelegateClass::setState (delegate, this);
 
         activeSessions.set (uniqueIdentifier, this);
-        NSMutableURLRequest* request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:juceStringToNS (urlToUse.toString (true))]];
+        auto nsUrl = [NSURL URLWithString: juceStringToNS (urlToUse.toString (true))];
+        NSMutableURLRequest* request = [[NSMutableURLRequest alloc] initWithURL: nsUrl];
 
         if (shouldUsePostRequest)
             [request setHTTPMethod: @"POST"];
@@ -646,12 +648,12 @@ struct BackgroundDownloadTask  : public URL::DownloadTask
 
 HashMap<String, BackgroundDownloadTask*, DefaultHashFunctions, CriticalSection> BackgroundDownloadTask::activeSessions;
 
-URL::DownloadTask* URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener, bool usePostRequest)
+std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener, bool usePostRequest)
 {
     std::unique_ptr<BackgroundDownloadTask> downloadTask (new BackgroundDownloadTask (*this, targetLocation, extraHeaders, listener, usePostRequest));
 
     if (downloadTask->initOK() && downloadTask->connect())
-        return downloadTask.release();
+        return downloadTask;
 
     return nullptr;
 }
@@ -661,7 +663,7 @@ void URL::DownloadTask::juce_iosURLSessionNotify (const String& identifier)
     BackgroundDownloadTask::invokeNotify (identifier);
 }
 #else
-URL::DownloadTask* URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener, bool usePost)
+std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener, bool usePost)
 {
     return URL::DownloadTask::createFallbackDownloader (*this, targetLocation, extraHeaders, listener, usePost);
 }
@@ -674,8 +676,7 @@ URL::DownloadTask* URL::downloadToFile (const File& targetLocation, String extra
 // so we'll turn off deprecation warnings. This code will be removed at some point
 // in the future.
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated"
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated")
 
 //==============================================================================
 class URLConnectionState   : public Thread
@@ -692,7 +693,7 @@ public:
         DelegateClass::setState (delegate, this);
     }
 
-    ~URLConnectionState()
+    ~URLConnectionState() override
     {
         stop();
 
@@ -746,11 +747,11 @@ public:
 
         while (numBytes > 0)
         {
-            const int available = jmin (numBytes, (int) [data length]);
+            const ScopedLock sl (dataLock);
+            auto available = jmin (numBytes, (int) [data length]);
 
             if (available > 0)
             {
-                const ScopedLock sl (dataLock);
                 [data getBytes: dest length: (NSUInteger) available];
                 [data replaceBytesInRange: NSMakeRange (0, (NSUInteger) available) withBytes: nil length: 0];
 
@@ -763,6 +764,7 @@ public:
                 if (hasFailed || hasFinished)
                     break;
 
+                const ScopedUnlock sul (dataLock);
                 Thread::sleep (1);
             }
         }
@@ -927,12 +929,12 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (URLConnectionState)
 };
 
-URL::DownloadTask* URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener, bool shouldUsePost)
+std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener, bool shouldUsePost)
 {
     return URL::DownloadTask::createFallbackDownloader (*this, targetLocation, extraHeaders, listener, shouldUsePost);
 }
 
-#pragma clang diagnostic pop
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
 #endif
 
@@ -965,10 +967,13 @@ public:
             createConnection();
         }
 
+        if (connection == nullptr)
+            return false;
+
         if (! connection->start (owner, webInputListener))
         {
             // Workaround for deployment targets below 10.10 where HTTPS POST requests with keep-alive fail with the NSURLErrorNetworkConnectionLost error code.
-           #if ! (JUCE_IOS || (defined (__MAC_OS_X_VERSION_MIN_REQUIRED) && defined (__MAC_10_10) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_10))
+           #if ! (JUCE_IOS || (defined (MAC_OS_X_VERSION_10_10) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10))
             if (numRetries == 0 && connection->nsUrlErrorCode == NSURLErrorNetworkConnectionLost)
             {
                 connection.reset();
@@ -980,7 +985,7 @@ public:
             return false;
         }
 
-        if (connection != nullptr && connection->headers != nil)
+        if (connection->headers != nil)
         {
             statusCode = connection->statusCode;
 

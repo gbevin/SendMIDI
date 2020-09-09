@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -300,7 +300,7 @@ String StringArray::joinIntoString (StringRef separator, int start, int numberTo
         return strings.getReference (start);
 
     auto separatorBytes = separator.text.sizeInBytes() - sizeof (String::CharPointerType::CharType);
-    auto bytesNeeded = separatorBytes * (size_t) (last - start - 1);
+    auto bytesNeeded = (size_t) (last - start - 1) * separatorBytes;
 
     for (int i = start; i < last; ++i)
         bytesNeeded += strings.getReference(i).getCharPointer().sizeInBytes() - sizeof (String::CharPointerType::CharType);

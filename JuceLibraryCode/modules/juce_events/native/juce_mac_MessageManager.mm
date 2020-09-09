@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -389,18 +389,19 @@ bool MessageManager::runDispatchLoopUntil (int millisecondsToRunFor)
     {
         JUCE_AUTORELEASEPOOL
         {
-            CFRunLoopRunInMode (kCFRunLoopDefaultMode, 0.001, true);
+            auto msRemaining = endTime - Time::currentTimeMillis();
 
-            NSEvent* e = [NSApp nextEventMatchingMask: NSEventMaskAny
-                                            untilDate: [NSDate dateWithTimeIntervalSinceNow: 0.001]
-                                               inMode: NSDefaultRunLoopMode
-                                              dequeue: YES];
-
-            if (e != nil && (isEventBlockedByModalComps == nullptr || ! (*isEventBlockedByModalComps) (e)))
-                [NSApp sendEvent: e];
-
-            if (Time::currentTimeMillis() >= endTime)
+            if (msRemaining <= 0)
                 break;
+
+            CFRunLoopRunInMode (kCFRunLoopDefaultMode, jmin (1.0, msRemaining * 0.001), true);
+
+            if (NSEvent* e = [NSApp nextEventMatchingMask: NSEventMaskAny
+                                                untilDate: [NSDate dateWithTimeIntervalSinceNow: 0.001]
+                                                   inMode: NSDefaultRunLoopMode
+                                                  dequeue: YES])
+                if (isEventBlockedByModalComps == nullptr || ! (*isEventBlockedByModalComps) (e))
+                    [NSApp sendEvent: e];
         }
     }
 

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -44,7 +44,7 @@ inline void deleteAndZero (Type& pointer)                           { delete poi
     a specific number of bytes,
 */
 template <typename Type, typename IntegerType>
-inline Type* addBytesToPointer (Type* basePointer, IntegerType bytes) noexcept  { return (Type*) (const_cast<char*> (reinterpret_cast<const char*> (basePointer)) + bytes); }
+inline Type* addBytesToPointer (Type* basePointer, IntegerType bytes) noexcept  { return reinterpret_cast<Type*> (const_cast<char*> (reinterpret_cast<const char*> (basePointer)) + bytes); }
 
 /** A handy function to round up a pointer to the nearest multiple of a given number of bytes.
     alignmentBytes must be a power of two. */

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -23,10 +23,7 @@
 namespace juce
 {
 
-#if JUCE_MSVC
- #pragma warning (push)
- #pragma warning (disable: 4514 4996)
-#endif
+JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4514 4996)
 
 juce_wchar CharacterFunctions::toUpperCase (const juce_wchar character) noexcept
 {
@@ -56,9 +53,7 @@ bool CharacterFunctions::isLowerCase (const juce_wchar character) noexcept
    #endif
 }
 
-#if JUCE_MSVC
- #pragma warning (pop)
-#endif
+JUCE_END_IGNORE_WARNINGS_MSVC
 
 //==============================================================================
 bool CharacterFunctions::isWhitespace (const char character) noexcept
@@ -179,6 +174,8 @@ juce_wchar CharacterFunctions::getUnicodeCharFromWindows1252Codepage (const uint
     return (juce_wchar) lookup[c - 0x80];
 }
 
+
+//==============================================================================
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
@@ -197,7 +194,9 @@ juce_wchar CharacterFunctions::getUnicodeCharFromWindows1252Codepage (const uint
 class CharacterFunctionsTests  : public UnitTest
 {
 public:
-    CharacterFunctionsTests() : UnitTest ("CharacterFunctions", "Text") {}
+    CharacterFunctionsTests()
+        : UnitTest ("CharacterFunctions", UnitTestCategories::text)
+    {}
 
     void runTest() override
     {

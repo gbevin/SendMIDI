@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -105,7 +105,11 @@ namespace
 
 //==============================================================================
 #ifndef JUCE_JACK_CLIENT_NAME
- #define JUCE_JACK_CLIENT_NAME "JUCEJack"
+ #ifdef JucePlugin_Name
+  #define JUCE_JACK_CLIENT_NAME JucePlugin_Name
+ #else
+  #define JUCE_JACK_CLIENT_NAME "JUCEJack"
+ #endif
 #endif
 
 struct JackPortIterator

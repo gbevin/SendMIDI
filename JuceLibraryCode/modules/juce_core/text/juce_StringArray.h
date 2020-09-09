@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -155,12 +155,23 @@ public:
     /** Returns a pointer to the first String in the array.
         This method is provided for compatibility with standard C++ iteration mechanisms.
     */
-    inline String* begin() const noexcept       { return strings.begin(); }
+    inline String* begin() noexcept                 { return strings.begin(); }
+
+    /** Returns a pointer to the first String in the array.
+        This method is provided for compatibility with standard C++ iteration mechanisms.
+    */
+    inline const String* begin() const noexcept     { return strings.begin(); }
 
     /** Returns a pointer to the String which follows the last element in the array.
         This method is provided for compatibility with standard C++ iteration mechanisms.
     */
-    inline String* end() const noexcept         { return strings.end(); }
+    inline String* end() noexcept                  { return strings.end(); }
+
+    /** Returns a pointer to the String which follows the last element in the array.
+        This method is provided for compatibility with standard C++ iteration mechanisms.
+    */
+    inline const String* end() const noexcept       { return strings.end(); }
+
 
     /** Searches for a string in the array.
 

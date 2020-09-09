@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -95,7 +95,7 @@ struct PermissionsRequest
 struct PermissionsOverlay   : FragmentOverlay
 {
     PermissionsOverlay (CriticalSection& cs) : overlayGuard (cs) {}
-    ~PermissionsOverlay() {}
+    ~PermissionsOverlay() override = default;
 
     struct PermissionResult
     {
@@ -175,7 +175,7 @@ struct PermissionsOverlay   : FragmentOverlay
 
                 // this code should only be reached for SDKs >= 23, so this method should be
                 // be available
-                jassert(requestPermissionsMethodID != 0);
+                jassert(requestPermissionsMethodID != nullptr);
 
                 env->CallVoidMethod (getNativeHandle(), requestPermissionsMethodID, jPermissionsArray.get (), 0);
             }

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -262,25 +262,26 @@ bool MidiFile::readFrom (InputStream& sourceStream, bool createMatchingNoteOffs)
         if (size > 16 && MidiFileHelpers::parseMidiHeader (d, timeFormat, fileType, expectedTracks))
         {
             size -= (size_t) (d - static_cast<const uint8*> (data.getData()));
-
             int track = 0;
 
-            while (size > 0 && track < expectedTracks)
+            for (;;)
             {
                 auto chunkType = (int) ByteOrder::bigEndianInt (d);
                 d += 4;
                 auto chunkSize = (int) ByteOrder::bigEndianInt (d);
                 d += 4;
 
-                if (chunkSize <= 0)
+                if (chunkSize <= 0 || (size_t) chunkSize > size)
                     break;
 
                 if (chunkType == (int) ByteOrder::bigEndianInt ("MTrk"))
                     readNextTrack (d, chunkSize, createMatchingNoteOffs);
 
+                if (++track >= expectedTracks)
+                    break;
+
                 size -= (size_t) chunkSize + 8;
                 d += chunkSize;
-                ++track;
             }
 
             return true;

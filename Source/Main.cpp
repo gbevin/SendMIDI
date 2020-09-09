@@ -35,6 +35,7 @@ enum CommandIndex
     NOTE_OFF,
     POLY_PRESSURE,
     CONTROL_CHANGE,
+    CONTROL_CHANGE_14BIT,
     PROGRAM_CHANGE,
     CHANNEL_PRESSURE,
     PITCH_BEND,
@@ -110,6 +111,7 @@ public:
         commands_.add({"off",   	"note-off",                 NOTE_OFF,               2, "note velocity",  "Send Note Off with note (0-127) and velocity (0-127)"});
         commands_.add({"pp",    	"poly-pressure",            POLY_PRESSURE,          2, "note value",     "Send Poly Pressure with note (0-127) and value (0-127)"});
         commands_.add({"cc",    	"control-change",           CONTROL_CHANGE,         2, "number value",   "Send Control Change number (0-127) with value (0-127)"});
+        commands_.add({"cc14",      "control-change-14",        CONTROL_CHANGE_14BIT,   2, "number value",   "Send 14-bit CC number (0-31) with value (0-16383)"});
         commands_.add({"pc",    	"program-change",           PROGRAM_CHANGE,         1, "number",         "Send Program Change number (0-127)"});
         commands_.add({"cp",    	"channel-pressure",         CHANNEL_PRESSURE,       1, "value",          "Send Channel Pressure value (0-127)"});
         commands_.add({"pb",    	"pitch-bend",               PITCH_BEND,             1, "value",          "Send Pitch Bend value (0-16383 or value/range)"});
@@ -519,6 +521,21 @@ private:
                                                              asDecOrHex7BitValue(cmd.opts_[0]),
                                                              asDecOrHex7BitValue(cmd.opts_[1])));
                 break;
+            case CONTROL_CHANGE_14BIT:
+            {
+                int number = asDecOrHex7BitValue(cmd.opts_[0]);
+                if (number >= 32)
+                {
+                    std::cerr << "Can't send 14bit MIDI CC for number " << number << " (it has to be smaller than 32)" << std::endl;
+                }
+                else
+                {
+                    int value = asDecOrHex14BitValue(cmd.opts_[1]);
+                    sendMidiMessage(MidiMessage::controllerEvent(channel_, number, (value >> 7) & 0x7f));
+                    sendMidiMessage(MidiMessage::controllerEvent(channel_, number + 32, value & 0x7f));
+                }
+                break;
+            }
             case PROGRAM_CHANGE:
                 sendMidiMessage(MidiMessage::programChange(channel_,
                                                            asDecOrHex7BitValue(cmd.opts_[0])));
@@ -554,9 +571,9 @@ private:
             {
                 int number = asDecOrHex14BitValue(cmd.opts_[0]);
                 int value = asDecOrHex14BitValue(cmd.opts_[1]);
-                sendMidiMessage(MidiMessage::controllerEvent(channel_, 99, number >> 7));
+                sendMidiMessage(MidiMessage::controllerEvent(channel_, 99, (number >> 7) & 0x7f));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 98, number & 0x7f));
-                sendMidiMessage(MidiMessage::controllerEvent(channel_, 6, value >> 7));
+                sendMidiMessage(MidiMessage::controllerEvent(channel_, 6, (value >> 7) & 0x7f));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 38, value & 0x7f));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 101, 0x7f));
                 sendMidiMessage(MidiMessage::controllerEvent(channel_, 100, 0x7f));
@@ -1086,7 +1103,7 @@ private:
     int octaveMiddleC_;
     bool useHexadecimalsByDefault_;
     String midiOutName_;
-    ScopedPointer<MidiOutput> midiOut_;
+    std::unique_ptr<MidiOutput> midiOut_;
     ApplicationCommand currentCommand_;
     uint32 lastTimeStampCounter_;
     int64_t lastTimeStamp_;

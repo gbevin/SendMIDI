@@ -43,6 +43,7 @@ These are all the supported commands:
   off   note velocity  Send Note Off with note (0-127) and velocity (0-127)
   pp    note value     Send Poly Pressure with note (0-127) and value (0-127)
   cc    number value   Send Control Change number (0-127) with value (0-127)
+  cc14  number value   Send 14-bit CC number (0-31) with value (0-16383)
   pc    number         Send Program Change number (0-127)
   cp    value          Send Channel Pressure value (0-127)
   pb    value          Send Pitch Bend value (0-16383 or value/range)
@@ -62,6 +63,7 @@ These are all the supported commands:
   ss    number         Send Song Select with song number (0-127)
   tun                  Send Tune Request
   mpe   zone range     Send MPE Configuration for zone (1-2) with range (0-15)
+  mpetest              Send a sequence of MPE messages to test a receiver
   raw   bytes          Send raw MIDI from a series of bytes
   -h  or  --help       Print Help (this message) and exit
   --version            Print version information and exit
@@ -71,10 +73,10 @@ These are all the supported commands:
 Alternatively, you can use the following long versions of the commands:
 ```
   device virtual decimal hexadecimal channel octave-middle-c note-on note-off
-  poly-pressure control-change program-change channel-pressure pitch-bend
-  midi-clock continue active-sensing reset system-exclusive
-  system-exclusive-file time-code song-position song-select tune-request
-  raw-midi
+  poly-pressure control-change control-change-14 program-change
+  channel-pressure pitch-bend midi-clock continue active-sensing reset
+  system-exclusive system-exclusive-file time-code song-position song-select
+  tune-request mpe-test raw-midi
 ```
 
 By default, numbers are interpreted in the decimal system, this can be changed to hexadecimal by sending the "hex" command.

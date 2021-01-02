@@ -29,6 +29,10 @@
 			isa = PBXBuildFile;
 			fileRef = BF812B73A42627ED8AD203EA;
 		};
+		8C315CE0BB161E8F64351690 = {
+			isa = PBXBuildFile;
+			fileRef = 07349D8481B1ED49EE53EB64;
+		};
 		2B50A8D000C0D831B3F9702E = {
 			isa = PBXBuildFile;
 			fileRef = D2BC5390A6F33C796C125CA6;
@@ -60,6 +64,13 @@
 		AADC62C5B9CB859326A74332 = {
 			isa = PBXBuildFile;
 			fileRef = F0AC19E3023CA8E85D590A1B;
+		};
+		07349D8481B1ED49EE53EB64 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = Foundation.framework;
+			path = System/Library/Frameworks/Foundation.framework;
+			sourceTree = SDKROOT;
 		};
 		08ACADE6BD3415FD33BA447B = {
 			isa = PBXFileReference;
@@ -266,6 +277,7 @@
 				8C841A693EA83A57B62FDF16,
 				39BBB61E6B2796DB8C72B46D,
 				BF812B73A42627ED8AD203EA,
+				07349D8481B1ED49EE53EB64,
 				D2BC5390A6F33C796C125CA6,
 			);
 			name = Frameworks;
@@ -321,15 +333,20 @@
 				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = (
-					"../../JuceLibraryCode",
-					"../../JuceLibraryCode/modules",
+					"$(SRCROOT)/../../JuceLibraryCode",
+					"$(SRCROOT)/../../JuceLibraryCode/modules",
 					"$(inherited)",
 				);
 				INSTALL_PATH = "/usr/bin";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MTL_HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../JuceLibraryCode",
+					"$(SRCROOT)/../../JuceLibraryCode/modules",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.uwyn.sendmidi;
 				PRODUCT_NAME = "sendmidi";
 				USE_HEADERMAP = NO;
+				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
 			};
 			name = Debug;
 		};
@@ -362,16 +379,21 @@
 				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = (
-					"../../JuceLibraryCode",
-					"../../JuceLibraryCode/modules",
+					"$(SRCROOT)/../../JuceLibraryCode",
+					"$(SRCROOT)/../../JuceLibraryCode/modules",
 					"$(inherited)",
 				);
 				INSTALL_PATH = "/usr/bin";
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MTL_HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../JuceLibraryCode",
+					"$(SRCROOT)/../../JuceLibraryCode/modules",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.uwyn.sendmidi;
 				PRODUCT_NAME = "sendmidi";
 				USE_HEADERMAP = NO;
+				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
 			};
 			name = Release;
 		};
@@ -520,6 +542,7 @@
 				8E8410A6B527CB8A75830C3C,
 				5DC8BD2E0E589697B3A66001,
 				1CD0216F853135DDC28315F0,
+				8C315CE0BB161E8F64351690,
 				2B50A8D000C0D831B3F9702E,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -542,7 +565,7 @@
 		6323F87A9BE44E1C4257AD90 = {
 			isa = PBXProject;
 			buildConfigurationList = 9B7F79ECBA6BB3FD7D9F4A1B;
-			attributes = { LastUpgradeCheck = 1100; ORGANIZATIONNAME = "Uwyn"; };
+			attributes = { LastUpgradeCheck = 1230; ORGANIZATIONNAME = "Uwyn"; };
 			compatibilityVersion = "Xcode 3.2";
 			hasScannedForEncodings = 0;
 			mainGroup = CA1CE00FEEC53FB42E8CDD06;

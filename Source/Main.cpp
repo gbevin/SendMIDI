@@ -722,13 +722,13 @@ private:
         scenarioStep("Pitch Bend Sensitivity on Master Channel to 7 semitones");
         sendMidiMessage(MidiMessage::controllerEvent(1, 0x64, 0));
         sendMidiMessage(MidiMessage::controllerEvent(1, 0x65, 0));
-        sendMidiMessage(MidiMessage::controllerEvent(1, 0x00, 7));
+        sendMidiMessage(MidiMessage::controllerEvent(1, 0x06, 7));
         
         int note_pbsens = 48;
         scenarioStep(String("Pitch Bend Sensitivity on Member Channels to ") + String(note_pbsens) + " semitones");
         sendMidiMessage(MidiMessage::controllerEvent(2, 0x64, 0));
         sendMidiMessage(MidiMessage::controllerEvent(2, 0x65, 0));
-        sendMidiMessage(MidiMessage::controllerEvent(2, 0x00, note_pbsens));
+        sendMidiMessage(MidiMessage::controllerEvent(2, 0x06, note_pbsens));
         
         scenarioStep("Major C triad C3 E3 G3 on Member Channels with neutral starting expression");
         
@@ -917,8 +917,8 @@ private:
         scenarioStep(String("Pitch Bend Sensitivity on Member Channels to ") + String(note_pbsens) + " semitones");
         sendMidiMessage(MidiMessage::controllerEvent(2, 0x64, 0));
         sendMidiMessage(MidiMessage::controllerEvent(2, 0x65, 0));
-        sendMidiMessage(MidiMessage::controllerEvent(2, 0x00, note_pbsens));
-        
+        sendMidiMessage(MidiMessage::controllerEvent(2, 0x06, note_pbsens));
+
         Thread::sleep(2000);
         
         scenarioStep("Pitch bend back to the original Major C triad C3 E3 G3");

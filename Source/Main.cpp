@@ -590,7 +590,7 @@ private:
                 float bpm = float(jlimit(1, 999, asDecOrHexIntValue(cmd.opts_[0])));
                 float msPerTick = (60.f * 1000.f / bpm) / 24.f;
                 sendMidiMessage(MidiMessage::midiClock());
-                for (int ticks = 1; ticks <= 24 * 2; ++ticks)
+                for (int ticks = 1; ticks < 24 * 2; ++ticks)
                 {
                     Time::waitForMillisecondCounter(now + uint32(float(ticks) * msPerTick));
                     sendMidiMessage(MidiMessage::midiClock());

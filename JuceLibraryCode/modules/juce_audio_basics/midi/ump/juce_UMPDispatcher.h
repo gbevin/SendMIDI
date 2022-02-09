@@ -20,6 +20,8 @@
   ==============================================================================
 */
 
+#ifndef DOXYGEN
+
 namespace juce
 {
 namespace universal_midi_packets
@@ -55,9 +57,8 @@ public:
 
             if (currentPacketLen == Utils::getNumWordsForMessageType (nextPacket.front()))
             {
-                callback (View (nextPacket.data()), time);
+                callback (View (nextPacket.data()), timeStamp);
                 currentPacketLen = 0;
-                time = timeStamp;
             }
         });
     }
@@ -65,7 +66,6 @@ public:
 private:
     std::array<uint32_t, 4> nextPacket;
     size_t currentPacketLen = 0;
-    double time = 0.0;
 };
 
 //==============================================================================
@@ -110,7 +110,13 @@ public:
     {
         using CallbackPtr = decltype (std::addressof (callback));
 
-        struct Callback
+       #if JUCE_MINGW
+        #define JUCE_MINGW_HIDDEN_VISIBILITY __attribute__ ((visibility ("hidden")))
+       #else
+        #define JUCE_MINGW_HIDDEN_VISIBILITY
+       #endif
+
+        struct JUCE_MINGW_HIDDEN_VISIBILITY Callback
         {
             Callback (BytestreamToUMPDispatcher& d, CallbackPtr c)
                 : dispatch (d), callbackPtr (c) {}
@@ -128,6 +134,8 @@ public:
             BytestreamToUMPDispatcher& dispatch;
             CallbackPtr callbackPtr = nullptr;
         };
+
+       #undef JUCE_MINGW_HIDDEN_VISIBILITY
 
         Callback inputCallback { *this, &callback };
         concatenator.pushMidiData (begin, int (end - begin), timestamp, (void*) nullptr, inputCallback);
@@ -190,3 +198,5 @@ private:
 
 }
 }
+
+#endif

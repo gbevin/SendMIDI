@@ -25,20 +25,29 @@ namespace juce
 namespace universal_midi_packets
 {
 
-/** The kinds of MIDI protocol that can be formatted into Universal MIDI Packets. */
-enum class PacketProtocol
+uint32_t SysEx7::getNumPacketsRequiredForDataSize (uint32_t size)
 {
-    MIDI_1_0,
-    MIDI_2_0,
-};
+    constexpr auto denom = 6;
+    return (size / denom) + ((size % denom) != 0);
+}
 
-/** All kinds of MIDI protocol understood by JUCE. */
-enum class MidiProtocol
+SysEx7::PacketBytes SysEx7::getDataBytes (const PacketX2& packet)
 {
-    bytestream,
-    UMP_MIDI_1_0,
-    UMP_MIDI_2_0,
-};
+    const auto numBytes = Utils::getChannel (packet[0]);
+    constexpr uint8_t maxBytes = 6;
+    jassert (numBytes <= maxBytes);
+
+    return
+    {
+        { { packet.getU8<2>(),
+            packet.getU8<3>(),
+            packet.getU8<4>(),
+            packet.getU8<5>(),
+            packet.getU8<6>(),
+            packet.getU8<7>() } },
+        jmin (numBytes, maxBytes)
+    };
+}
 
 }
 }

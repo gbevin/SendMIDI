@@ -20,22 +20,35 @@
   ==============================================================================
 */
 
-#if JUCE_PROJUCER_LIVE_BUILD && (defined (__APPLE_CPP__) || defined(__APPLE_CC__))
+namespace juce
+{
 
- // This hack is a workaround for a bug (?) in Apple's 10.11 SDK headers
- // which cause some configurations of Clang to throw out a spurious error..
- #include <CoreFoundation/CFAvailability.h>
- #undef CF_OPTIONS
- #define CF_OPTIONS(_type, _name) _type _name; enum
+#if JUCE_MAC
 
- // This is a workaround for the Xcode 9 version of NSUUID.h causing some errors
- // in the live-build engine.
- #define _Nullable
- #define _Nonnull
+class ScopedLowPowerModeDisabler::Pimpl
+{
+public:
+    Pimpl() = default;
+    ~Pimpl() { [[NSProcessInfo processInfo] endActivity: activity]; }
 
- // A workaround for compiling the 10.15 headers with an older compiler version
- #undef API_UNAVAILABLE_BEGIN
- #define API_UNAVAILABLE_BEGIN(...)
- #undef API_UNAVAILABLE_END
- #define API_UNAVAILABLE_END
+private:
+    id activity { [[NSProcessInfo processInfo] beginActivityWithOptions: NSActivityUserInitiatedAllowingIdleSystemSleep
+                                                                 reason: @"App must remain in high-power mode"] };
+
+    JUCE_DECLARE_NON_COPYABLE (Pimpl)
+    JUCE_DECLARE_NON_MOVEABLE (Pimpl)
+};
+
+#else
+
+class ScopedLowPowerModeDisabler::Pimpl {};
+
 #endif
+
+//==============================================================================
+ScopedLowPowerModeDisabler::ScopedLowPowerModeDisabler()
+    : pimpl (std::make_unique<Pimpl>()) {}
+
+ScopedLowPowerModeDisabler::~ScopedLowPowerModeDisabler() = default;
+
+} // namespace juce

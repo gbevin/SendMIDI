@@ -102,7 +102,8 @@ public:
                  double timeStamp = 0,
                  bool sysexHasEmbeddedLength = true);
 
-    /** Creates an active-sense message.
+    /** Creates an empty sysex message.
+
         Since the MidiMessage has to contain a valid message, this default constructor
         just initialises it with an empty sysex message.
     */
@@ -856,23 +857,21 @@ public:
 
 
     //==============================================================================
+   #ifndef DOXYGEN
     /** Reads a midi variable-length integer.
-
-        This signature has been deprecated in favour of the safer
-        readVariableLengthValue.
 
         The `data` argument indicates the data to read the number from,
         and `numBytesUsed` is used as an out-parameter to indicate the number
         of bytes that were read.
     */
-    JUCE_DEPRECATED (static int readVariableLengthVal (const uint8* data,
-                                                       int& numBytesUsed) noexcept);
+    [[deprecated ("This signature has been deprecated in favour of the safer readVariableLengthValue.")]]
+    static int readVariableLengthVal (const uint8* data, int& numBytesUsed) noexcept;
+   #endif
 
     /** Holds information about a variable-length value which was parsed
         from a stream of bytes.
 
         A valid value requires that `bytesUsed` is greater than 0.
-        If `bytesUsed <= 0` this object should be considered invalid.
     */
     struct VariableLengthValue
     {
@@ -880,6 +879,8 @@ public:
 
         VariableLengthValue (int valueIn, int bytesUsedIn)
             : value (valueIn), bytesUsed (bytesUsedIn) {}
+
+        bool isValid() const noexcept  { return bytesUsed > 0; }
 
         int value = 0;
         int bytesUsed = 0;
@@ -891,7 +892,8 @@ public:
         @param maxBytesToUse    the number of bytes in the region following `data`
         @returns                a struct containing the parsed value, and the number
                                 of bytes that were read. If parsing fails, both the
-                                `value` and `bytesUsed` fields will be set to 0.
+                                `value` and `bytesUsed` fields will be set to 0 and
+                                `isValid()` will return false
     */
     static VariableLengthValue readVariableLengthValue (const uint8* data,
                                                         int maxBytesToUse) noexcept;

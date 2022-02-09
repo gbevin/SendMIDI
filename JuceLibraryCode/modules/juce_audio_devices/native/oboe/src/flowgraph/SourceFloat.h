@@ -22,6 +22,7 @@
 
 #include "FlowGraphNode.h"
 
+namespace FLOWGRAPH_OUTER_NAMESPACE {
 namespace flowgraph {
 
 /**
@@ -30,6 +31,7 @@ namespace flowgraph {
 class SourceFloat : public FlowGraphSourceBuffered {
 public:
     explicit SourceFloat(int32_t channelCount);
+    ~SourceFloat() override = default;
 
     int32_t onProcess(int32_t numFrames) override;
 
@@ -39,5 +41,6 @@ public:
 };
 
 } /* namespace flowgraph */
+} /* namespace FLOWGRAPH_OUTER_NAMESPACE */
 
 #endif //FLOWGRAPH_SOURCE_FLOAT_H

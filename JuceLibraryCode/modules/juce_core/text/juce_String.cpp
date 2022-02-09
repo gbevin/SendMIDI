@@ -237,8 +237,6 @@ private:
     }
 };
 
-JUCE_DECLARE_DEPRECATED_STATIC (const String String::empty;)
-
 //==============================================================================
 String::String() noexcept  : text (&(emptyString.text))
 {
@@ -1280,7 +1278,7 @@ String String::replaceSection (int index, int numCharsToReplace, StringRef strin
     dest += newStringBytes;
     memcpy (dest, startOfRemainder.getAddress(), remainderBytes);
     dest += remainderBytes;
-    CharPointerType ((CharPointerType::CharType*) dest).writeNull();
+    CharPointerType (unalignedPointerCast<CharPointerType::CharType*> (dest)).writeNull();
 
     return result;
 }
@@ -1959,8 +1957,8 @@ String String::toHexString (const void* const d, const int size, const int group
     return s;
 }
 
-int   String::getHexValue32() const noexcept    { return CharacterFunctions::HexParser<int>  ::parse (text); }
-int64 String::getHexValue64() const noexcept    { return CharacterFunctions::HexParser<int64>::parse (text); }
+int   String::getHexValue32() const noexcept    { return (int32) CharacterFunctions::HexParser<uint32>::parse (text); }
+int64 String::getHexValue64() const noexcept    { return (int64) CharacterFunctions::HexParser<uint64>::parse (text); }
 
 //==============================================================================
 static String getStringFromWindows1252Codepage (const char* data, size_t num)
@@ -2151,7 +2149,7 @@ String String::fromUTF8 (const char* const buffer, int bufferSizeBytes)
 JUCE_END_IGNORE_WARNINGS_MSVC
 
 //==============================================================================
-StringRef::StringRef() noexcept  : text ((const String::CharPointerType::CharType*) "\0\0\0")
+StringRef::StringRef() noexcept  : text (unalignedPointerCast<const String::CharPointerType::CharType*> ("\0\0\0"))
 {
 }
 
@@ -2195,7 +2193,6 @@ StringRef::StringRef (const String& string) noexcept   : text (string.getCharPoi
 StringRef::StringRef (const std::string& string)       : StringRef (string.c_str()) {}
 
 //==============================================================================
-
 static String reduceLengthOfFloatString (const String& input)
 {
     const auto start = input.getCharPointer();
@@ -2309,6 +2306,18 @@ static String serialiseDouble (double input)
     return reduceLengthOfFloatString (String (input, numberOfDecimalPlaces));
 }
 
+//==============================================================================
+#if JUCE_ALLOW_STATIC_NULL_VARIABLES
+
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4996)
+
+const String String::empty;
+
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+JUCE_END_IGNORE_WARNINGS_MSVC
+
+#endif
 
 //==============================================================================
 //==============================================================================
@@ -2577,6 +2586,8 @@ public:
             expect (String (std::numeric_limits<int64>::max()).getLargeIntValue() == std::numeric_limits<int64>::max());
             expect (String (std::numeric_limits<int64>::min()).getLargeIntValue() == std::numeric_limits<int64>::min());
             expect (("xyz" + s).getTrailingIntValue() == s.getIntValue());
+            expect (String ("xyz-5").getTrailingIntValue() == -5);
+            expect (String ("-12345").getTrailingIntValue() == -12345);
             expect (s.getHexValue32() == 0x12345678);
             expect (s.getHexValue64() == (int64) 0x12345678);
             expect (String::toHexString (0x1234abcd).equalsIgnoreCase ("1234abcd"));

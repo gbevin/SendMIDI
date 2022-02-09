@@ -406,29 +406,34 @@ private:
             case NONE:
                 break;
             case LIST:
-                for (auto&& device : MidiOutput::getDevices())
+                for (auto&& device : MidiOutput::getAvailableDevices())
                 {
-                    std::cout << device << std::endl;
+                    std::cout << device.name << std::endl;
                 }
                 break;
             case DEVICE:
             {
                 midiOut_ = nullptr;
                 midiOutName_ = cmd.opts_[0];
-                int index = MidiOutput::getDevices().indexOf(midiOutName_);
-                if (index >= 0)
+                auto devices = MidiOutput::getAvailableDevices();
+                for (int i = 0; i < devices.size(); ++i)
                 {
-                    midiOut_ = MidiOutput::openDevice(index);
+                    if (devices[i].name == midiOutName_)
+                    {
+                        midiOut_ = MidiOutput::openDevice(devices[i].identifier);
+                        midiOutName_ = devices[i].name;
+                        break;
+                    }
                 }
-                else
+                
+                if (midiOut_ == nullptr)
                 {
-                    StringArray devices = MidiOutput::getDevices();
                     for (int i = 0; i < devices.size(); ++i)
                     {
-                        if (devices[i].containsIgnoreCase(midiOutName_))
+                        if (devices[i].name.containsIgnoreCase(midiOutName_))
                         {
-                            midiOut_ = MidiOutput::openDevice(i);
-                            midiOutName_ = devices[i];
+                            midiOut_ = MidiOutput::openDevice(devices[i].identifier);
+                            midiOutName_ = devices[i].name;
                             break;
                         }
                     }

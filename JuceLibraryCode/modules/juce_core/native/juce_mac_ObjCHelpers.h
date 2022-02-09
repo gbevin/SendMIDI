@@ -20,6 +20,8 @@
   ==============================================================================
 */
 
+#include "juce_mac_CFHelpers.h"
+
 /* This file contains a few helper functions that are used internally but which
    need to be kept away from the public headers because they use obj-C symbols.
 */
@@ -27,6 +29,16 @@ namespace juce
 {
 
 //==============================================================================
+inline Range<int> nsRangeToJuce (NSRange range)
+{
+    return { (int) range.location, (int) (range.location + range.length) };
+}
+
+inline NSRange juceRangeToNS (Range<int> range)
+{
+    return NSMakeRange ((NSUInteger) range.getStart(), (NSUInteger) range.getLength());
+}
+
 inline String nsStringToJuce (NSString* s)
 {
     return CharPointer_UTF8 ([s UTF8String]);
@@ -204,7 +216,7 @@ NSRect makeNSRect (const RectangleType& r) noexcept
     #endif
  };
 
- template<>
+ template <>
  struct NeedsStret<void> { static constexpr auto value = false; };
 
  template <typename T, bool b = NeedsStret<T>::value>
@@ -218,7 +230,7 @@ NSRect makeNSRect (const RectangleType& r) noexcept
 #endif
 
 template <typename SuperType, typename ReturnType, typename... Params>
-static ReturnType ObjCMsgSendSuper (id self, SEL sel, Params... params)
+inline ReturnType ObjCMsgSendSuper (id self, SEL sel, Params... params)
 {
     using SuperFn = ReturnType (*) (struct objc_super*, SEL, Params...);
     const auto fn = reinterpret_cast<SuperFn> (MetaSuperFn<ReturnType>::value);
@@ -230,13 +242,114 @@ static ReturnType ObjCMsgSendSuper (id self, SEL sel, Params... params)
 //==============================================================================
 struct NSObjectDeleter
 {
-    void operator()(NSObject* object) const
+    void operator() (NSObject* object) const noexcept
     {
-        [object release];
+        if (object != nullptr)
+            [object release];
     }
 };
 
+template <typename NSType>
+using NSUniquePtr = std::unique_ptr<NSType, NSObjectDeleter>;
+
+/*  This has very similar semantics to NSUniquePtr, with the main difference that it doesn't
+    automatically add a pointer to the managed type. This makes it possible to declare
+    scoped handles to id or block types.
+*/
+template <typename T>
+class ObjCObjectHandle
+{
+public:
+    ObjCObjectHandle() = default;
+
+    // Note that this does *not* retain the argument.
+    explicit ObjCObjectHandle (T ptr) : item (ptr) {}
+
+    ~ObjCObjectHandle() noexcept { reset(); }
+
+    ObjCObjectHandle (const ObjCObjectHandle& other)
+        : item (other.item)
+    {
+        if (item != nullptr)
+            [item retain];
+    }
+
+    ObjCObjectHandle& operator= (const ObjCObjectHandle& other)
+    {
+        auto copy = other;
+        swap (copy);
+        return *this;
+    }
+
+    ObjCObjectHandle (ObjCObjectHandle&& other) noexcept { swap (other); }
+
+    ObjCObjectHandle& operator= (ObjCObjectHandle&& other) noexcept
+    {
+        reset();
+        swap (other);
+        return *this;
+    }
+
+    // Note that this does *not* retain the argument.
+    void reset (T ptr) { *this = ObjCObjectHandle { ptr }; }
+
+    T get() const { return item; }
+
+    void reset()
+    {
+        if (item != nullptr)
+            [item release];
+
+        item = {};
+    }
+
+    bool operator== (const ObjCObjectHandle& other) const { return item == other.item; }
+    bool operator!= (const ObjCObjectHandle& other) const { return ! (*this == other); }
+
+private:
+    void swap (ObjCObjectHandle& other) noexcept { std::swap (other.item, item); }
+
+    T item{};
+};
+
 //==============================================================================
+namespace detail
+{
+    constexpr auto makeCompileTimeStr()
+    {
+        return std::array<char, 1> { { '\0' } };
+    }
+
+    template <typename A, size_t... As, typename B, size_t... Bs>
+    constexpr auto joinCompileTimeStrImpl (A&& a, std::index_sequence<As...>,
+                                           B&& b, std::index_sequence<Bs...>)
+    {
+        return std::array<char, sizeof... (As) + sizeof... (Bs) + 1> { { a[As]..., b[Bs]..., '\0' } };
+    }
+
+    template <size_t A, size_t B>
+    constexpr auto joinCompileTimeStr (const char (&a)[A], std::array<char, B> b)
+    {
+        return joinCompileTimeStrImpl (a, std::make_index_sequence<A - 1>(),
+                                       b, std::make_index_sequence<B - 1>());
+    }
+
+    template <size_t A, typename... Others>
+    constexpr auto makeCompileTimeStr (const char (&v)[A], Others&&... others)
+    {
+        return joinCompileTimeStr (v, makeCompileTimeStr (others...));
+    }
+} // namespace detail
+
+//==============================================================================
+template <typename Type>
+inline Type getIvar (id self, const char* name)
+{
+    void* v = nullptr;
+    object_getInstanceVariable (self, name, &v);
+    return static_cast<Type> (v);
+}
+
 template <typename SuperclassType>
 struct ObjCClass
 {
@@ -270,29 +383,12 @@ struct ObjCClass
         jassert (b); ignoreUnused (b);
     }
 
-    template <typename FunctionType>
-    void addMethod (SEL selector, FunctionType callbackFn, const char* signature)
+    template <typename Result, typename... Args>
+    void addMethod (SEL selector, Result (*callbackFn) (id, SEL, Args...))
     {
-        BOOL b = class_addMethod (cls, selector, (IMP) callbackFn, signature);
-        jassert (b); ignoreUnused (b);
-    }
-
-    template <typename FunctionType>
-    void addMethod (SEL selector, FunctionType callbackFn, const char* sig1, const char* sig2)
-    {
-        addMethod (selector, callbackFn, (String (sig1) + sig2).toUTF8());
-    }
-
-    template <typename FunctionType>
-    void addMethod (SEL selector, FunctionType callbackFn, const char* sig1, const char* sig2, const char* sig3)
-    {
-        addMethod (selector, callbackFn, (String (sig1) + sig2 + sig3).toUTF8());
-    }
-
-    template <typename FunctionType>
-    void addMethod (SEL selector, FunctionType callbackFn, const char* sig1, const char* sig2, const char* sig3, const char* sig4)
-    {
-        addMethod (selector, callbackFn, (String (sig1) + sig2 + sig3 + sig4).toUTF8());
+        const auto s = detail::makeCompileTimeStr (@encode (Result), @encode (id), @encode (SEL), @encode (Args)...);
+        const auto b = class_addMethod (cls, selector, (IMP) callbackFn, s.data());
+        jassertquiet (b);
     }
 
     void addProtocol (Protocol* protocol)
@@ -305,14 +401,6 @@ struct ObjCClass
     static ReturnType sendSuperclassMessage (id self, SEL sel, Params... params)
     {
         return ObjCMsgSendSuper<SuperclassType, ReturnType, Params...> (self, sel, params...);
-    }
-
-    template <typename Type>
-    static Type getIvar (id self, const char* name)
-    {
-        void* v = nullptr;
-        object_getInstanceVariable (self, name, &v);
-        return static_cast<Type> (v);
     }
 
     Class cls;
@@ -337,10 +425,10 @@ struct ObjCLifetimeManagedClass : public ObjCClass<NSObject>
         addIvar<JuceClass*> ("cppObject");
 
         JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
-        addMethod (@selector (initWithJuceObject:), initWithJuceObject, "@@:@");
+        addMethod (@selector (initWithJuceObject:), initWithJuceObject);
         JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
-        addMethod (@selector (dealloc),             dealloc,            "v@:");
+        addMethod (@selector (dealloc),             dealloc);
 
         registerClass();
     }
@@ -386,7 +474,7 @@ NSObject* createNSObjectFromJuceClass (Class* obj)
 template <typename Class>
 Class* getJuceClassFromNSObject (NSObject* obj)
 {
-    return obj != nullptr ? ObjCLifetimeManagedClass<Class>:: template getIvar<Class*> (obj, "cppObject") : nullptr;
+    return obj != nullptr ? getIvar<Class*> (obj, "cppObject") : nullptr;
 }
 
 template <typename ReturnT, class Class, typename... Params>
@@ -416,20 +504,5 @@ public:
 private:
     BlockType block;
 };
-
-struct ScopedCFString
-{
-    ScopedCFString() = default;
-    ScopedCFString (String s) : cfString (s.toCFString())  {}
-
-    ~ScopedCFString() noexcept
-    {
-        if (cfString != nullptr)
-            CFRelease (cfString);
-    }
-
-    CFStringRef cfString = {};
-};
-
 
 } // namespace juce

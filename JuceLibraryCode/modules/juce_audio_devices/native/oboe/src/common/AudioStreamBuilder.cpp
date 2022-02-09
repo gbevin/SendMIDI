@@ -16,6 +16,8 @@
 
 #include <sys/types.h>
 
+
+#include "aaudio/AAudioExtensions.h"
 #include "aaudio/AudioStreamAAudio.h"
 #include "FilterAudioStream.h"
 #include "OboeDebug.h"
@@ -80,13 +82,19 @@ AudioStream *AudioStreamBuilder::build() {
 }
 
 bool AudioStreamBuilder::isCompatible(AudioStreamBase &other) {
-    return getSampleRate() == other.getSampleRate()
-           && getFormat() == other.getFormat()
-           && getChannelCount() == other.getChannelCount();
+    return (getSampleRate() == oboe::Unspecified || getSampleRate() == other.getSampleRate())
+           && (getFormat() == (AudioFormat)oboe::Unspecified || getFormat() == other.getFormat())
+           && (getFramesPerDataCallback() == oboe::Unspecified || getFramesPerDataCallback() == other.getFramesPerDataCallback())
+           && (getChannelCount() == oboe::Unspecified || getChannelCount() == other.getChannelCount());
 }
 
 Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
-    Result result = Result::OK;
+    auto result = isValidConfig();
+    if (result != Result::OK) {
+        LOGW("%s() invalid config %d", __func__, result);
+        return result;
+    }
+
     LOGI("%s() %s -------- %s --------",
          __func__, getDirection() == Direction::Input ? "INPUT" : "OUTPUT", getVersionText());
 
@@ -104,14 +112,13 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
     // Do we need to make a child stream and convert.
     if (conversionNeeded) {
         AudioStream *tempStream;
-
         result = childBuilder.openStream(&tempStream);
         if (result != Result::OK) {
             return result;
         }
 
         if (isCompatible(*tempStream)) {
-            // Everything matches so we can just use the child stream directly.
+            // The child stream would work as the requested stream so we can just use it directly.
             *streamPP = tempStream;
             return result;
         } else {
@@ -125,6 +132,9 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
             }
             if (getSampleRate() == oboe::Unspecified) {
                 parentBuilder.setSampleRate(tempStream->getSampleRate());
+            }
+            if (getFramesPerDataCallback() == oboe::Unspecified) {
+                parentBuilder.setFramesPerCallback(tempStream->getFramesPerDataCallback());
             }
 
             // Use childStream in a FilterAudioStream.
@@ -148,7 +158,20 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
         }
     }
 
-    result = streamP->open(); // TODO review API
+    // If MMAP has a problem in this case then disable it temporarily.
+    bool wasMMapOriginallyEnabled = AAudioExtensions::getInstance().isMMapEnabled();
+    bool wasMMapTemporarilyDisabled = false;
+    if (wasMMapOriginallyEnabled) {
+        bool isMMapSafe = QuirksManager::getInstance().isMMapSafe(childBuilder);
+        if (!isMMapSafe) {
+            AAudioExtensions::getInstance().setMMapEnabled(false);
+            wasMMapTemporarilyDisabled = true;
+        }
+    }
+    result = streamP->open();
+    if (wasMMapTemporarilyDisabled) {
+        AAudioExtensions::getInstance().setMMapEnabled(wasMMapOriginallyEnabled); // restore original
+    }
     if (result == Result::OK) {
 
         int32_t  optimalBufferSize = -1;

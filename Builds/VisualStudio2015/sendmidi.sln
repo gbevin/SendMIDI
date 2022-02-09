@@ -1,5 +1,6 @@
+﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2015
+# Visual Studio 14
 
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sendmidi - ConsoleApp", "sendmidi_ConsoleApp.vcxproj", "{EC07A94C-C6F1-D5CC-D12F-CB5B41909707}"
 EndProject

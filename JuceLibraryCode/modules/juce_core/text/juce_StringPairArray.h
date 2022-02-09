@@ -42,7 +42,7 @@ public:
     StringPairArray (const StringPairArray& other);
 
     /** Destructor. */
-    ~StringPairArray();
+    ~StringPairArray() = default;
 
     /** Copies the contents of another string array into this one */
     StringPairArray& operator= (const StringPairArray& other);
@@ -147,8 +147,14 @@ public:
     /** Adds the contents of a map to this StringPairArray. */
     void addMap (const std::map<String, String>& mapToAdd);
 
+    /** Adds the contents of an unordered map to this StringPairArray. */
+    void addUnorderedMap (const std::unordered_map<String, String>& mapToAdd);
+
 private:
     //==============================================================================
+    template <typename Map>
+    void addMapImpl (const Map& mapToAdd);
+
     StringArray keys, values;
     bool ignoreCase;
 

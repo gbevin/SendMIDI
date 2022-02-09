@@ -42,8 +42,11 @@ public:
     : AudioStream(builder)
     , mChildStream(childStream) {
         // Intercept the callback if used.
-        if (builder.getCallback() != nullptr) {
-            mStreamCallback = mChildStream->swapCallback(this);
+        if (builder.isErrorCallbackSpecified()) {
+            mErrorCallback = mChildStream->swapErrorCallback(this);
+        }
+        if (builder.isDataCallbackSpecified()) {
+            mDataCallback = mChildStream->swapDataCallback(this);
         } else {
             const int size = childStream->getFramesPerBurst() * childStream->getBytesPerFrame();
             mBlockingBuffer = std::make_unique<uint8_t[]>(size);
@@ -52,6 +55,9 @@ public:
         // Copy parameters that may not match builder.
         mBufferCapacityInFrames = mChildStream->getBufferCapacityInFrames();
         mPerformanceMode = mChildStream->getPerformanceMode();
+        mInputPreset = mChildStream->getInputPreset();
+        mFramesPerBurst = mChildStream->getFramesPerBurst();
+        mDeviceId = mChildStream->getDeviceId();
     }
 
     virtual ~FilterAudioStream() = default;
@@ -109,7 +115,7 @@ public:
             int32_t numFrames,
             int64_t timeoutNanoseconds) override;
 
-    StreamState getState() const override {
+    StreamState getState() override {
         return mChildStream->getState();
     }
 
@@ -122,10 +128,6 @@ public:
 
     bool isXRunCountSupported() const override {
         return mChildStream->isXRunCountSupported();
-    }
-
-    int32_t getFramesPerBurst() override {
-        return mChildStream->getFramesPerBurst();
     }
 
     AudioApi getAudioApi() const override {
@@ -155,7 +157,7 @@ public:
         return mBufferSizeInFrames;
     }
 
-    ResultWithValue<int32_t> getXRunCount() const override {
+    ResultWithValue<int32_t> getXRunCount() override {
         return mChildStream->getXRunCount();
     }
 
@@ -169,36 +171,43 @@ public:
             int64_t *timeNanoseconds) override {
         int64_t childPosition = 0;
         Result result = mChildStream->getTimestamp(clockId, &childPosition, timeNanoseconds);
-        *framePosition = childPosition * mRateScaler;
+        // It is OK if framePosition is null.
+        if (framePosition) {
+            *framePosition = childPosition * mRateScaler;
+        }
         return result;
     }
 
     DataCallbackResult onAudioReady(AudioStream *oboeStream,
             void *audioData,
-            int32_t numFrames) override {
-        int32_t framesProcessed;
-        if (oboeStream->getDirection() == Direction::Output) {
-            framesProcessed = mFlowGraph->read(audioData, numFrames, 0 /* timeout */);
-        } else {
-            framesProcessed = mFlowGraph->write(audioData, numFrames);
+            int32_t numFrames) override;
+
+    bool onError(AudioStream * /*audioStream*/, Result error) override {
+        if (mErrorCallback != nullptr) {
+            return mErrorCallback->onError(this, error);
         }
-        return (framesProcessed < numFrames)
-                ? DataCallbackResult::Stop
-                : mFlowGraph->getDataCallbackResult();
+        return false;
     }
 
-    void onErrorBeforeClose(AudioStream *oboeStream, Result error) override {
-        if (mStreamCallback != nullptr) {
-            mStreamCallback->onErrorBeforeClose(this, error);
+    void onErrorBeforeClose(AudioStream * /*oboeStream*/, Result error) override {
+        if (mErrorCallback != nullptr) {
+            mErrorCallback->onErrorBeforeClose(this, error);
         }
     }
 
-    void onErrorAfterClose(AudioStream *oboeStream, Result error) override {
+    void onErrorAfterClose(AudioStream * /*oboeStream*/, Result error) override {
         // Close this parent stream because the callback will only close the child.
         AudioStream::close();
-        if (mStreamCallback != nullptr) {
-            mStreamCallback->onErrorAfterClose(this, error);
+        if (mErrorCallback != nullptr) {
+            mErrorCallback->onErrorAfterClose(this, error);
         }
+    }
+
+    /**
+     * @return last result passed from an error callback
+     */
+    oboe::Result getLastErrorCallbackResult() const override {
+        return mChildStream->getLastErrorCallbackResult();
     }
 
 private:

@@ -23,6 +23,8 @@
 namespace juce
 {
 
+#if ! JUCE_WASM
+
 class NamedPipe::Pimpl
 {
 public:
@@ -64,7 +66,9 @@ public:
 
             if (numRead <= 0)
             {
-                if (errno != EWOULDBLOCK || stopReadOperation.load() || hasExpired (timeoutEnd))
+                const auto error = errno;
+
+                if (! (error == EWOULDBLOCK || error == EAGAIN) || stopReadOperation.load() || hasExpired (timeoutEnd))
                     return -1;
 
                 const int maxWaitingTime = 30;
@@ -95,8 +99,20 @@ public:
             auto bytesThisTime = numBytesToWrite - bytesWritten;
             auto numWritten = (int) ::write (pipeOut, sourceBuffer, (size_t) bytesThisTime);
 
-            if (numWritten <= 0)
-                return -1;
+            if (numWritten < 0)
+            {
+                const auto error = errno;
+                const int maxWaitingTime = 30;
+
+                if (error == EWOULDBLOCK || error == EAGAIN)
+                    waitToWrite (pipeOut, timeoutEnd == 0 ? maxWaitingTime
+                                                          : jmin (maxWaitingTime,
+                                                                  (int) (timeoutEnd - Time::getMillisecondCounter())));
+                else
+                    return -1;
+
+                numWritten = 0;
+            }
 
             bytesWritten += numWritten;
             sourceBuffer += numWritten;
@@ -176,6 +192,12 @@ private:
         poll (&pfd, 1, timeoutMsecs);
     }
 
+    static void waitToWrite (int handle, int timeoutMsecs) noexcept
+    {
+        pollfd pfd { handle, POLLOUT, 0 };
+        poll (&pfd, 1, timeoutMsecs);
+    }
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Pimpl)
 };
 
@@ -240,5 +262,7 @@ int NamedPipe::write (const void* sourceBuffer, int numBytesToWrite, int timeOut
     ScopedReadLock sl (lock);
     return pimpl != nullptr ? pimpl->write (static_cast<const char*> (sourceBuffer), numBytesToWrite, timeOutMilliseconds) : -1;
 }
+
+#endif
 
 } // namespace juce

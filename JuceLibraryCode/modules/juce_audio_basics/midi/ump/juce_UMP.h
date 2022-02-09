@@ -20,21 +20,28 @@
   ==============================================================================
 */
 
+#include "../juce_MidiDataConcatenator.h"
+
+#include "juce_UMPProtocols.h"
+#include "juce_UMPUtils.h"
+#include "juce_UMPacket.h"
+#include "juce_UMPSysEx7.h"
+#include "juce_UMPView.h"
+#include "juce_UMPIterator.h"
+#include "juce_UMPackets.h"
+#include "juce_UMPFactory.h"
+#include "juce_UMPConversion.h"
+#include "juce_UMPMidi1ToBytestreamTranslator.h"
+#include "juce_UMPMidi1ToMidi2DefaultTranslator.h"
+#include "juce_UMPConverters.h"
+#include "juce_UMPDispatcher.h"
+#include "juce_UMPReceiver.h"
+
+#ifndef DOXYGEN
+
 namespace juce
 {
-namespace universal_midi_packets
-{
-
-/**
-    A base class for classes which receive Universal MIDI Packets from an input.
-*/
-struct Receiver
-{
-    virtual ~Receiver() noexcept = default;
-
-    /** This will be called each time a new packet is ready for processing. */
-    virtual void packetReceived (const View& packet, double time) = 0;
-};
-
+namespace ump = universal_midi_packets;
 }
-}
+
+#endif

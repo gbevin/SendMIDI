@@ -130,7 +130,7 @@ public:
      *
      * @return state or a negative error.
      */
-    virtual StreamState getState() const = 0;
+    virtual StreamState getState() = 0;
 
     /**
      * Wait until the stream's current state no longer matches the input state.
@@ -191,7 +191,7 @@ public:
      * @return a result which is either Result::OK with the xRun count as the value, or a
      * Result::Error* code
      */
-    virtual ResultWithValue<int32_t> getXRunCount() const {
+    virtual ResultWithValue<int32_t> getXRunCount() {
         return ResultWithValue<int32_t>(Result::ErrorUnimplemented);
     }
 
@@ -205,7 +205,9 @@ public:
      *
      * @return burst size
      */
-    virtual int32_t getFramesPerBurst() = 0;
+    int32_t getFramesPerBurst() const {
+        return mFramesPerBurst;
+    }
 
     /**
      * Get the number of bytes in each audio frame. This is calculated using the channel count
@@ -373,11 +375,6 @@ public:
     }
 
     /**
-     * Launch a thread that will stop the stream.
-     */
-    void launchStopThread();
-
-    /**
      * Update mFramesWritten.
      * For internal use only.
      */
@@ -393,12 +390,25 @@ public:
      * Swap old callback for new callback.
      * This not atomic.
      * This should only be used internally.
-     * @param streamCallback
-     * @return previous streamCallback
+     * @param dataCallback
+     * @return previous dataCallback
      */
-    AudioStreamCallback *swapCallback(AudioStreamCallback *streamCallback) {
-        AudioStreamCallback *previousCallback = mStreamCallback;
-        mStreamCallback = streamCallback;
+    AudioStreamDataCallback *swapDataCallback(AudioStreamDataCallback *dataCallback) {
+        AudioStreamDataCallback *previousCallback = mDataCallback;
+        mDataCallback = dataCallback;
+        return previousCallback;
+    }
+
+    /*
+     * Swap old callback for new callback.
+     * This not atomic.
+     * This should only be used internally.
+     * @param errorCallback
+     * @return previous errorCallback
+     */
+    AudioStreamErrorCallback *swapErrorCallback(AudioStreamErrorCallback *errorCallback) {
+        AudioStreamErrorCallback *previousCallback = mErrorCallback;
+        mErrorCallback = errorCallback;
         return previousCallback;
     }
 
@@ -418,6 +428,13 @@ public:
      */
     ResultWithValue<int32_t> waitForAvailableFrames(int32_t numFrames,
                                                     int64_t timeoutNanoseconds);
+
+    /**
+     * @return last result passed from an error callback
+     */
+    virtual oboe::Result getLastErrorCallbackResult() const {
+        return mErrorCallbackResult;
+    }
 
 protected:
 
@@ -515,15 +532,22 @@ protected:
 
     std::mutex           mLock; // for synchronizing start/stop/close
 
+    oboe::Result         mErrorCallbackResult = oboe::Result::OK;
+
+    /**
+     * Number of frames which will be copied to/from the audio device in a single read/write
+     * operation
+     */
+    int32_t              mFramesPerBurst = kUnspecified;
 
 private:
+
     // Log the scheduler if it changes.
     void                 checkScheduler();
     int                  mPreviousScheduler = -1;
 
     std::atomic<bool>    mDataCallbackEnabled{false};
     std::atomic<bool>    mErrorCallbackCalled{false};
-
 };
 
 /**

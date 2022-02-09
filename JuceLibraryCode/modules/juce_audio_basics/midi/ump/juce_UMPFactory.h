@@ -20,13 +20,22 @@
   ==============================================================================
 */
 
+#ifndef DOXYGEN
+
 namespace juce
 {
 namespace universal_midi_packets
 {
 
+/**
+    This struct holds functions that can be used to create different kinds
+    of Universal MIDI Packet.
+
+    @tags{Audio}
+*/
 struct Factory
 {
+    /** @internal */
     struct Detail
     {
         static PacketX1 makeSystem()   { return PacketX1{}.withMessageType (1); }
@@ -525,3 +534,5 @@ struct Factory
 
 }
 }
+
+#endif

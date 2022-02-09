@@ -20,6 +20,8 @@
   ==============================================================================
 */
 
+#ifndef DOXYGEN
+
 namespace juce
 {
 namespace universal_midi_packets
@@ -27,6 +29,8 @@ namespace universal_midi_packets
 
 /**
     Holds a single Universal MIDI Packet.
+
+    @tags{Audio}
 */
 template <size_t numWords>
 class Packet
@@ -185,3 +189,5 @@ using PacketX4 = Packet<4>;
 
 }
 }
+
+#endif

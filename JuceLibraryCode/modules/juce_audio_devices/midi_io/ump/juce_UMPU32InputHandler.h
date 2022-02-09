@@ -20,6 +20,8 @@
   ==============================================================================
 */
 
+#ifndef DOXYGEN
+
 namespace juce
 {
 namespace universal_midi_packets
@@ -28,6 +30,8 @@ namespace universal_midi_packets
 /**
     A base class for classes which convert Universal MIDI Packets to other
     formats.
+
+    @tags{Audio}
 */
 struct U32InputHandler
 {
@@ -40,12 +44,21 @@ struct U32InputHandler
 /**
     Parses a continuous stream of U32 words and emits complete MidiMessages whenever a full
     message is received.
+
+    @tags{Audio}
 */
 struct U32ToBytestreamHandler : public U32InputHandler
 {
     U32ToBytestreamHandler (MidiInput& i, MidiInputCallback& c)
         : input (i), callback (c), dispatcher (2048) {}
 
+    /**
+        Provides an `operator()` which can create an input handler for a given
+        MidiInput.
+
+        All handler classes should have a similar Factory to facilitate
+        creation of handlers in generic contexts.
+    */
     class Factory
     {
     public:
@@ -83,12 +96,21 @@ struct U32ToBytestreamHandler : public U32InputHandler
 /**
     Parses a continuous stream of U32 words and emits full messages in the requested
     UMP format.
+
+    @tags{Audio}
 */
 struct U32ToUMPHandler : public U32InputHandler
 {
     U32ToUMPHandler (PacketProtocol protocol, Receiver& c)
         : recipient (c), converter (protocol) {}
 
+    /**
+        Provides an `operator()` which can create an input handler for a given
+        MidiInput.
+
+        All handler classes should have a similar Factory to facilitate
+        creation of handlers in generic contexts.
+    */
     class Factory
     {
     public:
@@ -129,3 +151,5 @@ struct U32ToUMPHandler : public U32InputHandler
 
 }
 }
+
+#endif

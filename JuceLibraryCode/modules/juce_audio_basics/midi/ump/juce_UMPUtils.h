@@ -20,6 +20,8 @@
   ==============================================================================
 */
 
+#ifndef DOXYGEN
+
 namespace juce
 {
 namespace universal_midi_packets
@@ -46,6 +48,9 @@ struct Utils
     */
     static uint32_t getNumWordsForMessageType (uint32_t);
 
+    /**
+        Helper functions for setting/getting 4-bit ranges inside a 32-bit word.
+    */
     template <size_t Index>
     struct U4
     {
@@ -62,6 +67,9 @@ struct Utils
         }
     };
 
+    /**
+        Helper functions for setting/getting 8-bit ranges inside a 32-bit word.
+    */
     template <size_t Index>
     struct U8
     {
@@ -78,6 +86,9 @@ struct Utils
         }
     };
 
+    /**
+        Helper functions for setting/getting 16-bit ranges inside a 32-bit word.
+    */
     template <size_t Index>
     struct U16
     {
@@ -102,3 +113,5 @@ struct Utils
 
 }
 }
+
+#endif

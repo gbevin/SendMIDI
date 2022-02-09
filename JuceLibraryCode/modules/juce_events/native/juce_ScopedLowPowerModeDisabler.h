@@ -22,32 +22,28 @@
 
 namespace juce
 {
-namespace universal_midi_packets
+
+//==============================================================================
+/**
+    Disables low-power-mode for the duration of an instance's lifetime.
+
+    Currently this is only implemented on macOS, where it will disable the
+    "App Nap" power-saving feature.
+
+    @tags{Events}
+*/
+class ScopedLowPowerModeDisabler
 {
+public:
+    ScopedLowPowerModeDisabler();
+    ~ScopedLowPowerModeDisabler();
 
-uint32_t SysEx7::getNumPacketsRequiredForDataSize (uint32_t size)
-{
-    constexpr auto denom = 6;
-    return (size / denom) + ((size % denom) != 0);
-}
+private:
+    class Pimpl;
+    std::unique_ptr<Pimpl> pimpl;
 
-SysEx7::PacketBytes SysEx7::getDataBytes (const PacketX2& packet)
-{
-    const auto numBytes = Utils::getChannel (packet[0]);
-    constexpr uint8_t maxBytes = 6;
-    jassert (numBytes <= maxBytes);
+    JUCE_DECLARE_NON_COPYABLE (ScopedLowPowerModeDisabler)
+    JUCE_DECLARE_NON_MOVEABLE (ScopedLowPowerModeDisabler)
+};
 
-    return
-    {
-        { packet.getU8<2>(),
-          packet.getU8<3>(),
-          packet.getU8<4>(),
-          packet.getU8<5>(),
-          packet.getU8<6>(),
-          packet.getU8<7>() },
-        jmin (numBytes, maxBytes)
-    };
-}
-
-}
-}
+} // namespace juce

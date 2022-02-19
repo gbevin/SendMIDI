@@ -647,9 +647,24 @@ private:
                 {
                     MemoryBlock mem;
                     bool readSuccess = file.loadFileAsData(mem);
-                    if (readSuccess)
+                    if (readSuccess && mem.getSize() > 0)
                     {
-                        sendMidiMessage(MidiMessage(mem.getData(), (int)mem.getSize()));
+                        const uint8* data = (uint8*)mem.getData();
+                        const int data_size = (int)mem.getSize();
+                        const int buffer_size = 256;
+                        sendMidiMessage(MidiMessage(data, data_size));
+
+                        std::cout << "Waiting for typical completion on DIN connections 0% (could be done sooner)" << std::flush;
+                        for (int i = 0; i < data_size; i += buffer_size)
+                        {
+                            int length = std::min(buffer_size, data_size - i);
+                            std::cout << "\rWaiting for typical completion on DIN connections " << (((i + length) * 100) / data_size) << "% (could be done sooner)" << std::flush;
+                            // don't exceed 31250 baudrate (bits per second)
+                            Thread::sleep((buffer_size * 8 * 1000) / 31250);
+                        }
+                        std::cout << "\rWaiting for typical completion on DIN connections 100%" << std::endl;
+
+                        Thread::sleep(((data_size / buffer_size) + 1) * (8 * 1000) / 31250);
                     }
                 }
                 else

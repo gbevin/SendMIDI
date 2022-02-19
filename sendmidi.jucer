@@ -11,8 +11,7 @@
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
-    <XCODE_MAC targetFolder="Builds/MacOSX" iosDevelopmentTeamID="AGZT8GVS7G"
-               hardenedRuntime="1">
+    <XCODE_MAC targetFolder="Builds/MacOSX" hardenedRuntime="1">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="sendmidi"
                        osxCompatibility="10.9 SDK" macOSDeploymentTarget="10.9"/>

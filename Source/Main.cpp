@@ -394,6 +394,7 @@ private:
             if (!missingOutputPortWarningPrinted)
             {
                 std::cerr << "No valid MIDI output port was specified for some of the messages" << std::endl;
+                setApplicationReturnValue(EXIT_FAILURE);
                 missingOutputPortWarningPrinted = true;
             }
         }
@@ -441,6 +442,7 @@ private:
                 if (midiOut_ == nullptr)
                 {
                     std::cerr << "Couldn't find MIDI output port \"" << midiOutName_ << "\"" << std::endl;
+                    setApplicationReturnValue(EXIT_FAILURE);
                 }
                 break;
             }
@@ -456,6 +458,7 @@ private:
                 if (midiOut_ == nullptr)
                 {
                     std::cerr << "Couldn't create virtual MIDI output port \"" << name << "\"" << std::endl;
+                    setApplicationReturnValue(EXIT_FAILURE);
                 }
                 else
                 {
@@ -463,6 +466,7 @@ private:
                 }
 #else
                 std::cerr << "Virtual MIDI output ports are not supported on Windows" << std::endl;
+                setApplicationReturnValue(EXIT_FAILURE);
 #endif
                 break;
             }
@@ -491,6 +495,7 @@ private:
                 else
                 {
                     std::cerr << "Couldn't find file \"" << path << "\"" << std::endl;
+                    setApplicationReturnValue(EXIT_FAILURE);
                 }
                 break;
             }
@@ -532,6 +537,7 @@ private:
                 if (number >= 32)
                 {
                     std::cerr << "Can't send 14bit MIDI CC for number " << number << " (it has to be smaller than 32)" << std::endl;
+                    setApplicationReturnValue(EXIT_FAILURE);
                 }
                 else
                 {
@@ -670,6 +676,7 @@ private:
                 else
                 {
                     std::cerr << "Couldn't find file \"" << path << "\"" << std::endl;
+                    setApplicationReturnValue(EXIT_FAILURE);
                 }
                 break;
             }

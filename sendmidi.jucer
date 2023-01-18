@@ -14,9 +14,9 @@
     <XCODE_MAC targetFolder="Builds/MacOSX" hardenedRuntime="1">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="sendmidi"
-                       osxCompatibility="10.13 SDK" macOSDeploymentTarget="10.13"/>
+                       osxCompatibility="10.13 SDK"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="sendmidi"
-                       osxCompatibility="10.13 SDK" macOSDeploymentTarget="10.13"/>
+                       osxCompatibility="10.13 SDK"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core" path="../../JUCE/modules"/>

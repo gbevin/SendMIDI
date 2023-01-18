@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -77,6 +77,9 @@ public:
 
     /** Returns the search path as a semicolon-separated list of directories. */
     String toString() const;
+
+    /** Returns the search paths, joined with the provided separator. */
+    String toStringWithSeparator (StringRef separator) const;
 
     //==============================================================================
     /** Adds a new directory to the search path.

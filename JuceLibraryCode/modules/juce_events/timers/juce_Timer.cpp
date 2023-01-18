@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -38,6 +38,7 @@ public:
 
     ~TimerThread() override
     {
+        cancelPendingUpdate();
         signalThreadShouldExit();
         callbackArrived.signal();
         stopThread (4000);
@@ -302,7 +303,7 @@ private:
 
     void handleAsyncUpdate() override
     {
-        startThread (7);
+        startThread (Priority::high);
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimerThread)

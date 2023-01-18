@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -853,6 +853,14 @@ void MPEInstrument::releaseAllNotes()
     notes.clear();
 }
 
+//==============================================================================
+void MPEInstrument::Listener::noteAdded ([[maybe_unused]] MPENote newNote)                 {}
+void MPEInstrument::Listener::notePressureChanged  ([[maybe_unused]] MPENote changedNote)  {}
+void MPEInstrument::Listener::notePitchbendChanged ([[maybe_unused]] MPENote changedNote)  {}
+void MPEInstrument::Listener::noteTimbreChanged    ([[maybe_unused]] MPENote changedNote)  {}
+void MPEInstrument::Listener::noteKeyStateChanged  ([[maybe_unused]] MPENote changedNote)  {}
+void MPEInstrument::Listener::noteReleased ([[maybe_unused]] MPENote finishedNote)         {}
+void MPEInstrument::Listener::zoneLayoutChanged()                                          {}
 
 //==============================================================================
 //==============================================================================

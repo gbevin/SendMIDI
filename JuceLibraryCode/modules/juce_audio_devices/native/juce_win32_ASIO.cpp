@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -330,7 +330,7 @@ public:
         openDevice();
     }
 
-    ~ASIOAudioIODevice()
+    ~ASIOAudioIODevice() override
     {
         for (int i = 0; i < maxNumASIODevices; ++i)
             if (currentASIODev[i] == this)
@@ -349,13 +349,9 @@ public:
         Array<double> newRates;
 
         if (asioObject != nullptr)
-        {
-            for (auto rate : { 8000, 11025, 16000, 22050, 24000, 32000,
-                               44100, 48000, 88200, 96000, 176400,
-                               192000, 352800, 384000, 705600, 768000 })
-                if (asioObject->canSampleRate ((double) rate) == 0)
-                    newRates.add ((double) rate);
-        }
+            for (const auto rate : SampleRateHelpers::getAllSampleRates())
+                if (asioObject->canSampleRate (rate) == 0)
+                    newRates.add (rate);
 
         if (newRates.isEmpty())
         {
@@ -1161,7 +1157,7 @@ private:
 
         // Get error message if init() failed, or if it's a buggy Denon driver,
         // which returns true from init() even when it fails.
-        if ((! initOk) || getName().containsIgnoreCase ("denon dj"))
+        if ((! initOk) || getName().containsIgnoreCase ("denon dj asio"))
             driverError = getLastDriverError();
 
         if ((! initOk) && driverError.isEmpty())
@@ -1330,8 +1326,12 @@ private:
                     inputFormat[i].convertToFloat (infos[i].buffers[bufferIndex], inBuffers[i], samps);
                 }
 
-                currentCallback->audioDeviceIOCallback (const_cast<const float**> (inBuffers.getData()), numActiveInputChans,
-                                                        outBuffers, numActiveOutputChans, samps);
+                currentCallback->audioDeviceIOCallbackWithContext (inBuffers.getData(),
+                                                                   numActiveInputChans,
+                                                                   outBuffers,
+                                                                   numActiveOutputChans,
+                                                                   samps,
+                                                                   {});
 
                 for (int i = 0; i < numActiveOutputChans; ++i)
                 {

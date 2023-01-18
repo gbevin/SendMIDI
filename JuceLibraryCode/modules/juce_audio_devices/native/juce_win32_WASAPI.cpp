@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -33,9 +33,8 @@ JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wlanguage-extension-token")
 namespace WasapiClasses
 {
 
-void logFailure (HRESULT hr)
+static void logFailure ([[maybe_unused]] HRESULT hr)
 {
-    ignoreUnused (hr);
     jassert (hr != (HRESULT) 0x800401f0); // If you hit this, it means you're trying to call from
                                           // a thread which hasn't been initialised with CoInitialize().
 
@@ -89,7 +88,7 @@ void logFailure (HRESULT hr)
 
 #undef check
 
-bool check (HRESULT hr)
+static bool check (HRESULT hr)
 {
     logFailure (hr);
     return SUCCEEDED (hr);
@@ -361,7 +360,7 @@ namespace juce
 namespace WasapiClasses
 {
 
-String getDeviceID (IMMDevice* device)
+static String getDeviceID (IMMDevice* device)
 {
     String s;
     WCHAR* deviceId = nullptr;
@@ -430,21 +429,23 @@ public:
         if (tempClient == nullptr)
             return;
 
-        WAVEFORMATEXTENSIBLE format;
+        auto format = getClientMixFormat (tempClient);
 
-        if (! getClientMixFormat (tempClient, format))
+        if (! format)
             return;
 
-        actualNumChannels = numChannels = format.Format.nChannels;
-        defaultSampleRate = format.Format.nSamplesPerSec;
+        defaultNumChannels = maxNumChannels = format->Format.nChannels;
+        defaultSampleRate = format->Format.nSamplesPerSec;
         rates.addUsingDefaultSort (defaultSampleRate);
-        mixFormatChannelMask = format.dwChannelMask;
+        defaultFormatChannelMask = format->dwChannelMask;
 
         if (isExclusiveMode (deviceMode))
-            findSupportedFormat (tempClient, defaultSampleRate, mixFormatChannelMask, format);
+            if (auto optFormat = findSupportedFormat (tempClient, defaultNumChannels, defaultSampleRate))
+                format = optFormat;
 
-        querySupportedBufferSizes (format, tempClient);
-        querySupportedSampleRates (format, tempClient);
+        querySupportedBufferSizes (*format, tempClient);
+        querySupportedSampleRates (*format, tempClient);
+        maxNumChannels = queryMaxNumChannels (tempClient);
     }
 
     virtual ~WASAPIDeviceBase()
@@ -459,7 +460,7 @@ public:
     {
         sampleRate = newSampleRate;
         channels = newChannels;
-        channels.setRange (actualNumChannels, channels.getHighestBit() + 1 - actualNumChannels, false);
+        channels.setRange (maxNumChannels, channels.getHighestBit() + 1 - maxNumChannels, false);
         numChannels = channels.getHighestBit() + 1;
 
         if (numChannels == 0)
@@ -533,10 +534,10 @@ public:
     WASAPIDeviceMode deviceMode;
 
     double sampleRate = 0, defaultSampleRate = 0;
-    int numChannels = 0, actualNumChannels = 0;
+    int numChannels = 0, actualNumChannels = 0, maxNumChannels = 0, defaultNumChannels = 0;
     int minBufferSize = 0, defaultBufferSize = 0, latencySamples = 0;
     int lowLatencyBufferSizeMultiple = 0, lowLatencyMaxBufferSize = 0;
-    DWORD mixFormatChannelMask = 0;
+    DWORD defaultFormatChannelMask = 0;
     Array<double> rates;
     HANDLE clientEvent = {};
     BigInteger channels;
@@ -627,17 +628,19 @@ private:
         return newClient;
     }
 
-    static bool getClientMixFormat (ComSmartPtr<IAudioClient>& client, WAVEFORMATEXTENSIBLE& format)
+    static std::optional<WAVEFORMATEXTENSIBLE> getClientMixFormat (ComSmartPtr<IAudioClient>& client)
     {
         WAVEFORMATEX* mixFormat = nullptr;
 
         if (! check (client->GetMixFormat (&mixFormat)))
-            return false;
+            return {};
+
+        WAVEFORMATEXTENSIBLE format;
 
         copyWavFormat (format, mixFormat);
         CoTaskMemFree (mixFormat);
 
-        return true;
+        return format;
     }
 
     //==============================================================================
@@ -676,9 +679,7 @@ private:
 
     void querySupportedSampleRates (WAVEFORMATEXTENSIBLE format, ComSmartPtr<IAudioClient>& audioClient)
     {
-        for (auto rate : { 8000, 11025, 16000, 22050, 24000, 32000,
-                           44100, 48000, 88200, 96000, 176400,
-                           192000, 352800, 384000, 705600, 768000 })
+        for (auto rate : SampleRateHelpers::getAllSampleRates())
         {
             if (rates.contains (rate))
                 continue;
@@ -695,7 +696,7 @@ private:
                                                                                         : &nearestFormat)))
             {
                 if (nearestFormat != nullptr)
-                    rate = (int) nearestFormat->nSamplesPerSec;
+                    rate = (double) nearestFormat->nSamplesPerSec;
 
                 if (! rates.contains (rate))
                     rates.addUsingDefaultSort (rate);
@@ -712,12 +713,25 @@ private:
         int  bytesPerSampleContainer;
     };
 
-    bool tryFormat (const AudioSampleFormat sampleFormat, IAudioClient* clientToUse, double newSampleRate,
-                    DWORD newMixFormatChannelMask, WAVEFORMATEXTENSIBLE& format) const
+    static constexpr AudioSampleFormat formatsToTry[] =
     {
+        { true,  32, 4 },
+        { false, 32, 4 },
+        { false, 24, 4 },
+        { false, 24, 3 },
+        { false, 20, 4 },
+        { false, 20, 3 },
+        { false, 16, 2 }
+    };
+
+    static std::optional<WAVEFORMATEXTENSIBLE> tryFormat (const AudioSampleFormat sampleFormat, IAudioClient* clientToUse,
+                                                          WASAPIDeviceMode mode, int newNumChannels, double newSampleRate,
+                                                          DWORD newMixFormatChannelMask)
+    {
+        WAVEFORMATEXTENSIBLE format;
         zerostruct (format);
 
-        if (numChannels <= 2 && sampleFormat.bitsPerSampleToTry <= 16)
+        if (newNumChannels <= 2 && sampleFormat.bitsPerSampleToTry <= 16)
         {
             format.Format.wFormatTag = WAVE_FORMAT_PCM;
         }
@@ -728,7 +742,7 @@ private:
         }
 
         format.Format.nSamplesPerSec       = (DWORD) newSampleRate;
-        format.Format.nChannels            = (WORD) numChannels;
+        format.Format.nChannels            = (WORD) newNumChannels;
         format.Format.wBitsPerSample       = (WORD) (8 * sampleFormat.bytesPerSampleContainer);
         format.Samples.wValidBitsPerSample = (WORD) (sampleFormat.bitsPerSampleToTry);
         format.Format.nBlockAlign          = (WORD) (format.Format.nChannels * format.Format.wBitsPerSample / 8);
@@ -738,14 +752,14 @@ private:
 
         WAVEFORMATEX* nearestFormat = nullptr;
 
-        HRESULT hr = clientToUse->IsFormatSupported (isExclusiveMode (deviceMode) ? AUDCLNT_SHAREMODE_EXCLUSIVE
-                                                                                  : AUDCLNT_SHAREMODE_SHARED,
+        HRESULT hr = clientToUse->IsFormatSupported (isExclusiveMode (mode) ? AUDCLNT_SHAREMODE_EXCLUSIVE
+                                                                            : AUDCLNT_SHAREMODE_SHARED,
                                                      (WAVEFORMATEX*) &format,
-                                                     isExclusiveMode (deviceMode) ? nullptr
+                                                     isExclusiveMode (mode) ? nullptr
                                                                                   : &nearestFormat);
         logFailure (hr);
 
-        auto supportsSRC = supportsSampleRateConversion (deviceMode);
+        auto supportsSRC = supportsSampleRateConversion (mode);
 
         if (hr == S_FALSE
             && nearestFormat != nullptr
@@ -764,28 +778,49 @@ private:
         }
 
         CoTaskMemFree (nearestFormat);
-        return hr == S_OK;
+
+        if (hr != S_OK)
+            return {};
+
+        return format;
     }
 
-    bool findSupportedFormat (IAudioClient* clientToUse, double newSampleRate,
-                              DWORD newMixFormatChannelMask, WAVEFORMATEXTENSIBLE& format) const
+    std::optional<WAVEFORMATEXTENSIBLE> findSupportedFormat (IAudioClient* clientToUse, int newNumChannels, double newSampleRate) const
     {
-        static const AudioSampleFormat formats[] =
+        for (auto ch = newNumChannels; ch <= maxNumChannels; ++ch)
         {
-            { true,  32, 4 },
-            { false, 32, 4 },
-            { false, 24, 4 },
-            { false, 24, 3 },
-            { false, 20, 4 },
-            { false, 20, 3 },
-            { false, 16, 2 }
-        };
+            auto maskWithLowestNBitsSet = static_cast<DWORD> ((1 << ch) - 1);
+            auto mixFormatChannelMask = (ch == defaultNumChannels ? defaultFormatChannelMask : maskWithLowestNBitsSet);
 
-        for (int i = 0; i < numElementsInArray (formats); ++i)
-            if (tryFormat (formats[i], clientToUse, newSampleRate, newMixFormatChannelMask, format))
-                return true;
+            for (auto const& sampleFormat: formatsToTry)
+                if (auto format = tryFormat (sampleFormat, clientToUse, deviceMode, ch, newSampleRate, mixFormatChannelMask))
+                    return format;
+        }
 
-        return false;
+        return {};
+    }
+
+    int queryMaxNumChannels (IAudioClient* clientToUse) const
+    {
+        static constexpr auto maxNumChannelsToQuery = static_cast<int> (AudioChannelSet::maxChannelsOfNamedLayout);
+        const auto fallbackNumChannels = defaultNumChannels;
+
+        if (fallbackNumChannels >= maxNumChannelsToQuery)
+            return fallbackNumChannels;
+
+        auto result = fallbackNumChannels;
+
+        for (auto ch = maxNumChannelsToQuery; ch > result; --ch)
+        {
+            auto channelMask = static_cast<DWORD> ((1 << ch) - 1);
+
+            for (auto rate : rates)
+                for (auto const& sampleFormat: formatsToTry)
+                    if (auto format = tryFormat (sampleFormat, clientToUse, deviceMode, ch, rate, channelMask))
+                        result = jmax (static_cast<int> (format->Format.nChannels), result);
+        }
+
+        return result;
     }
 
     DWORD getStreamFlags()
@@ -853,19 +888,18 @@ private:
 
     bool tryInitialisingWithBufferSize (int bufferSizeSamples)
     {
-        WAVEFORMATEXTENSIBLE format;
 
-        if (findSupportedFormat (client, sampleRate, mixFormatChannelMask, format))
+        if (auto format = findSupportedFormat (client, numChannels, sampleRate))
         {
-            auto isInitialised = isLowLatencyMode (deviceMode) ? initialiseLowLatencyClient (bufferSizeSamples, format)
-                                                               : initialiseStandardClient   (bufferSizeSamples, format);
+            auto isInitialised = isLowLatencyMode (deviceMode) ? initialiseLowLatencyClient (bufferSizeSamples, *format)
+                                                               : initialiseStandardClient   (bufferSizeSamples, *format);
 
             if (isInitialised)
             {
-                actualNumChannels  = format.Format.nChannels;
-                const bool isFloat = format.Format.wFormatTag == WAVE_FORMAT_EXTENSIBLE && format.SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
-                bytesPerSample     = format.Format.wBitsPerSample / 8;
-                bytesPerFrame      = format.Format.nBlockAlign;
+                actualNumChannels  = format->Format.nChannels;
+                const bool isFloat = format->Format.wFormatTag == WAVE_FORMAT_EXTENSIBLE && format->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
+                bytesPerSample     = format->Format.wBitsPerSample / 8;
+                bytesPerFrame      = format->Format.nBlockAlign;
 
                 updateFormat (isFloat);
 
@@ -1271,7 +1305,7 @@ public:
         StringArray outChannels;
 
         if (outputDevice != nullptr)
-            for (int i = 1; i <= outputDevice->actualNumChannels; ++i)
+            for (int i = 1; i <= outputDevice->maxNumChannels; ++i)
                 outChannels.add ("Output channel " + String (i));
 
         return outChannels;
@@ -1282,7 +1316,7 @@ public:
         StringArray inChannels;
 
         if (inputDevice != nullptr)
-            for (int i = 1; i <= inputDevice->actualNumChannels; ++i)
+            for (int i = 1; i <= inputDevice->maxNumChannels; ++i)
                 inChannels.add ("Input channel " + String (i));
 
         return inChannels;
@@ -1352,7 +1386,7 @@ public:
         shouldShutdown = false;
         deviceSampleRateChanged = false;
 
-        startThread (8);
+        startThread (Priority::high);
         Thread::sleep (5);
 
         if (inputDevice != nullptr && inputDevice->client != nullptr)
@@ -1517,8 +1551,12 @@ public:
                 const ScopedTryLock sl (startStopLock);
 
                 if (sl.isLocked() && isStarted)
-                    callback->audioDeviceIOCallback (const_cast<const float**> (inputBuffers), numInputBuffers,
-                                                     outputBuffers, numOutputBuffers, bufferSize);
+                    callback->audioDeviceIOCallbackWithContext (inputBuffers,
+                                                                numInputBuffers,
+                                                                outputBuffers,
+                                                                numOutputBuffers,
+                                                                bufferSize,
+                                                                {});
                 else
                     outs.clear();
             }
@@ -1527,7 +1565,7 @@ public:
             {
                 // Note that this function is handed the input device so it can check for the event and make sure
                 // the input reservoir is filled up correctly even when bufferSize > device actualBufferSize
-                outputDevice->copyBuffers (const_cast<const float**> (outputBuffers), numOutputBuffers, bufferSize, inputDevice.get(), *this);
+                outputDevice->copyBuffers (outputBuffers, numOutputBuffers, bufferSize, inputDevice.get(), *this);
 
                 if (outputDevice->sampleRateHasChanged)
                 {

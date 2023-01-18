@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -70,7 +70,7 @@ public:
     virtual bool isLooping() const = 0;
 
     /** Tells the source whether you'd like it to play in a loop. */
-    virtual void setLooping (bool shouldLoop)       { ignoreUnused (shouldLoop); }
+    virtual void setLooping (bool shouldLoop);
 };
 
 } // namespace juce

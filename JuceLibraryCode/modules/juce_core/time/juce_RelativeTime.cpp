@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -86,7 +86,7 @@ String RelativeTime::getApproximateDescription() const
     if (weeks > 8)    return describeMonths ((weeks * 12) / 52);
     if (weeks > 1)    return describeWeeks (weeks);
 
-    auto days = (int) inWeeks();
+    auto days = (int) inDays();
 
     if (days > 1)
         return describeDays (days);

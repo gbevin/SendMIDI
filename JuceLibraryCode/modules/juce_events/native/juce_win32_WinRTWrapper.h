@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -30,7 +30,7 @@ public:
     ~WinRTWrapper();
     bool isInitialised() const noexcept  { return initialised; }
 
-    JUCE_DECLARE_SINGLETON (WinRTWrapper, true)
+    JUCE_DECLARE_SINGLETON (WinRTWrapper, false)
 
     //==============================================================================
     template <class ComClass>

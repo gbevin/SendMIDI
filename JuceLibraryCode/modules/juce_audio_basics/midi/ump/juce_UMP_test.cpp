@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -24,8 +24,6 @@ namespace juce
 {
 namespace universal_midi_packets
 {
-
-#if JUCE_UNIT_TESTS
 
 constexpr uint8_t  operator""_u8  (unsigned long long int i) { return static_cast<uint8_t>  (i); }
 constexpr uint16_t operator""_u16 (unsigned long long int i) { return static_cast<uint16_t> (i); }
@@ -994,7 +992,7 @@ private:
 
    #if JUCE_WINDOWS && ! JUCE_MINGW
     #define JUCE_CHECKED_ITERATOR(msg, size) \
-        stdext::checked_array_iterator<typename std::remove_reference<decltype (msg)>::type> ((msg), (size_t) (size))
+        stdext::checked_array_iterator<std::remove_reference_t<decltype (msg)>> ((msg), (size_t) (size))
    #else
     #define JUCE_CHECKED_ITERATOR(msg, size) (msg)
    #endif
@@ -1015,8 +1013,6 @@ private:
 };
 
 static UniversalMidiPacketTests universalMidiPacketTests;
-
-#endif
 
 }
 }

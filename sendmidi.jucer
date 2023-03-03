@@ -14,9 +14,9 @@
     <XCODE_MAC targetFolder="Builds/MacOSX" hardenedRuntime="1">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="sendmidi"
-                       osxCompatibility="10.13 SDK"/>
+                       osxCompatibility="10.13 SDK" macOSDeploymentTarget="10.13"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="sendmidi"
-                       osxCompatibility="10.13 SDK"/>
+                       osxCompatibility="10.13 SDK" macOSDeploymentTarget="10.13"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
@@ -43,7 +43,7 @@
     <VS2017 targetFolder="Builds/VisualStudio2017">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug"/>
-        <CONFIGURATION isDebug="0" name="Release"/>
+        <CONFIGURATION isDebug="0" name="Release" useRuntimeLibDLL="0"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../JUCE/modules"/>

@@ -8,7 +8,9 @@ The project website is https://github.com/gbevin/SendMIDI
 
 ## Community
 
-Discord: https://discord.gg/AZSyVn3K2U
+Join the Forums: https://forum.uwyn.com
+
+Chat on Discord: https://discord.gg/AZSyVn3K2U
 
 ## Purpose
 This tool is mainly intended for configuration or setup through Control Change, RPN and NRPN messages, but many other MIDI messages can be sent.

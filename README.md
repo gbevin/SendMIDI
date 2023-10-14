@@ -144,6 +144,32 @@ cc 21 0
 cc 22 1
 ```
 
+## Building on Linux
+
+To build SendMIDI on Linux you need a minimal set of packages installed beforehand, on Ubuntu this can be done with:
+
+```
+sudo apt install build-essential pkg-config libasound2-dev
+```
+
+After that, go to the `LinuxMakeFile` directory
+
+```
+cd Builds/LinuxMakeFile
+```
+
+and build the binary by typing `make`
+
+```
+make
+```
+
+The resulting binary will be in the `Build/LinuxMakeFile/build` directory and can be moved anywhere appropriate on your system, for instance into `/usr/local/bin`:
+
+```
+sudo mv build/sendmidi /usr/local/bin
+```
+
 ## ReceiveMIDI compatibility
 
 The input of the SendMIDI tool is compatible with the ReceiveMIDI tool, allowing you to play MIDI message sequences that were stored earlier. By using Unix-style pipes on the command-line, it's even possible to chain the receivemidi and sendmidi commands in order to forward MIDI messages.

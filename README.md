@@ -175,3 +175,10 @@ sudo mv build/sendmidi /usr/local/bin
 The input of the SendMIDI tool is compatible with the ReceiveMIDI tool, allowing you to play MIDI message sequences that were stored earlier. By using Unix-style pipes on the command-line, it's even possible to chain the receivemidi and sendmidi commands in order to forward MIDI messages.
 
 ReceiveMIDI can be downloaded from https://github.com/gbevin/ReceiveMIDI
+
+## ShowMIDI
+
+If you're looking for a beautiful GUI to effortlessly visualize MIDI activity without having to wade through log files, please take a look at my other tool ShowMIDI:
+https://github.com/gbevin/ShowMIDI
+
+<p><a href="https://github.com/gbevin/ShowMIDI"><img src="https://raw.githubusercontent.com/gbevin/ShowMIDI/main/Design/showmidi-0.5.0.png" width="480" border="0"/></a></p>

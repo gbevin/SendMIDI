@@ -1,13 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="U5JfXz" name="sendmidi" projectType="consoleapp" version="1.2.1"
+<JUCERPROJECT id="U5JfXz" name="sendmidi" projectType="consoleapp" version="1.3.0"
               bundleIdentifier="com.uwyn.sendmidi" includeBinaryInAppConfig="1"
               companyName="Uwyn" companyWebsite="http://www.uwyn.com" companyEmail="info@uwyn.com"
               displaySplashScreen="1" reportAppUsage="1" splashScreenColour="Dark"
               jucerFormatVersion="1">
   <MAINGROUP id="qBrt8O" name="sendmidi">
     <GROUP id="{77373791-FBB9-12BE-4AF0-C617C2C69BC4}" name="Source">
+      <FILE id="jvKErH" name="ApplicationCommand.cpp" compile="1" resource="0"
+            file="Source/ApplicationCommand.cpp"/>
+      <FILE id="DzsmUG" name="ApplicationCommand.h" compile="0" resource="0"
+            file="Source/ApplicationCommand.h"/>
+      <FILE id="ozKlJt" name="ApplicationState.cpp" compile="1" resource="0"
+            file="Source/ApplicationState.cpp"/>
+      <FILE id="qRQnJh" name="ApplicationState.h" compile="0" resource="0"
+            file="Source/ApplicationState.h"/>
       <FILE id="hGRRus" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+      <FILE id="PFAqhp" name="MpeTestScenario.cpp" compile="1" resource="0"
+            file="Source/MpeTestScenario.cpp"/>
+      <FILE id="pMgAxr" name="MpeTestScenario.h" compile="0" resource="0"
+            file="Source/MpeTestScenario.h"/>
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
@@ -24,6 +36,7 @@
         <MODULEPATH id="juce_data_structures" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_midi_ci" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraLinkerFlags="-latomic">
@@ -38,6 +51,7 @@
         <MODULEPATH id="juce_data_structures" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_midi_ci" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
     <VS2017 targetFolder="Builds/VisualStudio2017">
@@ -51,6 +65,7 @@
         <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_data_structures" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_events" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_midi_ci" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </VS2017>
   </EXPORTFORMATS>
@@ -60,6 +75,7 @@
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="1"/>
     <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="1"/>
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="1"/>
+    <MODULE id="juce_midi_ci" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
   </MODULES>
   <JUCEOPTIONS JUCE_USE_XSHM="disabled" JUCE_USE_XRENDER="disabled" JUCE_USE_XCURSOR="disabled"
                JUCE_USE_CURL="0"/>

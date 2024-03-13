@@ -41,7 +41,7 @@
 
 #define JUCE_USE_DARK_SPLASH_SCREEN 1
 
-#define JUCE_PROJUCER_VERSION 0x70005
+#define JUCE_PROJUCER_VERSION 0x7000a
 
 //==============================================================================
 #define JUCE_MODULE_AVAILABLE_juce_audio_basics         1
@@ -49,6 +49,7 @@
 #define JUCE_MODULE_AVAILABLE_juce_core                 1
 #define JUCE_MODULE_AVAILABLE_juce_data_structures      1
 #define JUCE_MODULE_AVAILABLE_juce_events               1
+#define JUCE_MODULE_AVAILABLE_juce_midi_ci              1
 
 #define JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED 1
 

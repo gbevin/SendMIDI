@@ -75,6 +75,7 @@ OBJECTS_CONSOLEAPP := \
   $(JUCE_OBJDIR)/ApplicationCommand_1a5bf3e4.o \
   $(JUCE_OBJDIR)/ApplicationState_30134f2a.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
+  $(JUCE_OBJDIR)/MpeProfileNegotation_d83ee130.o \
   $(JUCE_OBJDIR)/MpeTestScenario_b621c4e5.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
   $(JUCE_OBJDIR)/include_juce_audio_devices_63111d02.o \
@@ -109,6 +110,11 @@ $(JUCE_OBJDIR)/ApplicationState_30134f2a.o: ../../Source/ApplicationState.cpp
 $(JUCE_OBJDIR)/Main_90ebc5c2.o: ../../Source/Main.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling Main.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MpeProfileNegotation_d83ee130.o: ../../Source/MpeProfileNegotation.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MpeProfileNegotation.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/MpeTestScenario_b621c4e5.o: ../../Source/MpeTestScenario.cpp

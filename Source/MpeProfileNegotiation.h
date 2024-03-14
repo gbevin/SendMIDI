@@ -20,13 +20,21 @@
 
 #include "JuceHeader.h"
 
-#include "ApplicationState.h"
+class ApplicationState;
 
-class MpeTestScenario
+class MpeProfileNegotiation : ci::ProfileDelegate
 {
 public:
-    void send(ApplicationState& state);
+    MpeProfileNegotiation(ApplicationState* state);
+    void processMessage(ump::BytesOnGroup);
+    
+    void negotiate();
     
 private:
-    void step(const String& message);
+    virtual void profileEnablementRequested(ci::MUID x,
+                                            ci::ProfileAtAddress profileAtAddress,
+                                            int numChannels,
+                                            bool enabled);
+
+    std::unique_ptr<ci::Device> ci_;
 };

@@ -1,6 +1,6 @@
 /*
  * This file is part of SendMIDI.
- * Copyright (command) 2017-2024 Uwyn LLC.  http://www.uwyn.com
+ * Copyright (command) 2017-2024 Uwyn LLC.  https://www.uwyn.com
  *
  * SendMIDI is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

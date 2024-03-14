@@ -1,6 +1,6 @@
 /*
  * This file is part of SendMIDI.
- * Copyright (command) 2017-2024 Uwyn LLC.  http://www.uwyn.com
+ * Copyright (command) 2017-2024 Uwyn LLC.  https://www.uwyn.com
  *
  * SendMIDI is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,19 +21,21 @@
 #include "JuceHeader.h"
 
 #include "ApplicationCommand.h"
+#include "MpeProfileNegotiation.h"
 
-class ApplicationState
+class ApplicationState : public MidiInputCallback, public ci::DeviceMessageHandler
 {
 public:
     ApplicationState();
     void initialise(JUCEApplicationBase& app);
         
-    void openDevice(const String& name);
+    void openOutputDevice(const String& name);
+    void openInputDevice(const String& name);
     void virtualDevice(const String& name);
     void parseFile(File file);
     void sendMidiMessage(MidiMessage&& msg);
     void sendRPN(int channel, int number, int value);
-    void setApplicationReturnValue(const int newReturnValue) noexcept;
+    void negotiateMpeProfile(const String& name, int channelCount);
     
     uint8 asNoteNumber(String value);
     uint8 asDecOrHex7BitValue(String value);
@@ -53,6 +55,11 @@ private:
     ApplicationCommand* findApplicationCommand(const String& param);
     StringArray parseLineAsParameters(const String& line);
     
+    bool tryToConnectMidiInput();
+    bool isMidiInDeviceAvailable(const String& name);
+    void handleIncomingMidiMessage(MidiInput*, const MidiMessage& msg) override;
+    void processMessage(ump::BytesOnGroup) override;
+
     bool isNumeric(const String& string);
     int64_t parseTimestamp(const String& param);
 
@@ -61,10 +68,19 @@ private:
     void parseParameters(StringArray& parameters);
 
     Array<ApplicationCommand> commands_;
+    ApplicationCommand currentCommand_;
+
     String midiOutName_;
     std::unique_ptr<MidiOutput> midiOut_;
-    ApplicationCommand currentCommand_;
+    
+    String midiInName_;
+    std::unique_ptr<MidiInput> midiIn_;
+    
+    std::unique_ptr<MpeProfileNegotiation> mpeProfile_;
+    
+    String fullMidiInName_;
     bool useHexadecimalsByDefault_;
     uint32 lastTimeStampCounter_;
     int64_t lastTimeStamp_;
 };
+

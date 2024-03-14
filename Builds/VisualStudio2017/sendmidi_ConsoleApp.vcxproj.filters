@@ -208,6 +208,9 @@
     <ClCompile Include="..\..\Source\Main.cpp">
       <Filter>sendmidi\Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\MpeProfileNegotation.cpp">
+      <Filter>sendmidi\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\MpeTestScenario.cpp">
       <Filter>sendmidi\Source</Filter>
     </ClCompile>
@@ -1147,6 +1150,9 @@
       <Filter>sendmidi\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\ApplicationState.h">
+      <Filter>sendmidi\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\MpeProfileNegotiation.h">
       <Filter>sendmidi\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\MpeTestScenario.h">

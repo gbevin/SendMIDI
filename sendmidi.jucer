@@ -16,6 +16,10 @@
       <FILE id="qRQnJh" name="ApplicationState.h" compile="0" resource="0"
             file="Source/ApplicationState.h"/>
       <FILE id="hGRRus" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+      <FILE id="Pa6tT5" name="MpeProfileNegotation.cpp" compile="1" resource="0"
+            file="Source/MpeProfileNegotation.cpp"/>
+      <FILE id="Bdog8F" name="MpeProfileNegotiation.h" compile="0" resource="0"
+            file="Source/MpeProfileNegotiation.h"/>
       <FILE id="PFAqhp" name="MpeTestScenario.cpp" compile="1" resource="0"
             file="Source/MpeTestScenario.cpp"/>
       <FILE id="pMgAxr" name="MpeTestScenario.h" compile="0" resource="0"

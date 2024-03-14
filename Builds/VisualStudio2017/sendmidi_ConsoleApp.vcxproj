@@ -144,6 +144,7 @@
     <ClCompile Include="..\..\Source\ApplicationCommand.cpp"/>
     <ClCompile Include="..\..\Source\ApplicationState.cpp"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
+    <ClCompile Include="..\..\Source\MpeProfileNegotation.cpp"/>
     <ClCompile Include="..\..\Source\MpeTestScenario.cpp"/>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
@@ -1024,6 +1025,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\Source\ApplicationCommand.h"/>
     <ClInclude Include="..\..\Source\ApplicationState.h"/>
+    <ClInclude Include="..\..\Source\MpeProfileNegotiation.h"/>
     <ClInclude Include="..\..\Source\MpeTestScenario.h"/>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h"/>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioChannelSet.h"/>

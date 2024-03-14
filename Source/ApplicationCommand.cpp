@@ -1,6 +1,6 @@
 /*
  * This file is part of SendMIDI.
- * Copyright (command) 2017-2024 Uwyn LLC.  http://www.uwyn.com
+ * Copyright (command) 2017-2024 Uwyn LLC.  https://www.uwyn.com
  *
  * SendMIDI is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
  */
 
 #include "ApplicationCommand.h"
+
 #include "ApplicationState.h"
 #include "MpeTestScenario.h"
 
@@ -29,7 +30,7 @@ inline float sign(float value)
 
 ApplicationCommand ApplicationCommand::Dummy()
 {
-    return {"", "", NONE, 0, "", ""};
+    return {"", "", NONE, 0, {""}, {""}};
 }
 
 void ApplicationCommand::clear()
@@ -37,8 +38,8 @@ void ApplicationCommand::clear()
     param_ = "";
     command_ = NONE;
     expectedOptions_ = 0;
-    optionsDescription_ = "";
-    commandDescription_ = "";
+    optionsDescriptions_ = StringArray({""});
+    commandDescriptions_ = StringArray({""});
     opts_.clear();
 }
 
@@ -56,7 +57,7 @@ void ApplicationCommand::execute(ApplicationState& state)
             break;
         case DEVICE:
         {
-            state.openDevice(opts_[0]);
+            state.openOutputDevice(opts_[0]);
             break;
         }
         case VIRTUAL:
@@ -94,7 +95,7 @@ void ApplicationCommand::execute(ApplicationState& state)
             else
             {
                 std::cerr << "Couldn't find file \"" << path << "\"" << std::endl;
-                state.setApplicationReturnValue(EXIT_FAILURE);
+                JUCEApplicationBase::getInstance()->setApplicationReturnValue(EXIT_FAILURE);
             }
             break;
         }
@@ -136,7 +137,7 @@ void ApplicationCommand::execute(ApplicationState& state)
             if (number >= 32)
             {
                 std::cerr << "Can't send 14bit MIDI CC for number " << number << " (it has to be smaller than 32)" << std::endl;
-                state.setApplicationReturnValue(EXIT_FAILURE);
+                JUCEApplicationBase::getInstance()->setApplicationReturnValue(EXIT_FAILURE);
             }
             else
             {
@@ -275,7 +276,7 @@ void ApplicationCommand::execute(ApplicationState& state)
             else
             {
                 std::cerr << "Couldn't find file \"" << path << "\"" << std::endl;
-                state.setApplicationReturnValue(EXIT_FAILURE);
+                JUCEApplicationBase::getInstance()->setApplicationReturnValue(EXIT_FAILURE);
             }
             break;
         }
@@ -291,8 +292,9 @@ void ApplicationCommand::execute(ApplicationState& state)
         }
         case MPE_PROFILE:
         {
-            auto channel = jlimit(1, 15, state.asDecOrHexIntValue(opts_[0]));
-            // TODO
+            auto input = opts_[0];
+            auto channel = jlimit(1, 15, state.asDecOrHexIntValue(opts_[1]));
+            state.negotiateMpeProfile(input, channel);
             break;
         }
         case MPE_TEST:

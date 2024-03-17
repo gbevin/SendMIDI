@@ -25,14 +25,15 @@ MpeProfileNegotiation::MpeProfileNegotiation(ApplicationState* state)
     ci_ = std::make_unique<ci::Device>(ci::DeviceOptions()
                                        .withFeatures(ci::DeviceFeatures().withProfileConfigurationSupported())
                                        .withDeviceInfo( {
-                                           { std::byte(0), std::byte(0), std::byte(0) },
-                                           { std::byte(0), std::byte(0) },
-                                           { std::byte(0), std::byte(0) },
-                                           { std::byte(0), std::byte(0), std::byte(0), std::byte(0) }} )
+                                           { std::byte(0x5B), std::byte(0x02), std::byte(0x00) },
+                                           { std::byte(0x01), std::byte(0x00) },
+                                           { std::byte(0x01), std::byte(0x00) },
+                                           { std::byte(0x01), std::byte(0x00), std::byte(0x00), std::byte(0x00) }} )
                                        .withOutputs({ state })
                                        .withProfileDelegate(this));
     ci::ProfileAtAddress mpe_profile
     {
+        // MPE Profile ID
         { std::byte(0x7e), std::byte(0x31), std::byte(0x00), std::byte(0x01), std::byte(0x01) },
         ci::ChannelAddress().withChannel(juce::midi_ci::ChannelInGroup::wholeBlock)
     };

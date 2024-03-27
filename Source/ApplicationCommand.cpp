@@ -292,9 +292,10 @@ void ApplicationCommand::execute(ApplicationState& state)
         }
         case MPE_PROFILE:
         {
-            auto input = opts_[0];
-            auto channel = jlimit(1, 15, state.asDecOrHexIntValue(opts_[1]));
-            state.negotiateMpeProfile(input, channel);
+            auto inputName = opts_[0];
+            auto manager = jlimit(1, 15, state.asDecOrHexIntValue(opts_[1]));
+            auto members = jlimit(0, 15, state.asDecOrHexIntValue(opts_[2]));
+            state.negotiateMpeProfile(inputName, manager, members);
             break;
         }
         case MPE_TEST:

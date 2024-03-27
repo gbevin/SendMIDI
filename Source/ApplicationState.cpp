@@ -56,8 +56,10 @@ ApplicationState::ApplicationState()
     commands_.add({"ss",    	"song-select",              SONG_SELECT,            1, {"number"},           {"Send Song Select with song number (0-127)"}});
     commands_.add({"tun",   	"tune-request",             TUNE_REQUEST,           0, {""},                 {"Send Tune Request"}});
     commands_.add({"mpe",       "",                         MPE_CONFIGURATION,      2, {"zone range"},       {"Send MPE Configuration for zone (1-2) with range (0-15)"}});
-    commands_.add({"mpp",       "mpe-profile",              MPE_PROFILE,            2, {"name", "channels"},
-                                                                                       {"Configure a sender MPE Profile with MIDI input port", "and channel count (1-15)"}});
+    commands_.add({"mpp",       "mpe-profile",              MPE_PROFILE,            3, {"input", "manager", "members"},
+                                                                                       {"Configure MPE Profile initiator with MIDI input port name,",
+                                                                                        "a manager channel (1-15), and desired member channel",
+                                                                                        "count (1-15, 0 to disable) (also uses MIDI output port)"}});
     commands_.add({"mpetest",   "mpe-test",                 MPE_TEST,               0, {""},                 {"Send a sequence of MPE messages to test a receiver"}});
     commands_.add({"raw",       "raw-midi",                 RAW_MIDI,              -1, {"bytes"},            {"Send raw MIDI from a series of bytes"}});
     
@@ -104,6 +106,16 @@ void ApplicationState::initialise(JUCEApplicationBase& app)
     {
         printUsage();
     }
+    
+    while (mpeProfile_->isWaitingForNegotation())
+    {
+        if (!MessageManager::getInstance()->runDispatchLoopUntil(100))
+        {
+            break;
+        }
+    }
+    
+    midiIn_ = nullptr;
     
     app.systemRequestedQuit();
 }
@@ -217,23 +229,22 @@ void ApplicationState::openOutputDevice(const String& name)
 void ApplicationState::openInputDevice(const String& name)
 {
     midiIn_ = nullptr;
-    midiInName_ = name;
     
-    if (!tryToConnectMidiInput())
+    if (!tryToConnectMidiInput(name))
     {
-        std::cerr << "Couldn't find MIDI input port \"" << midiInName_ << "\"" << std::endl;
+        std::cerr << "Couldn't find MIDI input port \"" << name << "\"" << std::endl;
     }
 }
 
-bool ApplicationState::tryToConnectMidiInput()
+bool ApplicationState::tryToConnectMidiInput(const String& name)
 {
     std::unique_ptr<MidiInput> midi_input = nullptr;
-    String midi_input_name;
+    String midi_input_name = name;
     
     auto devices = MidiInput::getAvailableDevices();
     for (int i = 0; i < devices.size(); ++i)
     {
-        if (devices[i].name == midiInName_)
+        if (devices[i].name == midi_input_name)
         {
             midi_input = MidiInput::openDevice(devices[i].identifier, this);
             midi_input_name = devices[i].name;
@@ -245,7 +256,7 @@ bool ApplicationState::tryToConnectMidiInput()
     {
         for (int i = 0; i < devices.size(); ++i)
         {
-            if (devices[i].name.containsIgnoreCase(midiInName_))
+            if (devices[i].name.containsIgnoreCase(midi_input_name))
             {
                 midi_input = MidiInput::openDevice(devices[i].identifier, this);
                 midi_input_name = devices[i].name;
@@ -319,7 +330,6 @@ void ApplicationState::virtualDevice(const String& name)
     std::cerr << "Virtual MIDI output ports are not supported on Windows" << std::endl;
     setApplicationReturnValue(EXIT_FAILURE);
 #endif
-
 }
 
 void ApplicationState::executeCurrentCommand()
@@ -471,12 +481,12 @@ void ApplicationState::sendRPN(int channel, int number, int value)
     sendMidiMessage(MidiMessage::controllerEvent(channel, 100, 0x7f));
 }
 
-void ApplicationState::negotiateMpeProfile(const String& name, int channelCount)
+void ApplicationState::negotiateMpeProfile(const String& name, int manager, int members)
 {
     openInputDevice(name);
     if (midiIn_)
     {
-        mpeProfile_->negotiate();
+        mpeProfile_->negotiate(manager, members);
     }
 }
 
@@ -595,7 +605,8 @@ void ApplicationState::printUsage()
         
         if (cmd.optionsDescriptions_.size() > 1)
         {
-            for (auto i = 1; i < cmd.optionsDescriptions_.size(); ++i)
+            auto i = 1;
+            for (; i < cmd.optionsDescriptions_.size(); ++i)
             {
                 auto line = cmd.optionsDescriptions_.getReference(i);
                 String param_option;
@@ -609,6 +620,10 @@ void ApplicationState::printUsage()
                 }
                 
                 std::cout << std::endl;
+            }
+            for (; i < cmd.commandDescriptions_.size(); ++i)
+            {
+                std::cout << "                       " << cmd.commandDescriptions_.getReference(i) << std::endl;
             }
         }
     }

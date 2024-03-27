@@ -35,7 +35,7 @@ public:
     void parseFile(File file);
     void sendMidiMessage(MidiMessage&& msg);
     void sendRPN(int channel, int number, int value);
-    void negotiateMpeProfile(const String& name, int channelCount);
+    void negotiateMpeProfile(const String& name, int manager, int members);
     
     uint8 asNoteNumber(String value);
     uint8 asDecOrHex7BitValue(String value);
@@ -55,7 +55,7 @@ private:
     ApplicationCommand* findApplicationCommand(const String& param);
     StringArray parseLineAsParameters(const String& line);
     
-    bool tryToConnectMidiInput();
+    bool tryToConnectMidiInput(const String& name);
     bool isMidiInDeviceAvailable(const String& name);
     void handleIncomingMidiMessage(MidiInput*, const MidiMessage& msg) override;
     void processMessage(ump::BytesOnGroup) override;
@@ -73,7 +73,6 @@ private:
     String midiOutName_;
     std::unique_ptr<MidiOutput> midiOut_;
     
-    String midiInName_;
     std::unique_ptr<MidiInput> midiIn_;
     
     std::unique_ptr<MpeProfileNegotiation> mpeProfile_;

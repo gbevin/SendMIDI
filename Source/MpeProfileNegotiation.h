@@ -22,19 +22,37 @@
 
 class ApplicationState;
 
-class MpeProfileNegotiation : ci::ProfileDelegate
+class MpeProfileNegotiation : ci::DeviceListener, Timer
 {
 public:
     MpeProfileNegotiation(ApplicationState* state);
     void processMessage(ump::BytesOnGroup);
     
-    void negotiate();
-    
-private:
-    virtual void profileEnablementRequested(ci::MUID x,
-                                            ci::ProfileAtAddress profileAtAddress,
-                                            int numChannels,
-                                            bool enabled);
+    void negotiate(int manager, int members);
+    bool isWaitingForNegotation();
+    virtual void timerCallback();
 
+private:
+    static std::string muidToString(ci::MUID muid);
+
+    void startNegotationTimer();
+    
+    virtual void deviceAdded(ci::MUID muid);
+    
+    virtual void profileStateReceived(ci::MUID muid,
+                                      ci::ChannelInGroup destination);
+
+    virtual void profileEnablementChanged(ci::MUID muid,
+                                          ci::ChannelInGroup destination,
+                                          ci::Profile profile,
+                                          int numChannels);
+
+    static ci::Profile MPE_PROFILE;
+    
     std::unique_ptr<ci::Device> ci_;
+    std::unique_ptr<ci::ProfileAtAddress> mpeProfile_;
+    ci::ChannelInGroup address_ { ci::ChannelInGroup::wholeGroup };
+    int manager_ { 0 };
+    int members_ { 0 };
+    bool waiting_ { false };
 };

@@ -50,7 +50,6 @@ private:
     static ci::Profile MPE_PROFILE;
     
     std::unique_ptr<ci::Device> ci_;
-    std::unique_ptr<ci::ProfileAtAddress> mpeProfile_;
     ci::ChannelInGroup address_ { ci::ChannelInGroup::wholeGroup };
     int manager_ { 0 };
     int members_ { 0 };

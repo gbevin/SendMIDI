@@ -56,14 +56,7 @@ void MpeProfileNegotiation::negotiate(int manager, int members)
         std::cout << "Initiator " << muidToString(ci_->getMuid()) << " negotating MPE Profile with manager channel " << manager << " to be disabled" << std::endl;
     }
     
-    if (mpeProfile_.get())
-    {
-        ci_->getProfileHost()->removeProfile(*mpeProfile_);
-    }
-    
-    ci::ProfileAtAddress mpe_profile { MPE_PROFILE, ci::ChannelAddress().withChannel(ci::ChannelInGroup::wholeBlock) };
-    mpeProfile_ = std::make_unique<ci::ProfileAtAddress>(mpe_profile);
-    ci_->getProfileHost()->addProfile(*mpeProfile_);
+    ci_->getProfileHost()->addProfile({ MPE_PROFILE, ci::ChannelAddress().withChannel(ci::ChannelInGroup::wholeBlock) });
 
     waiting_ = true;
     address_ = (ci::ChannelInGroup)(manager - 1);
@@ -145,10 +138,10 @@ void MpeProfileNegotiation::profileEnablementChanged(ci::MUID muid, ci::ChannelI
     {
         auto members = numChannels - 1;
         std::cout << muidToString(muid) << " : MPE profile enabled with manager channel " << (manager + 1) << " and " << members << " member channel" << (members > 1 ? "s" : "") << std::endl;
+        waiting_ = false;
     }
     else
     {
         std::cout << muidToString(muid) << " : MPE profile disabled with manager channel " << (manager + 1) << std::endl;
     }
-    waiting_ = false;
 }

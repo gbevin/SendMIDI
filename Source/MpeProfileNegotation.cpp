@@ -22,6 +22,9 @@
 
 // MPE Profile ID
 ci::Profile MpeProfileNegotiation::MPE_PROFILE = { std::byte(0x7E), std::byte(0x31), std::byte(0x00), std::byte(0x01), std::byte(0x01) };
+
+// Profile Detail Inquiry Target
+std::byte MpeProfileNegotiation::TARGET_FEATURES_SUPPORTED = std::byte(0x01);
     
 MpeProfileNegotiation::MpeProfileNegotiation(ApplicationState* state)
 {
@@ -138,10 +141,58 @@ void MpeProfileNegotiation::profileEnablementChanged(ci::MUID muid, ci::ChannelI
     {
         auto members = numChannels - 1;
         std::cout << muidToString(muid) << " : MPE profile enabled with manager channel " << (manager + 1) << " and " << members << " member channel" << (members > 1 ? "s" : "") << std::endl;
-        waiting_ = false;
+
+        std::cout << muidToString(muid) << " : Inquiring MPE profile details for optional features" << std::endl;
+        ci_->sendProfileDetailsInquiry(muid, destination, profile, std::byte(TARGET_FEATURES_SUPPORTED));
     }
     else
     {
         std::cout << muidToString(muid) << " : MPE profile disabled with manager channel " << (manager + 1) << std::endl;
+    }
+}
+
+void MpeProfileNegotiation::profileDetailsReceived(ci::MUID muid, ci::ChannelInGroup destination, ci::Profile profile, std::byte target, Span<const std::byte> data)
+{
+    if (target == TARGET_FEATURES_SUPPORTED && data.size() == 4)
+    {
+        auto supportsChannelResponse = (int)data[0];
+        auto supportsPitchBend = (int)data[1];
+        auto supportsChannelPressure = (int)data[2];
+        auto supportsThirdDimension = (int)data[3];
+
+        auto muidString = muidToString(muid);
+        std::cout << muidString << " : MPE profile details received for optional features" << std::endl;
+        std::cout << muidString << "   channel response : " << (supportsChannelResponse == 0x1 ? "supported" : "not supported") << std::endl;
+        std::cout << muidString << "   pitch bend       : " << (supportsPitchBend == 0x1 ? "supported" : "not supported") << std::endl;
+        std::cout << muidString << "   channel pressure : ";
+        if (supportsChannelPressure == 0x2)
+        {
+            std::cout << "alternate bipolar controller";
+        }
+        else if (supportsChannelPressure == 0x1)
+        {
+            std::cout << "standard controller";
+        }
+        else
+        {
+            std::cout << "not supported";
+        }
+        std::cout << std::endl;
+        std::cout << muidString << "   3rd dimension    : ";
+        if (supportsThirdDimension == 0x2)
+        {
+            std::cout << "alternate bipolar controller";
+        }
+        else if (supportsThirdDimension == 0x1)
+        {
+            std::cout << "standard controller";
+        }
+        else
+        {
+            std::cout << "not supported";
+        }
+        std::cout << std::endl;
+        
+        waiting_ = false;
     }
 }

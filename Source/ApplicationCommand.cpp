@@ -240,7 +240,7 @@ void ApplicationCommand::execute(ApplicationState& state)
             MemoryBlock mem(opts_.size(), true);
             for (auto i = 0; i < opts_.size(); ++i)
             {
-                mem[i] = opts_[i].getIntValue();
+                mem[i] = (uint8)opts_[i].getIntValue();
             }
             state.sendMidiMessage(MidiMessage::createSysExMessage(mem.getData(), (int)mem.getSize()));
             break;

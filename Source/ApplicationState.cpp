@@ -328,7 +328,7 @@ void ApplicationState::virtualDevice(const String& name)
     }
 #else
     std::cerr << "Virtual MIDI output ports are not supported on Windows" << std::endl;
-    setApplicationReturnValue(EXIT_FAILURE);
+    JUCEApplicationBase::getInstance()->setApplicationReturnValue(EXIT_FAILURE);
 #endif
 }
 
@@ -609,10 +609,10 @@ void ApplicationState::printUsage()
             for (; i < cmd.optionsDescriptions_.size(); ++i)
             {
                 auto line = cmd.optionsDescriptions_.getReference(i);
-                String param_option;
-                param_option << "        " << line.paddedRight(' ', 13) << "  ";
-                param_option = param_option.substring(0, 23);
-                std::cout << param_option;
+                String param_option2;
+                param_option2 << "        " << line.paddedRight(' ', 13) << "  ";
+                param_option2 = param_option2.substring(0, 23);
+                std::cout << param_option2;
                 
                 if (i < cmd.commandDescriptions_.size())
                 {

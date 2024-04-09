@@ -162,7 +162,7 @@ void MpeProfileNegotiation::profileEnablementChanged(ci::MUID muid, ci::ChannelI
     }
 }
 
-void MpeProfileNegotiation::profileDetailsReceived(ci::MUID muid, ci::ChannelInGroup destination, ci::Profile profile, std::byte target, Span<const std::byte> data)
+void MpeProfileNegotiation::profileDetailsReceived(ci::MUID muid, ci::ChannelInGroup, ci::Profile, std::byte target, Span<const std::byte> data)
 {
     if (target == TARGET_FEATURES_SUPPORTED && data.size() == 4)
     {

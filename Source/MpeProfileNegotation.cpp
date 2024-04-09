@@ -72,7 +72,14 @@ void MpeProfileNegotiation::negotiate(int manager, int members)
 
 void MpeProfileNegotiation::timerCallback()
 {
-    std::cerr << "Failed to negotiate MPE Profile." << std::endl;
+    if (!profileEnabled_)
+    {
+        std::cerr << "Failed to negotiate MPE Profile." << std::endl;
+    }
+    else if (!profileDetailsReceived_)
+    {
+        std::cerr << "MPE Profile negotiated, but optional feature details not received." << std::endl;
+    }
     stopTimer();
     waiting_ = false;
 }
@@ -121,12 +128,12 @@ void MpeProfileNegotiation::profileStateReceived(ci::MUID muid, ci::ChannelInGro
             {
                 if (members_ > 0)
                 {
-                    std::cout << muidToString(muid) << " : Requesting MPE profile enablement with manager channel " << manager_ << " and " << members_ << " member channel" << (members_ > 1 ? "s" : "") << std::endl;
+                    std::cout << muidToString(muid) << " : Requesting MPE Profile enablement with manager channel " << manager_ << " and " << members_ << " member channel" << (members_ > 1 ? "s" : "") << std::endl;
                     ci_->sendProfileEnablement(muid, address_, MPE_PROFILE, members_ + 1);
                 }
                 else
                 {
-                    std::cout << muidToString(muid) << " : Requesting MPE profile disablement with manager channel " << manager_ << std::endl;
+                    std::cout << muidToString(muid) << " : Requesting MPE Profile disablement with manager channel " << manager_ << std::endl;
                     ci_->sendProfileEnablement(muid, address_, MPE_PROFILE, 0);
                 }
             }
@@ -140,14 +147,18 @@ void MpeProfileNegotiation::profileEnablementChanged(ci::MUID muid, ci::ChannelI
     if (numChannels > 0)
     {
         auto members = numChannels - 1;
-        std::cout << muidToString(muid) << " : MPE profile enabled with manager channel " << (manager + 1) << " and " << members << " member channel" << (members > 1 ? "s" : "") << std::endl;
-
-        std::cout << muidToString(muid) << " : Inquiring MPE profile details for optional features" << std::endl;
+        std::cout << muidToString(muid) << " : MPE Profile enabled with manager channel " << (manager + 1) << " and " << members << " member channel" << (members > 1 ? "s" : "") << std::endl;
+        profileEnabled_ = true;
+        profileDetailsReceived_ = false;
+        
+        std::cout << muidToString(muid) << " : Inquiring MPE Profile details for optional features" << std::endl;
         ci_->sendProfileDetailsInquiry(muid, destination, profile, std::byte(TARGET_FEATURES_SUPPORTED));
     }
     else
     {
-        std::cout << muidToString(muid) << " : MPE profile disabled with manager channel " << (manager + 1) << std::endl;
+        std::cout << muidToString(muid) << " : MPE Profile disabled with manager channel " << (manager + 1) << std::endl;
+        profileEnabled_ = false;
+        profileDetailsReceived_ = false;
     }
 }
 
@@ -161,7 +172,7 @@ void MpeProfileNegotiation::profileDetailsReceived(ci::MUID muid, ci::ChannelInG
         auto supportsThirdDimension = (int)data[3];
 
         auto muidString = muidToString(muid);
-        std::cout << muidString << " : MPE profile details received for optional features" << std::endl;
+        std::cout << muidString << " : MPE Profile details received for optional features" << std::endl;
         std::cout << muidString << "   channel response : " << (supportsChannelResponse == 0x1 ? "supported" : "not supported") << std::endl;
         std::cout << muidString << "   pitch bend       : " << (supportsPitchBend == 0x1 ? "supported" : "not supported") << std::endl;
         std::cout << muidString << "   channel pressure : ";
@@ -192,6 +203,8 @@ void MpeProfileNegotiation::profileDetailsReceived(ci::MUID muid, ci::ChannelInG
             std::cout << "not supported";
         }
         std::cout << std::endl;
+        
+        profileDetailsReceived_ = true;
         
         waiting_ = false;
     }

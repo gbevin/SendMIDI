@@ -31,28 +31,28 @@ public:
     void negotiate(int manager, int members);
     bool isWaitingForNegotation();
     virtual void timerCallback() override;
-
+    
 private:
     static std::string muidToString(ci::MUID muid);
-
+    
     void startNegotationTimer();
     
     virtual void deviceAdded(ci::MUID muid) override;
     
     virtual void profileStateReceived(ci::MUID muid,
                                       ci::ChannelInGroup destination) override;
-
+    
     virtual void profileEnablementChanged(ci::MUID muid,
                                           ci::ChannelInGroup destination,
                                           ci::Profile profile,
                                           int numChannels) override;
-
+    
     virtual void profileDetailsReceived(ci::MUID muid,
                                         ci::ChannelInGroup destination,
                                         ci::Profile profile,
                                         std::byte target,
                                         Span<const std::byte> data) override;
-
+    
     static ci::Profile MPE_PROFILE;
     static std::byte TARGET_FEATURES_SUPPORTED;
     
@@ -61,4 +61,6 @@ private:
     int manager_ { 0 };
     int members_ { 0 };
     bool waiting_ { false };
+    bool profileEnabled_ { false };
+    bool profileDetailsReceived_ { false };
 };

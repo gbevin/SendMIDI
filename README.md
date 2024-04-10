@@ -69,6 +69,9 @@ These are all the supported commands:
   ss    number         Send Song Select with song number (0-127)
   tun                  Send Tune Request
   mpe   zone range     Send MPE Configuration for zone (1-2) with range (0-15)
+  mpp   input          Configure MPE Profile initiator with MIDI input port name,
+        manager        a manager channel (1-15), and desired member channel
+        members        count (1-15, 0 to disable) (also uses MIDI output port)
   mpetest              Send a sequence of MPE messages to test a receiver
   raw   bytes          Send raw MIDI from a series of bytes
   -h  or  --help       Print Help (this message) and exit
@@ -82,7 +85,7 @@ Alternatively, you can use the following long versions of the commands:
   poly-pressure control-change control-change-14 program-change
   channel-pressure pitch-bend midi-clock continue active-sensing reset
   system-exclusive system-exclusive-file time-code song-position song-select
-  tune-request mpe-test raw-midi
+  tune-request mpe-profile mpe-test raw-midi
 ```
 
 By default, numbers are interpreted in the decimal system, this can be changed to hexadecimal by sending the "hex" command.

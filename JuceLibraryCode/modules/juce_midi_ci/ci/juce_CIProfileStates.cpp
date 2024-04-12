@@ -52,7 +52,7 @@ std::vector<Profile> ChannelProfileStates::getInactive() const
     std::vector<Profile> result;
 
     for (const auto& item : entries)
-        if (item.state.isSupported())
+        if (item.state.isSupported() && !item.state.isActive())
             result.push_back (item.profile);
 
     return result;

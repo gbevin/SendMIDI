@@ -1057,6 +1057,15 @@ private:
 
             device.profileHost->setProfileEnablement (profileAtAddress, enabled ? jmax (1, numChannels) : 0);
         }
+        
+        virtual std::vector<std::byte> profileDetailsInquired (MUID x, ProfileAtAddress profileAtAddress, std::byte target) override
+        {
+            if (auto* d = device.options.getProfileDelegate())
+                return d->profileDetailsInquired (x, profileAtAddress, target);
+            
+            return std::vector<std::byte>();
+        }
+
 
     private:
         Impl& device;

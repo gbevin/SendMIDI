@@ -21,7 +21,7 @@ mkdir -v "$INSTALLERS_DIR"
 
 # build release artifacts
 echo "Building all ProJucer artifacts"
-xcodebuild -project ./Builds/MacOSX/sendmidi.xcodeproj -config Release SYMROOT=build -scheme "sendmidi - ConsoleApp"
+xcodebuild -project ./Builds/MacOSX/sendmidi.xcodeproj -destination "generic/platform=macOS,name=Any Mac" -config Release SYMROOT=build -scheme "sendmidi - ConsoleApp"
 
 # sign each individual artifact
 echo "Codesigning all artifacts"

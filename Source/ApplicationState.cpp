@@ -537,7 +537,17 @@ uint8 ApplicationState::asDecOrHex7BitValue(String value)
 
 uint16 ApplicationState::asDecOrHex14BitValue(String value)
 {
-    return (uint16)limit14Bit(asDecOrHexIntValue(value));
+    int index = value.indexOfChar(':');
+    if (index == -1)
+    {
+        return (uint16)limit14Bit(asDecOrHexIntValue(value));
+    }
+    else
+    {
+        int msb = limit7Bit(asDecOrHexIntValue(value.substring(0, index)));
+        int lsb = limit7Bit(asDecOrHexIntValue(value.substring(index + 1)));
+        return (uint16)(msb * 128 + lsb);
+    }
 }
 
 int ApplicationState::asDecOrHexIntValue(String value)

@@ -24,8 +24,10 @@ enum CommandIndex
 {
     NONE,
     LIST,
+    LIST_INDEX,
     PANIC,
     DEVICE,
+    DEVICE_INDEX,
     VIRTUAL,
     TXTFILE,
     DECIMAL,

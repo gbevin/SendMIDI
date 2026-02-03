@@ -24,8 +24,10 @@ static const int DEFAULT_OCTAVE_MIDDLE_C = 3;
 ApplicationState::ApplicationState()
 {
     commands_.add({"dev",   	"device",                   DEVICE,                 1, {"name"},             {"Set the name of the MIDI output port"}});
+    commands_.add({"devindex", "device-index",          DEVICE_INDEX,           1, {"index"},            {"Set MIDI output port by index (see listi)"}});
     commands_.add({"virt",  	"virtual",                  VIRTUAL,               -1, {"(name)"},           {"Use virtual MIDI port with optional name (Linux/macOS)"}});
     commands_.add({"list",  	"",                         LIST,                   0, {""},                 {"Lists the MIDI output ports"}});
+    commands_.add({"listi",   "list-index",              LIST_INDEX,             0, {""},                 {"Lists the MIDI output ports with indices"}});
     commands_.add({"panic", 	"",                         PANIC,                  0, {""},                 {"Sends all possible Note Offs and relevant panic CCs"}});
     commands_.add({"file",  	"",                         TXTFILE,                1, {"path"},             {"Loads commands from the specified program file"}});
     commands_.add({"dec",   	"decimal",                  DECIMAL,                0, {""},                 {"Interpret the next numbers as decimals by default"}});
@@ -224,6 +226,23 @@ void ApplicationState::openOutputDevice(const String& name)
         std::cerr << "Couldn't find MIDI output port \"" << midiOutName_ << "\"" << std::endl;
         JUCEApplicationBase::getInstance()->setApplicationReturnValue(EXIT_FAILURE);
     }
+}
+
+void ApplicationState::openOutputDeviceByIndex(int index)
+{
+    midiOut_ = nullptr;
+    auto devices = MidiOutput::getAvailableDevices();
+    if (index >= 0 && index < devices.size())
+    {
+        midiOut_ = MidiOutput::openDevice(devices[index].identifier);
+        if (midiOut_)
+        {
+            midiOutName_ = devices[index].name;
+            return;
+        }
+    }
+    std::cerr << "Couldn't open MIDI output port with index " << index << std::endl;
+    JUCEApplicationBase::getInstance()->setApplicationReturnValue(EXIT_FAILURE);
 }
 
 void ApplicationState::openInputDevice(const String& name)

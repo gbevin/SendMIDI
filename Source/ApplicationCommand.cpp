@@ -55,9 +55,23 @@ void ApplicationCommand::execute(ApplicationState& state)
                 std::cout << device.name << std::endl;
             }
             break;
+        case LIST_INDEX:
+        {
+            auto devices = MidiOutput::getAvailableDevices();
+            for (int i = 0; i < devices.size(); ++i)
+            {
+                std::cout << i << " " << devices[i].name << std::endl;
+            }
+            break;
+        }
         case DEVICE:
         {
             state.openOutputDevice(opts_[0]);
+            break;
+        }
+        case DEVICE_INDEX:
+        {
+            state.openOutputDeviceByIndex(opts_[0].getIntValue());
             break;
         }
         case VIRTUAL:

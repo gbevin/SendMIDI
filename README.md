@@ -37,8 +37,10 @@ To use it, simply type "sendmidi" or "sendmidi.exe" on the command line and foll
 These are all the supported commands:
 ```
   dev   name           Set the name of the MIDI output port
+  devindex index       Set MIDI output port by index (see listi)
   virt  (name)         Use virtual MIDI port with optional name (Linux/macOS)
   list                 Lists the MIDI output ports
+  listi                Lists the MIDI output ports with indices
   panic                Sends all possible Note Offs and relevant panic CCs
   file  path           Loads commands from the specified program file
   dec                  Interpret the next numbers as decimals by default
@@ -81,7 +83,7 @@ These are all the supported commands:
 
 Alternatively, you can use the following long versions of the commands:
 ```
-  device virtual decimal hexadecimal channel octave-middle-c note-on note-off
+  device device-index virtual list-index decimal hexadecimal channel octave-middle-c note-on note-off
   poly-pressure control-change control-change-14 program-change
   channel-pressure pitch-bend midi-clock continue active-sensing reset
   system-exclusive system-exclusive-file time-code song-position song-select

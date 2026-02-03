@@ -28,8 +28,9 @@ class ApplicationState : public MidiInputCallback, public ci::DeviceMessageHandl
 public:
     ApplicationState();
     void initialise(JUCEApplicationBase& app);
-        
+
     void openOutputDevice(const String& name);
+    void openOutputDeviceByIndex(int index);
     void openInputDevice(const String& name);
     void virtualDevice(const String& name);
     void parseFile(File file);
@@ -82,4 +83,3 @@ private:
     uint32 lastTimeStampCounter_;
     int64_t lastTimeStamp_;
 };
-

@@ -155,10 +155,10 @@ To build SendMIDI on Linux you need a minimal set of packages installed beforeha
 sudo apt install build-essential pkg-config libasound2-dev
 ```
 
-After that, go to the `LinuxMakeFile` directory
+After that, go to the `LinuxMakefile` directory
 
 ```
-cd Builds/LinuxMakeFile
+cd Builds/LinuxMakefile
 ```
 
 and build the binary by typing `make`
@@ -167,7 +167,7 @@ and build the binary by typing `make`
 make
 ```
 
-The resulting binary will be in the `Build/LinuxMakeFile/build` directory and can be moved anywhere appropriate on your system, for instance into `/usr/local/bin`:
+The resulting binary will be in the `Build/LinuxMakefile/build` directory and can be moved anywhere appropriate on your system, for instance into `/usr/local/bin`:
 
 ```
 sudo mv build/sendmidi /usr/local/bin

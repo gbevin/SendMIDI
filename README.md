@@ -179,6 +179,12 @@ The input of the SendMIDI tool is compatible with the ReceiveMIDI tool, allowing
 
 ReceiveMIDI can be downloaded from https://github.com/gbevin/ReceiveMIDI
 
+## RouteMIDI
+
+If you want to route, filter, transform and convert MIDI messages between ports, take a look at RouteMIDI. It reads and writes the same text MIDI format as SendMIDI, so it slots into the same command-line pipes.
+
+RouteMIDI can be downloaded from https://github.com/gbevin/RouteMIDI
+
 ## ShowMIDI
 
 If you're looking for a beautiful GUI to effortlessly visualize MIDI activity without having to wade through log files, please take a look at my other tool ShowMIDI:

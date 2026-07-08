@@ -30,47 +30,50 @@ To use it, simply type "sendmidi" or "sendmidi.exe" on the command line and foll
 
 These are all the supported commands:
 ```
-  dev   name           Set the name of the MIDI output port
-  virt  (name)         Use virtual MIDI port with optional name (Linux/macOS)
-  list                 Lists the MIDI output ports
-  panic                Sends all possible Note Offs and relevant panic CCs
-  file  path           Loads commands from the specified program file
-  dec                  Interpret the next numbers as decimals by default
-  hex                  Interpret the next numbers as hexadecimals by default
-  ch    number         Set MIDI channel for the commands (1-16), defaults to 1
-  omc   number         Set octave for middle C, defaults to 3
-  on    note velocity  Send Note On with note (0-127) and velocity (0-127)
-  off   note velocity  Send Note Off with note (0-127) and velocity (0-127)
-  pp    note value     Send Poly Pressure with note (0-127) and value (0-127)
-  cc    number value   Send Control Change number (0-127) with value (0-127)
-  cc14  number value   Send 14-bit CC number (0-31) with value (0-16383)
-  pc    number         Send Program Change number (0-127)
-  cp    value          Send Channel Pressure value (0-127)
-  pb    value          Send Pitch Bend value (0-16383 or value/range)
-  rpn   number value   Send RPN number (0-16383) with value (0-16383)
-  nrpn  number value   Send NRPN number (0-16383) with value (0-16383)
-  clock bpm            Send 2 beats of MIDI Timing Clock for a BPM (1-999)
-  mc                   Send one MIDI Timing Clock
-  start                Start the current sequence playing
-  stop                 Stop the current sequence
-  cont                 Continue the current sequence
-  as                   Send Active Sensing
-  rst                  Send Reset
-  syx   bytes          Send SysEx from a series of bytes (no F0/F7 delimiters)
-  syf   path           Send SysEx from a .syx file
-  tc    type value     Send MIDI Time Code with type (0-7) and value (0-15)
-  spp   beats          Send Song Position Pointer with beat (0-16383)
-  ss    number         Send Song Select with song number (0-127)
-  tun                  Send Tune Request
-  mpe   zone range     Send MPE Configuration for zone (1-2) with range (0-15)
-  mpp   input          Configure MPE Profile initiator with MIDI input port name,
-        manager        a manager channel (1-15), and desired member channel
-        members        count (1-15, 0 to disable) (also uses MIDI output port)
-  mpetest              Send a sequence of MPE messages to test a receiver
-  raw   bytes          Send raw MIDI from a series of bytes
-  -h  or  --help       Print Help (this message) and exit
-  --version            Print version information and exit
-  --                   Read commands from standard input until it's closed
+  dev     name          Set the name of the MIDI output port
+  virt    (name)        Use virtual MIDI port with optional name (Linux/macOS)
+  list                  Lists the MIDI output ports
+  panic                 Sends all possible Note Offs and relevant panic CCs
+  file    path          Loads commands from the specified program file
+  dec                   Interpret the next numbers as decimals by default
+  hex                   Interpret the next numbers as hexadecimals by default
+  ch      number        Set MIDI channel for the commands (1-16), defaults to 1
+  omc     number        Set octave for middle C, defaults to 3
+  on      note velocity Send Note On with note (0-127) and velocity (0-127)
+  off     note velocity Send Note Off with note (0-127) and velocity (0-127)
+  pp      note value    Send Poly Pressure with note (0-127) and value (0-127)
+  cc      number value  Send Control Change number (0-127) with value (0-127)
+  cc14    number value  Send 14-bit CC number (0-31) with value (0-16383)
+  pc      number        Send Program Change number (0-127)
+  cp      value         Send Channel Pressure value (0-127)
+  pb      value         Send Pitch Bend value (0-16383 or value/range)
+  rpn     number value  Send RPN number (0-16383) with value (0-16383)
+  nrpn    number value  Send NRPN number (0-16383) with value (0-16383)
+  clock   bpm           Send 2 beats of MIDI Timing Clock for a BPM (1-999)
+  mc                    Send one MIDI Timing Clock
+  start                 Start the current sequence playing
+  stop                  Stop the current sequence
+  cont                  Continue the current sequence
+  as                    Send Active Sensing
+  rst                   Send Reset
+  syx     bytes         Send SysEx from a series of bytes (no F0/F7 delimiters)
+  syf     path          Send SysEx from a .syx file
+  tc      type value    Send MIDI Time Code with type (0-7) and value (0-15)
+  spp     beats         Send Song Position Pointer with beat (0-16383)
+  ss      number        Send Song Select with song number (0-127)
+  tun                   Send Tune Request
+  mpe     zone range    Send MPE Configuration for zone (1-2) with range (0-15)
+  mpp     input manager Configure MPE Profile initiator with MIDI input port
+          members       name, a manager channel (1-15), and desired member
+                        channel count (1-15, 0 to disable) (also uses MIDI
+                        output port)
+  mpetest               Send a sequence of MPE messages to test a receiver
+  raw     bytes         Send raw MIDI from a series of bytes
+
+Options:
+  -h  or  --help        Print Help (this message) and exit
+  --version             Print version information and exit
+  --                    Read commands from standard input until it's closed
 ```
 
 Alternatively, you can use the following long versions of the commands:

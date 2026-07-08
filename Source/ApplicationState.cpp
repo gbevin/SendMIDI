@@ -18,8 +18,88 @@
 
 #include "ApplicationCommand.h"
 #include "ApplicationState.h"
+#include "TerminalColor.h"
 
 static const int DEFAULT_OCTAVE_MIDDLE_C = 3;
+
+// Optional ANSI color for the help text. It is emitted only when standard output
+// is an interactive terminal that is expected to understand the codes (see
+// TerminalColor.cpp), so any redirected or piped output stays plain and
+// byte-for-byte as before.
+namespace ansi
+{
+    static const char* const reset = "\x1b[0m";
+
+    // Each role carries a 24-bit truecolor code matching the palette on the
+    // uwyn.com terminal mockup, and a nearest 16-color code for terminals that
+    // don't advertise truecolor. Descriptions and the version banner are left in
+    // the terminal's default foreground on purpose, so they stay legible on both
+    // dark and light backgrounds without needing to know which one it is.
+    struct Role { const char* truecolor; const char* basic; };
+    static const Role label   { "38;2;232;121;76",  "33" };   // terracotta: Usage/Commands headers
+    static const Role command { "38;2;109;188;128", "32" };   // sage green: command and flag names
+    static const Role option  { "38;2;126;167;205", "34" };   // steel blue: option placeholders and the URL
+
+    static bool enabled()
+    {
+        static const bool value = terminalSupportsColor();
+        return value;
+    }
+
+    // truecolor when the terminal advertises it, otherwise the 16-color palette
+    static bool trueColor()
+    {
+        static const bool value = terminalSupportsTrueColor();
+        return value;
+    }
+
+    // wraps text in the role's color, or returns it unchanged when color is off
+    static String paint(const Role& role, const String& text)
+    {
+        if (! enabled() || text.isEmpty())
+        {
+            return text;
+        }
+        const char* code = trueColor() ? role.truecolor : role.basic;
+        if (code == nullptr || *code == '\0')
+        {
+            return text;
+        }
+        return "\x1b[" + String(code) + "m" + text + reset;
+    }
+}
+
+// word-wraps text into lines no wider than the given number of characters
+static StringArray wrapText(const String& text, int width)
+{
+    StringArray words;
+    words.addTokens(text, " ", "");
+    words.removeEmptyStrings();
+
+    StringArray lines;
+    String current;
+    for (auto&& word : words)
+    {
+        if (current.isEmpty())
+        {
+            current = word;
+        }
+        else if (current.length() + 1 + word.length() <= width)
+        {
+            current << " " << word;
+        }
+        else
+        {
+            lines.add(current);
+            current = word;
+        }
+    }
+    if (current.isNotEmpty())
+    {
+        lines.add(current);
+    }
+    return lines;
+}
 
 ApplicationState::ApplicationState()
 {
@@ -573,81 +653,175 @@ uint16 ApplicationState::limit14Bit(int value)
 void ApplicationState::printVersion()
 {
     std::cout << ProjectInfo::projectName << " v" << ProjectInfo::versionString << std::endl;
-    std::cout << "https://github.com/gbevin/SendMIDI" << std::endl;
+    std::cout << ansi::paint(ansi::option, "https://github.com/gbevin/SendMIDI") << std::endl;
 }
 
 void ApplicationState::printUsage()
 {
     printVersion();
     std::cout << std::endl;
-    std::cout << "Usage: " << ProjectInfo::projectName << " [ commands ] [ programfile ] [ -- ]" << std::endl << std::endl
-    << "Commands:" << std::endl;
+    std::cout << ansi::paint(ansi::label, "Usage:") << " " << ProjectInfo::projectName << " [ commands ] [ programfile ] [ -- ]" << std::endl << std::endl
+              << ansi::paint(ansi::label, "Commands:") << std::endl << std::endl;
+    // the columns follow the longest command name and option, so nothing is
+    // truncated and everything stays aligned
+    int longestCommand = 0;
+    int longestOption = 0;
     for (auto&& cmd : commands_)
     {
-        String param_option;
-        param_option << "  " << cmd.param_.paddedRight(' ', 5);
-        if (!cmd.optionsDescriptions_.isEmpty())
+        longestCommand = jmax(longestCommand, cmd.param_.length());
+        for (auto&& option : cmd.optionsDescriptions_)
         {
-            param_option << " " << cmd.optionsDescriptions_.getReference(0).paddedRight(' ', 13);
-        }
-        else
-        {
-            param_option << "              ";
-        }
-        param_option << "  ";
-        param_option = param_option.substring(0, 23);
-        std::cout << param_option;
-        if (!cmd.commandDescriptions_.isEmpty())
-        {
-            std::cout << cmd.commandDescriptions_.getReference(0);
-        }
-        std::cout << std::endl;
-        
-        if (cmd.optionsDescriptions_.size() > 1)
-        {
-            auto i = 1;
-            for (; i < cmd.optionsDescriptions_.size(); ++i)
-            {
-                auto line = cmd.optionsDescriptions_.getReference(i);
-                String param_option2;
-                param_option2 << "        " << line.paddedRight(' ', 13) << "  ";
-                param_option2 = param_option2.substring(0, 23);
-                std::cout << param_option2;
-                
-                if (i < cmd.commandDescriptions_.size())
-                {
-                    std::cout << cmd.commandDescriptions_.getReference(i);
-                }
-                
-                std::cout << std::endl;
-            }
-            for (; i < cmd.commandDescriptions_.size(); ++i)
-            {
-                std::cout << "                       " << cmd.commandDescriptions_.getReference(i) << std::endl;
-            }
+            longestOption = jmax(longestOption, option.length());
         }
     }
-    std::cout << "  -h  or  --help       Print Help (this message) and exit" << std::endl;
-    std::cout << "  --version            Print version information and exit" << std::endl;
-    std::cout << "  --                   Read commands from standard input until it's closed" << std::endl;
+    const int optionColumn = longestCommand + 3;              // where the options start
+    const int descriptionColumn = optionColumn + longestOption + 1;  // where the description starts
+
+    for (auto&& cmd : commands_)
+    {
+        // the options share the option column, wrapping onto extra lines only
+        // when they don't all fit (reserving one space before the description)
+        String joinedOptions;
+        for (auto&& option : cmd.optionsDescriptions_)
+        {
+            if (option.isNotEmpty())
+            {
+                joinedOptions << (joinedOptions.isEmpty() ? "" : " ") << option;
+            }
+        }
+        StringArray options = wrapText(joinedOptions, descriptionColumn - optionColumn - 1);
+
+        // the description (its lines joined) starts on the first option's line
+        String joinedDescription;
+        for (auto&& description : cmd.commandDescriptions_)
+        {
+            joinedDescription << (joinedDescription.isEmpty() ? "" : " ") << description;
+        }
+        StringArray descriptionLines = wrapText(joinedDescription, 80 - descriptionColumn);
+
+        for (int i = 0; i < jmax(1, options.size(), descriptionLines.size()); ++i)
+        {
+            // build the row piece by piece, tracking the visible column so the
+            // color codes never enter the padding maths
+            String out;
+            int col = 0;
+            auto padTo = [&](int target)
+            {
+                if (target > col)
+                {
+                    out << String::repeatedString(" ", target - col);
+                    col = target;
+                }
+            };
+
+            if (i == 0)
+            {
+                out << "  ";
+                col += 2;
+                out << ansi::paint(ansi::command, cmd.param_);
+                col += cmd.param_.length();
+            }
+            padTo(optionColumn);
+
+            if (i < options.size() && options.getReference(i).isNotEmpty())
+            {
+                out << ansi::paint(ansi::option, options.getReference(i));
+                col += options.getReference(i).length();
+            }
+
+            if (i < descriptionLines.size())
+            {
+                padTo(descriptionColumn);
+                out << descriptionLines.getReference(i);   // description in the default color
+            }
+
+            std::cout << out << std::endl;
+        }
+    }
+    std::cout << std::endl;
+    auto builtin = [&](const String& flag, const String& description)
+    {
+        const StringArray lines = wrapText(description, 80 - descriptionColumn);
+        for (int i = 0; i < lines.size(); ++i)
+        {
+            String out;
+            int col = 0;
+            if (i == 0)
+            {
+                out << "  " << ansi::paint(ansi::command, flag);
+                col += 2 + flag.length();
+            }
+            if (descriptionColumn > col)
+            {
+                out << String::repeatedString(" ", descriptionColumn - col);
+            }
+            std::cout << out << lines.getReference(i) << std::endl;
+        }
+    };
+    std::cout << ansi::paint(ansi::label, "Options:") << std::endl;
+    builtin("-h  or  --help", "Print Help (this message) and exit");
+    builtin("--version", "Print version information and exit");
+    builtin("--", "Read commands from standard input until it's closed");
     std::cout << std::endl;
     std::cout << "Alternatively, you can use the following long versions of the commands:" << std::endl;
     String line = " ";
+    auto flushLine = [&]()
+    {
+        std::cout << ansi::paint(ansi::command, line) << std::endl;
+    };
     for (auto&& cmd : commands_)
     {
         if (cmd.altParam_.isNotEmpty())
         {
             if (line.length() + cmd.altParam_.length() + 1 >= 80)
             {
-                std::cout << line << std::endl;
+                flushLine();
                 line = " ";
             }
             line << " " << cmd.altParam_;
         }
     }
-    std::cout << line << std::endl << std::endl;
-    std::cout << "By default, numbers are interpreted in the decimal system, this can be changed" << std::endl
-    << "to hexadecimal by sending the \"hex\" command. Additionally, by suffixing a " << std::endl
+    flushLine();
+    std::cout << std::endl;
+
+    // tints command names and flags quoted in the trailing notes; the sentences
+    // stay in the default foreground
+    auto isCommandName = [this](const String& token)
+    {
+        for (auto&& cmd : commands_)
+        {
+            if (cmd.param_ == token || (cmd.altParam_.isNotEmpty() && cmd.altParam_ == token))
+            {
+                return true;
+            }
+        }
+        return false;
+    };
+    auto note = [&isCommandName](const String& text)
+    {
+        if (! ansi::enabled())
+        {
+            return text;
+        }
+        String out;
+        int i = 0;
+        while (i < text.length())
+        {
+            const int open = text.indexOfChar(i, '"');
+            if (open < 0) { out << text.substring(i); break; }
+            const int close = text.indexOfChar(open + 1, '"');
+            if (close < 0) { out << text.substring(i); break; }
+            const String inner = text.substring(open + 1, close);
+            const bool tint = inner.startsWith("--")
+                              || (! inner.containsChar(' ') && isCommandName(inner));
+            out << text.substring(i, open + 1)
+                << (tint ? ansi::paint(ansi::command, inner) : inner) << "\"";
+            i = close + 1;
+        }
+        return out;
+    };
+    std::cout << note("By default, numbers are interpreted in the decimal system, this can be changed") << std::endl
+    << note("to hexadecimal by sending the \"hex\" command. Additionally, by suffixing a ") << std::endl
     << "number with \"M\" or \"H\", it will be interpreted as a decimal or hexadecimal" << std::endl
     << "respectively." << std::endl;
     std::cout << std::endl;

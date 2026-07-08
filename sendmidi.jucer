@@ -24,6 +24,10 @@
             file="Source/MpeTestScenario.cpp"/>
       <FILE id="pMgAxr" name="MpeTestScenario.h" compile="0" resource="0"
             file="Source/MpeTestScenario.h"/>
+      <FILE id="tcl002" name="TerminalColor.cpp" compile="1" resource="0"
+            file="Source/TerminalColor.cpp"/>
+      <FILE id="tcl001" name="TerminalColor.h" compile="0" resource="0"
+            file="Source/TerminalColor.h"/>
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>

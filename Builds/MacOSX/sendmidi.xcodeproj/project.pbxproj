@@ -27,6 +27,7 @@
 		9B0F8BACA6BC3E1F951394D8 /* include_juce_audio_devices.mm */ = {isa = PBXBuildFile; fileRef = E36ADE62396919C537A4D356; };
 		AADC62C5B9CB859326A74332 /* include_juce_events.mm */ = {isa = PBXBuildFile; fileRef = F0AC19E3023CA8E85D590A1B; };
 		DEC01D2856CBEABC6569DE16 /* include_juce_midi_ci.cpp */ = {isa = PBXBuildFile; fileRef = 3B899882E9F48AFC64E535EF; };
+		E8C4E438B2F64618624EAAD8 /* TerminalColor.cpp */ = {isa = PBXBuildFile; fileRef = 52E0070156CA6392E10997DF; };
 		F00D5676A75100DF5C848DF8 /* include_juce_audio_basics.mm */ = {isa = PBXBuildFile; fileRef = BC898F0BA43B56118F3015D2; };
 /* End PBXBuildFile section */
 
@@ -35,8 +36,10 @@
 		08ACADE6BD3415FD33BA447B /* include_juce_data_structures.mm */ /* include_juce_data_structures.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_data_structures.mm; path = ../../JuceLibraryCode/include_juce_data_structures.mm; sourceTree = SOURCE_ROOT; };
 		24749B444222A65B40FE5D2E /* JuceHeader.h */ /* JuceHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceHeader.h; path = ../../JuceLibraryCode/JuceHeader.h; sourceTree = SOURCE_ROOT; };
 		28F1F23438CA15D2AF8C89C3 /* ApplicationState.cpp */ /* ApplicationState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ApplicationState.cpp; path = ../../Source/ApplicationState.cpp; sourceTree = SOURCE_ROOT; };
+		32182945DF1F1B1E5A2F590A /* TerminalColor.h */ /* TerminalColor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TerminalColor.h; path = ../../Source/TerminalColor.h; sourceTree = SOURCE_ROOT; };
 		39BBB61E6B2796DB8C72B46D /* CoreAudio.framework */ /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		3B899882E9F48AFC64E535EF /* include_juce_midi_ci.cpp */ /* include_juce_midi_ci.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_midi_ci.cpp; path = ../../JuceLibraryCode/include_juce_midi_ci.cpp; sourceTree = SOURCE_ROOT; };
+		52E0070156CA6392E10997DF /* TerminalColor.cpp */ /* TerminalColor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TerminalColor.cpp; path = ../../Source/TerminalColor.cpp; sourceTree = SOURCE_ROOT; };
 		5D3F4C219DB9D465708B6231 /* AudioToolbox.framework */ /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		69CA7701920713AC1D657BF8 /* MpeTestScenario.h */ /* MpeTestScenario.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MpeTestScenario.h; path = ../../Source/MpeTestScenario.h; sourceTree = SOURCE_ROOT; };
 		72686C5762C0131F6547BE59 /* MpeProfileNegotation.cpp */ /* MpeProfileNegotation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MpeProfileNegotation.cpp; path = ../../Source/MpeProfileNegotation.cpp; sourceTree = SOURCE_ROOT; };
@@ -149,6 +152,8 @@
 				F49CC32851912CFDB16D532C,
 				DB6CC86C059C1CA80AB913D3,
 				69CA7701920713AC1D657BF8,
+				52E0070156CA6392E10997DF,
+				32182945DF1F1B1E5A2F590A,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -249,6 +254,7 @@
 				2BA07F2CF2B004870E08CD28,
 				65C195657857F267C7A346F5,
 				02AAAD8EA7B9E68E755410F2,
+				E8C4E438B2F64618624EAAD8,
 				F00D5676A75100DF5C848DF8,
 				9B0F8BACA6BC3E1F951394D8,
 				08A5E7A6A0B3F06A21DF7BC3,

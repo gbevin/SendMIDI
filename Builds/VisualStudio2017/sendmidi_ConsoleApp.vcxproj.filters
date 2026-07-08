@@ -214,6 +214,9 @@
     <ClCompile Include="..\..\Source\MpeTestScenario.cpp">
       <Filter>sendmidi\Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\TerminalColor.cpp">
+      <Filter>sendmidi\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <Filter>JUCE Modules\juce_audio_basics\audio_play_head</Filter>
     </ClCompile>
@@ -1156,6 +1159,9 @@
       <Filter>sendmidi\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\MpeTestScenario.h">
+      <Filter>sendmidi\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\TerminalColor.h">
       <Filter>sendmidi\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">

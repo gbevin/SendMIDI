@@ -77,6 +77,7 @@ OBJECTS_CONSOLEAPP := \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MpeProfileNegotation_d83ee130.o \
   $(JUCE_OBJDIR)/MpeTestScenario_b621c4e5.o \
+  $(JUCE_OBJDIR)/TerminalColor_9caabe28.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
   $(JUCE_OBJDIR)/include_juce_audio_devices_63111d02.o \
   $(JUCE_OBJDIR)/include_juce_core_f26d17db.o \
@@ -120,6 +121,11 @@ $(JUCE_OBJDIR)/MpeProfileNegotation_d83ee130.o: ../../Source/MpeProfileNegotatio
 $(JUCE_OBJDIR)/MpeTestScenario_b621c4e5.o: ../../Source/MpeTestScenario.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MpeTestScenario.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/TerminalColor_9caabe28.o: ../../Source/TerminalColor.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling TerminalColor.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o: ../../JuceLibraryCode/include_juce_audio_basics.cpp

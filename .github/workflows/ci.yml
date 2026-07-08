@@ -1,0 +1,72 @@
+name: CI
+
+# Builds SendMIDI on macOS, Linux and Windows and smoke-checks the binary. JUCE
+# is vendored under JuceLibraryCode/modules, so no framework needs to be fetched
+# -- the committed Projucer build files are used as-is. A unit-test suite will be
+# run here once it exists.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest,   name: macOS }
+          - { os: ubuntu-latest,  name: Linux }
+          - { os: windows-latest, name: Windows }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # ---------------------------------------------------------------- macOS
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          xcodebuild -project Builds/MacOSX/sendmidi.xcodeproj \
+            -target "sendmidi - ConsoleApp" -configuration Release SYMROOT=build build
+
+      - name: Smoke test (macOS)
+        if: runner.os == 'macOS'
+        run: ./Builds/MacOSX/build/Release/sendmidi --version | grep -q "sendmidi v"
+
+      # ---------------------------------------------------------------- Linux
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: make -C Builds/LinuxMakefile CONFIG=Release -j"$(nproc)"
+
+      - name: Smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: ./Builds/LinuxMakefile/build/sendmidi --version | grep -q "sendmidi v"
+
+      # -------------------------------------------------------------- Windows
+      - name: Add MSBuild to PATH
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        # the committed project targets the v141 toolset (VS2017); build with the
+        # runner's current toolset so no legacy build tools need installing
+        run: msbuild Builds/VisualStudio2017/sendmidi.sln /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143
+
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: ./Builds/VisualStudio2017/x64/Release/ConsoleApp/sendmidi.exe --version | grep -q "sendmidi v"

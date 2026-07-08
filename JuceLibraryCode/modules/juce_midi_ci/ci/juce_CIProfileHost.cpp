@@ -111,22 +111,36 @@ private:
 
     bool messageReceived (const Message::ProfileDetails& body) const
     {
+        const auto address = ChannelAddress{}.withGroup (output->getIncomingGroup())
+                                             .withChannel (output->getIncomingHeader().deviceID);
+        const ProfileAtAddress profileAtAddress { body.profile, address };
+        
         if (body.target == std::byte{})
         {
-            const auto address = ChannelAddress{}.withGroup (output->getIncomingGroup())
-                                                 .withChannel (output->getIncomingHeader().deviceID);
-            const ProfileAtAddress profileAtAddress { body.profile, address };
             const auto state = host->getState (profileAtAddress);
             std::vector<std::byte> extraData;
             detail::Marshalling::Writer { extraData } (state.active, state.supported);
-            detail::MessageTypeUtils::send (*output, Message::ProfileDetailsResponse { body.profile, body.target, extraData });
+            sendProfileDetailsResponse(body, extraData);
         }
         else
         {
-            detail::MessageTypeUtils::sendNAK (*output, std::byte { 0x04 });
+            const auto extraData = host->delegate.profileDetailsInquired(output->getIncomingHeader().source, profileAtAddress, body.target);
+            if (extraData.empty())
+            {
+                detail::MessageTypeUtils::sendNAK (*output, std::byte { 0x04 });
+            }
+            else
+            {
+                sendProfileDetailsResponse(body, extraData);
+            }
         }
 
         return true;
+    }
+    
+    void sendProfileDetailsResponse (const Message::ProfileDetails& body, const std::vector<std::byte>& extraData) const
+    {
+        detail::MessageTypeUtils::send (*output, Message::ProfileDetailsResponse { body.profile, body.target, extraData });
     }
 
     template <typename Body>

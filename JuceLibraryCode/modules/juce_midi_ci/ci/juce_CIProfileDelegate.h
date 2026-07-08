@@ -56,6 +56,10 @@ struct ProfileDelegate
                                              [[maybe_unused]] ProfileAtAddress profileAtAddress,
                                              [[maybe_unused]] int numChannels,
                                              [[maybe_unused]] bool enabled) = 0;
+    
+    virtual std::vector<std::byte> profileDetailsInquired ([[maybe_unused]] MUID x,
+                                                           [[maybe_unused]] ProfileAtAddress profileAtAddress,
+                                                           [[maybe_unused]] std::byte target) { return std::vector<std::byte>(); }
 };
 
 } // namespace juce::midi_ci

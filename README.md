@@ -1,5 +1,9 @@
 # SendMIDI
 
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](COPYING.md)
+[![Release](https://img.shields.io/github/v/release/gbevin/SendMIDI?sort=semver)](https://github.com/gbevin/SendMIDI/releases/latest)
+[![CI](https://github.com/gbevin/SendMIDI/actions/workflows/ci.yml/badge.svg)](https://github.com/gbevin/SendMIDI/actions/workflows/ci.yml)
+
 SendMIDI is a multi-platform command-line tool makes it very easy to quickly send MIDI messages to MIDI devices from your computer.
 
 All the heavy lifting is done by the wonderful JUCE library.

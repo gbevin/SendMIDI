@@ -531,8 +531,28 @@ void ApplicationState::parseFile(File file)
     parseParameters(parameters);
 }
 
+Array<MidiMessage> ApplicationState::collect(const StringArray& parameters)
+{
+    Array<MidiMessage> sink;
+    messageSink_ = &sink;
+    StringArray params(parameters);
+    parseParameters(params);
+    messageSink_ = nullptr;
+    return sink;
+}
+
+Array<MidiMessage> ApplicationState::collectLine(const String& line)
+{
+    return collect(parseLineAsParameters(line));
+}
+
 void ApplicationState::sendMidiMessage(MidiMessage&& msg)
 {
+    if (messageSink_ != nullptr)
+    {
+        messageSink_->add(msg);
+        return;
+    }
     if (auto out = midiOut_.get())
     {
         out->sendMessageNow(msg);

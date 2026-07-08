@@ -47,7 +47,14 @@ public:
     
     void printVersion();
     void printUsage();
-    
+
+    // Test seam: parse a command line and return the MIDI messages it produces,
+    // collected in memory instead of sent to a device, so command output can be
+    // asserted without opening a MIDI port. Don't use device, virtual, file,
+    // mpe-profile or timestamp tokens here - those open ports or wait.
+    Array<MidiMessage> collect(const StringArray& parameters);
+    Array<MidiMessage> collectLine(const String& line);
+
     int channel_;
     int octaveMiddleC_;
     
@@ -72,6 +79,7 @@ private:
 
     String midiOutName_;
     std::unique_ptr<MidiOutput> midiOut_;
+    Array<MidiMessage>* messageSink_ { nullptr };   // when set, sendMidiMessage collects here instead of sending
     
     std::unique_ptr<MidiInput> midiIn_;
     

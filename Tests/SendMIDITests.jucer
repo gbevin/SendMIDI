@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="SmTst1" name="SendMIDITests" projectType="consoleapp" version="1.3.1"
+              bundleIdentifier="com.uwyn.sendmiditests" includeBinaryInAppConfig="1"
+              companyName="Uwyn" companyWebsite="http://www.uwyn.com" companyEmail="info@uwyn.com"
+              displaySplashScreen="1" reportAppUsage="1" splashScreenColour="Dark"
+              jucerFormatVersion="1" defines=" JUCE_MODAL_LOOPS_PERMITTED=1">
+  <MAINGROUP id="SmTstM" name="SendMIDITests">
+    <GROUP id="{A0000000-0000-0000-0000-000000000001}" name="Source">
+      <FILE id="src001" name="ApplicationCommand.cpp" compile="1" resource="0"
+            file="../Source/ApplicationCommand.cpp"/>
+      <FILE id="src002" name="ApplicationCommand.h" compile="0" resource="0"
+            file="../Source/ApplicationCommand.h"/>
+      <FILE id="src003" name="ApplicationState.cpp" compile="1" resource="0"
+            file="../Source/ApplicationState.cpp"/>
+      <FILE id="src004" name="ApplicationState.h" compile="0" resource="0"
+            file="../Source/ApplicationState.h"/>
+      <FILE id="src005" name="MpeProfileNegotation.cpp" compile="1" resource="0"
+            file="../Source/MpeProfileNegotation.cpp"/>
+      <FILE id="src006" name="MpeProfileNegotiation.h" compile="0" resource="0"
+            file="../Source/MpeProfileNegotiation.h"/>
+      <FILE id="src007" name="MpeTestScenario.cpp" compile="1" resource="0"
+            file="../Source/MpeTestScenario.cpp"/>
+      <FILE id="src008" name="MpeTestScenario.h" compile="0" resource="0"
+            file="../Source/MpeTestScenario.h"/>
+      <FILE id="src009" name="TerminalColor.cpp" compile="1" resource="0"
+            file="../Source/TerminalColor.cpp"/>
+      <FILE id="src010" name="TerminalColor.h" compile="0" resource="0"
+            file="../Source/TerminalColor.h"/>
+    </GROUP>
+    <GROUP id="{A0000000-0000-0000-0000-000000000002}" name="Tests">
+      <FILE id="tst001" name="TestRunner.cpp" compile="1" resource="0" file="TestRunner.cpp"/>
+      <FILE id="tst002" name="SendTests.cpp" compile="1" resource="0" file="SendTests.cpp"/>
+      <FILE id="tst003" name="ParsingTests.cpp" compile="1" resource="0" file="ParsingTests.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="SendMIDITests"
+                       osxCompatibility="10.13 SDK" macOSDeploymentTarget="10.13"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="SendMIDITests"
+                       osxCompatibility="10.13 SDK" macOSDeploymentTarget="10.13"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_core" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_events" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_midi_ci" path="../JuceLibraryCode/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraLinkerFlags="-latomic">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="SendMIDITests"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="SendMIDITests"
+                       linuxArchitecture=""/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_core" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_events" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_midi_ci" path="../JuceLibraryCode/modules"/>
+      </MODULEPATHS>
+    </LINUX_MAKE>
+    <VS2017 targetFolder="Builds/VisualStudio2017">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug"/>
+        <CONFIGURATION isDebug="0" name="Release" useRuntimeLibDLL="0"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_core" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_events" path="../JuceLibraryCode/modules"/>
+        <MODULEPATH id="juce_midi_ci" path="../JuceLibraryCode/modules"/>
+      </MODULEPATHS>
+    </VS2017>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_midi_ci" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_USE_XSHM="disabled" JUCE_USE_XRENDER="disabled" JUCE_USE_XCURSOR="disabled"
+               JUCE_USE_CURL="0"/>
+  <LIVE_SETTINGS>
+    <OSX/>
+  </LIVE_SETTINGS>
+</JUCERPROJECT>

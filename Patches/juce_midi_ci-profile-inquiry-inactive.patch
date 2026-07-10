@@ -1,0 +1,11 @@
+--- a/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileStates.cpp
++++ b/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileStates.cpp
+@@ -52,7 +52,7 @@
+     std::vector<Profile> result;
+ 
+     for (const auto& item : entries)
+-        if (item.state.isSupported())
++        if (item.state.isSupported() && !item.state.isActive())
+             result.push_back (item.profile);
+ 
+     return result;

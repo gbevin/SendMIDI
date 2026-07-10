@@ -1,0 +1,77 @@
+--- a/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileDelegate.h
++++ b/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileDelegate.h
+@@ -56,6 +56,10 @@
+                                              [[maybe_unused]] ProfileAtAddress profileAtAddress,
+                                              [[maybe_unused]] int numChannels,
+                                              [[maybe_unused]] bool enabled) = 0;
++    
++    virtual std::vector<std::byte> profileDetailsInquired ([[maybe_unused]] MUID x,
++                                                           [[maybe_unused]] ProfileAtAddress profileAtAddress,
++                                                           [[maybe_unused]] std::byte target) { return std::vector<std::byte>(); }
+ };
+ 
+ } // namespace juce::midi_ci
+--- a/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIDevice.cpp
++++ b/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIDevice.cpp
+@@ -1057,7 +1057,16 @@
+ 
+             device.profileHost->setProfileEnablement (profileAtAddress, enabled ? jmax (1, numChannels) : 0);
+         }
++        
++        virtual std::vector<std::byte> profileDetailsInquired (MUID x, ProfileAtAddress profileAtAddress, std::byte target) override
++        {
++            if (auto* d = device.options.getProfileDelegate())
++                return d->profileDetailsInquired (x, profileAtAddress, target);
++            
++            return std::vector<std::byte>();
++        }
+ 
++
+     private:
+         Impl& device;
+     };
+--- a/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileHost.cpp
++++ b/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileHost.cpp
+@@ -111,23 +111,37 @@
+ 
+     bool messageReceived (const Message::ProfileDetails& body) const
+     {
++        const auto address = ChannelAddress{}.withGroup (output->getIncomingGroup())
++                                             .withChannel (output->getIncomingHeader().deviceID);
++        const ProfileAtAddress profileAtAddress { body.profile, address };
++        
+         if (body.target == std::byte{})
+         {
+-            const auto address = ChannelAddress{}.withGroup (output->getIncomingGroup())
+-                                                 .withChannel (output->getIncomingHeader().deviceID);
+-            const ProfileAtAddress profileAtAddress { body.profile, address };
+             const auto state = host->getState (profileAtAddress);
+             std::vector<std::byte> extraData;
+             detail::Marshalling::Writer { extraData } (state.active, state.supported);
+-            detail::MessageTypeUtils::send (*output, Message::ProfileDetailsResponse { body.profile, body.target, extraData });
++            sendProfileDetailsResponse(body, extraData);
+         }
+         else
+         {
+-            detail::MessageTypeUtils::sendNAK (*output, std::byte { 0x04 });
++            const auto extraData = host->delegate.profileDetailsInquired(output->getIncomingHeader().source, profileAtAddress, body.target);
++            if (extraData.empty())
++            {
++                detail::MessageTypeUtils::sendNAK (*output, std::byte { 0x04 });
++            }
++            else
++            {
++                sendProfileDetailsResponse(body, extraData);
++            }
+         }
+ 
+         return true;
+     }
++    
++    void sendProfileDetailsResponse (const Message::ProfileDetails& body, const std::vector<std::byte>& extraData) const
++    {
++        detail::MessageTypeUtils::send (*output, Message::ProfileDetailsResponse { body.profile, body.target, extraData });
++    }
+ 
+     template <typename Body>
+     bool profileEnablementReceived (const Body& request) const

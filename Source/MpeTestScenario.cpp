@@ -37,7 +37,12 @@ void MpeTestScenario::send(ApplicationState& state)
     auto bend_messages = 1000;
     auto pressure_messages = 1000;
     auto timbre_messages = 1000;
-    
+    auto control_messages = 500;   // shorter sweeps for the global Manager Channel demos
+
+    // CC74 (Timbre, the Third Dimension) has its neutral at 64 in the MPE
+    // specification, so notes start from that center rather than from 0
+    const auto timbre_neutral = 0x40;
+
     auto range = 15;
     step(String("MPE Zone 1 with ") + String(range) + String(" Member Channels"));
     state.sendRPN(1, 6, range << 7);
@@ -53,19 +58,19 @@ void MpeTestScenario::send(ApplicationState& state)
     step("Major C triad C3 E3 G3 on Member Channels with neutral starting expression");
     
     state.sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000));
-    state.sendMidiMessage(MidiMessage::controllerEvent(2, 74, 0x00));
+    state.sendMidiMessage(MidiMessage::controllerEvent(2, 74, timbre_neutral));
     state.sendMidiMessage(MidiMessage::channelPressureChange(2, 0));
     state.sendMidiMessage(MidiMessage::noteOn(2, 0x3c, (uint8)0x60));
-    
+
     state.sendMidiMessage(MidiMessage::pitchWheel(3, 0x2000));
-    state.sendMidiMessage(MidiMessage::controllerEvent(3, 74, 0x00));
+    state.sendMidiMessage(MidiMessage::controllerEvent(3, 74, timbre_neutral));
     state.sendMidiMessage(MidiMessage::channelPressureChange(3, 0));
     state.sendMidiMessage(MidiMessage::noteOn(3, 0x40, (uint8)0x7f));
-    
+
     state.sendMidiMessage(MidiMessage::pitchWheel(16, 0x2000));
-    state.sendMidiMessage(MidiMessage::controllerEvent(16, 74, 0x00));
+    state.sendMidiMessage(MidiMessage::controllerEvent(16, 74, timbre_neutral));
     state.sendMidiMessage(MidiMessage::channelPressureChange(16, 0));
-    state.sendMidiMessage(MidiMessage::noteOn(16, 0x43, (uint8)0x80));
+    state.sendMidiMessage(MidiMessage::noteOn(16, 0x43, (uint8)0x7f));
     
     Thread::sleep(2000);
     
@@ -205,30 +210,157 @@ void MpeTestScenario::send(ApplicationState& state)
     
     Thread::sleep(2000);
     
+    step("Manager Channel pitch bend transposes the whole held chord and returns");
+
+    // the Manager Channel (channel 1 in the Lower Zone) affects every sounding
+    // Member note at once, so this bends the entire chord up and back to center
+    auto mgr_bend_target = (0x1FFF * 5) / mgr_pbsens;   // roughly +5 semitones
+    for (auto i = 1; i <= control_messages; ++i)
+    {
+        state.sendMidiMessage(MidiMessage::pitchWheel(1, 0x2000 + (mgr_bend_target * i) / control_messages));
+        Thread::sleep(1);
+    }
+    for (auto i = control_messages; i >= 0; --i)
+    {
+        state.sendMidiMessage(MidiMessage::pitchWheel(1, 0x2000 + (mgr_bend_target * i) / control_messages));
+        Thread::sleep(1);
+    }
+
+    Thread::sleep(1000);
+
+    step("Manager Channel modulation, expression and pressure applied to all notes");
+
+    // modulation (CC 1) rising from 0 to full
+    auto mgr_last = -1;
+    for (auto i = 0; i <= control_messages; ++i)
+    {
+        auto val = (0x7F * i) / control_messages;
+        if (mgr_last != val)
+        {
+            state.sendMidiMessage(MidiMessage::controllerEvent(1, 1, val));
+            mgr_last = val;
+        }
+        Thread::sleep(1);
+    }
+    // expression (CC 11) falling from full to 0
+    mgr_last = -1;
+    for (auto i = 0; i <= control_messages; ++i)
+    {
+        auto val = 0x7F - (0x7F * i) / control_messages;
+        if (mgr_last != val)
+        {
+            state.sendMidiMessage(MidiMessage::controllerEvent(1, 11, val));
+            mgr_last = val;
+        }
+        Thread::sleep(1);
+    }
+    // channel pressure rising from 0 to full
+    mgr_last = -1;
+    for (auto i = 0; i <= control_messages; ++i)
+    {
+        auto val = (0x7F * i) / control_messages;
+        if (mgr_last != val)
+        {
+            state.sendMidiMessage(MidiMessage::channelPressureChange(1, val));
+            mgr_last = val;
+        }
+        Thread::sleep(1);
+    }
+
+    Thread::sleep(2000);
+
     step("Release the active notes");
-    
+
     state.sendMidiMessage(MidiMessage::noteOff(2, 0x3c, (uint8)0x40));
     state.sendMidiMessage(MidiMessage::noteOff(3, 0x40, (uint8)0x40));
     state.sendMidiMessage(MidiMessage::noteOff(16, 0x43, (uint8)0x40));
+
+    // restore the Manager Channel to its defaults before continuing
+    state.sendMidiMessage(MidiMessage::pitchWheel(1, 0x2000));
+    state.sendMidiMessage(MidiMessage::controllerEvent(1, 1, 0x00));
+    state.sendMidiMessage(MidiMessage::controllerEvent(1, 11, 0x7f));
+    state.sendMidiMessage(MidiMessage::channelPressureChange(1, 0));
+
+    Thread::sleep(2000);
+
+    step("Pitch bend to the extreme low and high limits on a Member Channel");
+
+    // a full-scale bend to both rails checks clamping at the sensitivity limit
+    state.sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000));
+    state.sendMidiMessage(MidiMessage::controllerEvent(2, 74, timbre_neutral));
+    state.sendMidiMessage(MidiMessage::channelPressureChange(2, 0));
+    state.sendMidiMessage(MidiMessage::noteOn(2, 0x3c, (uint8)0x60));
+    for (auto i = 0; i <= bend_messages; ++i)
+    {
+        state.sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000 - (0x2000 * i) / bend_messages));
+        Thread::sleep(1);
+    }
+    Thread::sleep(500);
+    for (auto i = 0; i <= bend_messages; ++i)
+    {
+        state.sendMidiMessage(MidiMessage::pitchWheel(2, (0x3FFF * i) / bend_messages));
+        Thread::sleep(1);
+    }
+    Thread::sleep(500);
+    state.sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000));
+    state.sendMidiMessage(MidiMessage::noteOff(2, 0x3c, (uint8)0x40));
+
+    Thread::sleep(2000);
+
+    step("Multiple notes stacked on a single Member Channel share its expression");
+
+    // more notes than channels forces several onto one channel; they can no
+    // longer be shaped independently and move together with that channel
+    state.sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000));
+    state.sendMidiMessage(MidiMessage::controllerEvent(2, 74, timbre_neutral));
+    state.sendMidiMessage(MidiMessage::channelPressureChange(2, 0));
+    state.sendMidiMessage(MidiMessage::noteOn(2, 0x3c, (uint8)0x60));
+    state.sendMidiMessage(MidiMessage::noteOn(2, 0x40, (uint8)0x60));
+    state.sendMidiMessage(MidiMessage::noteOn(2, 0x43, (uint8)0x60));
+    Thread::sleep(1000);
+    auto shared_last = -1;
+    for (auto i = 0; i <= pressure_messages; ++i)
+    {
+        auto val = (0x7F * i) / pressure_messages;
+        if (shared_last != val)
+        {
+            state.sendMidiMessage(MidiMessage::channelPressureChange(2, val));
+            shared_last = val;
+        }
+        Thread::sleep(1);
+    }
+    for (auto i = 0; i <= pressure_messages; ++i)
+    {
+        auto val = 0x7F - (0x7F * i) / pressure_messages;
+        if (shared_last != val)
+        {
+            state.sendMidiMessage(MidiMessage::channelPressureChange(2, val));
+            shared_last = val;
+        }
+        Thread::sleep(1);
+    }
+    state.sendMidiMessage(MidiMessage::noteOff(2, 0x3c, (uint8)0x40));
+    state.sendMidiMessage(MidiMessage::noteOff(2, 0x40, (uint8)0x40));
+    state.sendMidiMessage(MidiMessage::noteOff(2, 0x43, (uint8)0x40));
     
     Thread::sleep(2000);
     
     step("Different Major C triad G3 E4 C3 on Member Channels with neutral starting expression");
     
     state.sendMidiMessage(MidiMessage::pitchWheel(2, 0x2000));
-    state.sendMidiMessage(MidiMessage::controllerEvent(2, 74, 0x00));
+    state.sendMidiMessage(MidiMessage::controllerEvent(2, 74, timbre_neutral));
     state.sendMidiMessage(MidiMessage::channelPressureChange(2, 0));
     state.sendMidiMessage(MidiMessage::noteOn(2, 0x43, (uint8)0x60));
-    
+
     state.sendMidiMessage(MidiMessage::pitchWheel(3, 0x2000));
-    state.sendMidiMessage(MidiMessage::controllerEvent(3, 74, 0x00));
+    state.sendMidiMessage(MidiMessage::controllerEvent(3, 74, timbre_neutral));
     state.sendMidiMessage(MidiMessage::channelPressureChange(3, 0));
     state.sendMidiMessage(MidiMessage::noteOn(3, 0x4c, (uint8)0x7f));
-    
+
     state.sendMidiMessage(MidiMessage::pitchWheel(16, 0x2000));
-    state.sendMidiMessage(MidiMessage::controllerEvent(16, 74, 0x00));
+    state.sendMidiMessage(MidiMessage::controllerEvent(16, 74, timbre_neutral));
     state.sendMidiMessage(MidiMessage::channelPressureChange(16, 0));
-    state.sendMidiMessage(MidiMessage::noteOn(16, 0x3c, (uint8)0x80));
+    state.sendMidiMessage(MidiMessage::noteOn(16, 0x3c, (uint8)0x7f));
     
     Thread::sleep(2000);
     

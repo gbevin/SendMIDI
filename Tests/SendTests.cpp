@@ -183,16 +183,44 @@ public:
             expectEquals((int)rawHex[0].getVelocity(), 0x64);
         }
 
-        beginTest("Panic sends pedal/all-off plus every note off on all channels");
+        beginTest("Panic sends pedal/all-off, resets and every note off on all channels");
         {
             auto m = ApplicationState().collectLine("panic");
-            // per channel: sustain off, all-sound-off, all-notes-off, 128 note offs
-            expectEquals(m.size(), 16 * (3 + 128));
+            // per channel: sustain off, all-sound-off, reset-all-controllers,
+            // all-notes-off, pitch bend recenter, 128 note offs
+            expectEquals(m.size(), 16 * (5 + 128));
             expect(m[0].isController());
-            expectEquals(m[0].getControllerNumber(), 64);   // sustain off
+            expectEquals(m[0].getControllerNumber(), 64);    // sustain off
             expectEquals(m[0].getChannel(), 1);
+            expectEquals(m[2].getControllerNumber(), 121);   // reset all controllers
+            expect(m[4].isPitchWheel());                     // pitch bend recentered
+            expectEquals(m[4].getPitchWheelValue(), 0x2000);
             expect(m[m.size() - 1].isNoteOff());
             expectEquals(m[m.size() - 1].getChannel(), 16);
+        }
+
+        beginTest("Out-of-range channel is rejected and leaves the channel unchanged");
+        {
+            // channel 0 and >16 are invalid, so the note still sends on the default channel 1
+            auto low = ApplicationState().collectLine("ch 0 on 60 100");
+            expectEquals(low.size(), 1);
+            expectEquals(low[0].getChannel(), 1);
+
+            auto high = ApplicationState().collectLine("ch 20 on 60 100");
+            expectEquals(high.size(), 1);
+            expectEquals(high[0].getChannel(), 1);
+
+            // a valid channel is applied
+            auto ok = ApplicationState().collectLine("ch 10 on 60 100");
+            expectEquals(ok[0].getChannel(), 10);
+        }
+
+        beginTest("Time code clamps type to 0-7 and value to 0-15");
+        {
+            auto m = ApplicationState().collectLine("tc 9 20");
+            expect(m[0].isQuarterFrame());
+            expectEquals(m[0].getQuarterFrameSequenceNumber(), 7);
+            expectEquals(m[0].getQuarterFrameValue(), 15);
         }
 
         beginTest("Channel, octave and hex settings carry across a command line");

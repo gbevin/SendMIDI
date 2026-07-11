@@ -106,7 +106,7 @@ ApplicationState::ApplicationState()
     commands_.add({"dev",   	"device",                   DEVICE,                 1, {"name"},             {"Set the name of the MIDI output port"}});
     commands_.add({"virt",  	"virtual",                  VIRTUAL,               -1, {"(name)"},           {"Use virtual MIDI port with optional name (Linux/macOS)"}});
     commands_.add({"list",  	"",                         LIST,                   0, {""},                 {"Lists the MIDI output ports"}});
-    commands_.add({"panic", 	"",                         PANIC,                  0, {""},                 {"Sends all possible Note Offs and relevant panic CCs"}});
+    commands_.add({"panic", 	"",                         PANIC,                  0, {""},                 {"Sends Note Offs, panic CCs, resets controllers & bend"}});
     commands_.add({"file",  	"",                         TXTFILE,                1, {"path"},             {"Loads commands from the specified program file"}});
     commands_.add({"dec",   	"decimal",                  DECIMAL,                0, {""},                 {"Interpret the next numbers as decimals by default"}});
     commands_.add({"hex",   	"hexadecimal",              HEXADECIMAL,            0, {""},                 {"Interpret the next numbers as hexadecimals by default"}});

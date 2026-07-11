@@ -37,7 +37,7 @@ These are all the supported commands:
   dev     name          Set the name of the MIDI output port
   virt    (name)        Use virtual MIDI port with optional name (Linux/macOS)
   list                  Lists the MIDI output ports
-  panic                 Sends all possible Note Offs and relevant panic CCs
+  panic                 Sends Note Offs, panic CCs, resets controllers & bend
   file    path          Loads commands from the specified program file
   dec                   Interpret the next numbers as decimals by default
   hex                   Interpret the next numbers as hexadecimals by default

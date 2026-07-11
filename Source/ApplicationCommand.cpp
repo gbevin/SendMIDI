@@ -74,9 +74,11 @@ void ApplicationCommand::execute(ApplicationState& state)
         {
             for (auto ch = 1; ch <= 16; ++ch)
             {
-                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 64, 0));
-                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 120, 0));
-                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 123, 0));
+                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 64, 0));    // sustain pedal off
+                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 120, 0));   // all sound off
+                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 121, 0));   // reset all controllers
+                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 123, 0));   // all notes off
+                state.sendMidiMessage(MidiMessage::pitchWheel(ch, 0x2000));        // recenter pitch bend
                 for (auto note = 0; note <= 127; ++note)
                 {
                     state.sendMidiMessage(MidiMessage::noteOff(ch, note, (uint8)0));
@@ -106,8 +108,19 @@ void ApplicationCommand::execute(ApplicationState& state)
             // parseParameters method
             break;
         case CHANNEL:
-            state.channel_ = state.asDecOrHex7BitValue(opts_[0]);
+        {
+            auto channel = state.asDecOrHexIntValue(opts_[0]);
+            if (channel < 1 || channel > 16)
+            {
+                std::cerr << "Can't set channel to " << channel << " (it has to be between 1 and 16)" << std::endl;
+                JUCEApplicationBase::getInstance()->setApplicationReturnValue(EXIT_FAILURE);
+            }
+            else
+            {
+                state.channel_ = (uint8)channel;
+            }
             break;
+        }
         case OCTAVE_MIDDLE_C:
             state.octaveMiddleC_ = state.asDecOrHex7BitValue(opts_[0]);
             break;
@@ -227,7 +240,8 @@ void ApplicationCommand::execute(ApplicationState& state)
             state.sendMidiMessage(MidiMessage(0xff));
             break;
         case TIME_CODE:
-            state.sendMidiMessage(MidiMessage::quarterFrame(state.asDecOrHex14BitValue(opts_[0]), state.asDecOrHex14BitValue(opts_[1])));
+            state.sendMidiMessage(MidiMessage::quarterFrame(jlimit(0, 7, state.asDecOrHexIntValue(opts_[0])),
+                                                            jlimit(0, 15, state.asDecOrHexIntValue(opts_[1]))));
             break;
         case SONG_POSITION:
             state.sendMidiMessage(MidiMessage::songPositionPointer(state.asDecOrHex14BitValue(opts_[0])));

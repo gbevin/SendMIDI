@@ -80,6 +80,56 @@ check "timing clock"           "midi-clock"
 check "start"                  "start"
 check "stop"                   "stop"
 
+# ---------------------------------------------------------------------------
+# MPE Profile negotiation (MIDI-CI): receivemidi is the responder on a virtual
+# port, sendmidi the initiator. This drives the whole MIDI-CI handshake -
+# discovery, profile enablement and the optional-feature detail inquiry - and
+# so also exercises the vendored juce_midi_ci patches. MUIDs are random per
+# run, so only the stable text after them is matched (spaces squeezed to one).
+# ---------------------------------------------------------------------------
+MPORT="MPE-E2E-$$"
+RESP_OUT="$(mktemp)"
+INIT_OUT="$(mktemp)"
+# responder: manager channel 2, 3 members, with distinct optional-feature flags
+"$RM" mpp "$MPORT" 2 3 mcr 1 mpb 1 mcp 2 m3d 1 > "$RESP_OUT" 2>&1 &
+MRPID=$!
+mpe_cleanup() { kill "$MRPID" 2>/dev/null; wait "$MRPID" 2>/dev/null; rm -f "$RESP_OUT" "$INIT_OUT"; }
+trap mpe_cleanup EXIT
+
+for _ in $(seq 1 100); do "$SM" list | grep -q "$MPORT" && break; sleep 0.1; done
+if ! "$SM" list | grep -q "$MPORT"; then
+    echo "skip: the MPE virtual port never appeared (no MIDI on this host?)"
+else
+    sleep 0.5
+    # initiator: send to and listen on the responder's port; blocks until the
+    # negotiation finishes (or its internal timeout fires)
+    "$SM" dev "$MPORT" mpp "$MPORT" 2 3 > "$INIT_OUT" 2>&1
+    sleep 0.5
+    kill "$MRPID" 2>/dev/null; wait "$MRPID" 2>/dev/null; trap - EXIT
+
+    INIT="$(tr -s ' ' < "$INIT_OUT")"
+    RESP="$(tr -s ' ' < "$RESP_OUT")"
+    rm -f "$RESP_OUT" "$INIT_OUT"
+
+    checkc() {   # <name> <haystack> <substring>
+        if grep -qF "$3" <<< "$2"; then
+            echo "ok   $1"
+        else
+            echo "FAIL $1"
+            echo "  expected to contain: $3"
+            failures=$((failures + 1))
+        fi
+    }
+
+    checkc "mpe initiator discovered responder" "$INIT" ": Discovered"
+    checkc "mpe initiator enabled profile"      "$INIT" "MPE Profile enabled with manager channel 2 and 3 member channels"
+    checkc "mpe initiator got detail reply"     "$INIT" "MPE Profile details received for optional features"
+    checkc "mpe channel pressure feature"       "$INIT" "channel pressure : alternate bipolar controller"
+    checkc "mpe 3rd dimension feature"          "$INIT" "3rd dimension : standard controller"
+    checkc "mpe responder enabled profile"      "$RESP" "MPE Profile enabled with manager channel 2 and 3 member channels"
+    checkc "mpe responder detail inquiry"       "$RESP" "MPE Profile details inquired for optional features"
+fi
+
 if [ "$failures" -eq 0 ]; then
     echo "all end-to-end tests passed"
 else

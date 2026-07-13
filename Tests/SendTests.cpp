@@ -164,9 +164,10 @@ public:
         beginTest("SysEx and raw MIDI carry the given bytes");
         {
             auto syx = ApplicationState().collectLine("syx 1 2 3");
-            expect(syx[0].isSysEx());
-            expectEquals(syx[0].getSysExDataSize(), 3);
-            const uint8* data = syx[0].getSysExData();
+            const MidiMessage syxMsg = syx[0];
+            expect(syxMsg.isSysEx());
+            expectEquals(syxMsg.getSysExDataSize(), 3);
+            const uint8* data = syxMsg.getSysExData();
             expectEquals((int)data[0], 1);
             expectEquals((int)data[1], 2);
             expectEquals((int)data[2], 3);

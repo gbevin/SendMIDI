@@ -1,7 +1,9 @@
 name: CI
 
-# Builds SendMIDI and its unit-test suite on macOS, Linux and Windows, then runs
-# the tests and smoke-checks the binary. JUCE is vendored under
+# Builds SendMIDI and its unit-test suite on macOS, Linux (64-bit and 32-bit
+# i686) and Windows, then runs the tests and smoke-checks the binary. The i686
+# job also runs the tests under Valgrind to catch memory errors that only a
+# 32-bit allocator tends to expose (see issue #61). JUCE is vendored under
 # JuceLibraryCode/modules, so no framework needs to be fetched -- the committed
 # Projucer build files are used as-is.
 
@@ -96,3 +98,49 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: ./Builds/VisualStudio2017/x64/Release/ConsoleApp/sendmidi.exe --version | grep -q "sendmidi v"
+
+  # Separate job: a 32-bit (i686) build on an amd64 runner via the multilib
+  # toolchain, exercised natively and under Valgrind. A 32-bit allocator lays
+  # memory out differently, so use-after-free bugs that pass by luck on 64-bit
+  # surface here -- this is the configuration that reported issue #61.
+  linux-i686:
+    name: Linux i686
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install 32-bit toolchain, ALSA and Valgrind
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib g++-multilib libasound2-dev:i386 valgrind
+
+      # TARGET_ARCH flows into the compile and link flags; PKG_CONFIG_PATH points
+      # pkg-config at the 32-bit ALSA so the right library gets linked. Debug is
+      # used so Valgrind can report file/line for any error it finds.
+      - name: Build 32-bit (Debug)
+        env:
+          PKG_CONFIG_PATH: /usr/lib/i386-linux-gnu/pkgconfig
+        run: |
+          make -C Builds/LinuxMakefile CONFIG=Debug TARGET_ARCH=-m32 -j"$(nproc)"
+          make -C Tests/Builds/LinuxMakefile CONFIG=Debug TARGET_ARCH=-m32 -j"$(nproc)"
+
+      - name: Confirm the binaries are 32-bit
+        run: |
+          file ./Builds/LinuxMakefile/build/sendmidi | grep -q "ELF 32-bit"
+          file ./Tests/Builds/LinuxMakefile/build/SendMIDITests | grep -q "ELF 32-bit"
+
+      - name: Run tests (i686)
+        run: ./Tests/Builds/LinuxMakefile/build/SendMIDITests
+
+      # --undef-value-errors=no and --leak-check=no keep Valgrind's noisier
+      # checks off; --error-exitcode=1 still fails the job on heap addressing
+      # errors (invalid read/write, use-after-free) -- the class behind issue #61.
+      - name: Run tests under Valgrind (i686)
+        run: |
+          valgrind --error-exitcode=1 --leak-check=no --undef-value-errors=no \
+            ./Tests/Builds/LinuxMakefile/build/SendMIDITests
+
+      - name: Smoke test (i686)
+        run: ./Builds/LinuxMakefile/build/sendmidi --version | grep -q "sendmidi v"

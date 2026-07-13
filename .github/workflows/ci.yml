@@ -111,10 +111,12 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install 32-bit toolchain, ALSA and Valgrind
+        # libc6-dbg:i386 ships the 32-bit ld.so symbols Valgrind must redirect
+        # (strlen in ld-linux.so.2); without it Valgrind aborts at startup
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y gcc-multilib g++-multilib libasound2-dev:i386 valgrind
+          sudo apt-get install -y gcc-multilib g++-multilib libasound2-dev:i386 valgrind libc6-dbg:i386
 
       # TARGET_ARCH flows into the compile and link flags; PKG_CONFIG_PATH points
       # pkg-config at the 32-bit ALSA so the right library gets linked. Debug is

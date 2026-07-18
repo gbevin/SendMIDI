@@ -210,13 +210,22 @@ void ApplicationCommand::execute(ApplicationState& state)
         }
         case CLOCK:
         {
-            auto now = Time::getMillisecondCounter();
-            auto bpm = float(jlimit(1, 999, state.asDecOrHexIntValue(opts_[0])));
-            auto msPerTick = (60.f * 1000.f / bpm) / 24.f;
-            state.sendMidiMessage(MidiMessage::midiClock());
-            for (auto ticks = 1; ticks < 24 * 2; ++ticks)
+            if (opts_.isEmpty())
             {
-                Time::waitForMillisecondCounter(now + uint32(float(ticks) * msPerTick));
+                // without a BPM there's nothing to send; incomplete commands
+                // are skipped, as they are everywhere else
+                break;
+            }
+            auto now = Time::getMillisecondCounter();
+            auto bpm = double(jlimit(1, 999, state.asDecOrHexIntValue(opts_[0])));
+            // optional beat count, defaulting to the two beats of before,
+            // zero keeps the clock running until the process is stopped
+            auto beats = opts_.size() > 1 ? jmax(0, state.asDecOrHexIntValue(opts_[1])) : 2;
+            auto msPerTick = (60.0 * 1000.0 / bpm) / 24.0;
+            state.sendMidiMessage(MidiMessage::midiClock());
+            for (auto ticks = 1; beats == 0 || ticks < 24 * beats; ++ticks)
+            {
+                Time::waitForMillisecondCounter(now + uint32(double(ticks) * msPerTick));
                 state.sendMidiMessage(MidiMessage::midiClock());
             }
             break;
@@ -251,6 +260,10 @@ void ApplicationCommand::execute(ApplicationState& state)
             break;
         case SYSTEM_EXCLUSIVE:
         {
+            if (opts_.isEmpty())
+            {
+                break;
+            }
             MemoryBlock mem(opts_.size(), true);
             for (auto i = 0; i < opts_.size(); ++i)
             {
@@ -319,6 +332,10 @@ void ApplicationCommand::execute(ApplicationState& state)
         }
         case RAW_MIDI:
         {
+            if (opts_.isEmpty())
+            {
+                break;
+            }
             MemoryBlock mem(opts_.size(), true);
             for (auto i = 0; i < opts_.size(); ++i)
             {

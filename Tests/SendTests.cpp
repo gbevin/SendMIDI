@@ -224,6 +224,33 @@ public:
             expectEquals(m[0].getQuarterFrameValue(), 15);
         }
 
+        beginTest("Clock sends 24 ticks per beat, defaulting to two beats");
+        {
+            // a fast tempo keeps the real-time waits short in the test
+            auto one = ApplicationState().collectLine("clock 999 1");
+            expectEquals(one.size(), 24);
+            expect(one[0].isMidiClock());
+            expect(one[one.size() - 1].isMidiClock());
+
+            // without a beat count the original two beats are sent
+            auto two = ApplicationState().collectLine("clock 999");
+            expectEquals(two.size(), 48);
+
+            // without a BPM the incomplete command is silently skipped,
+            // instead of blocking for two beats at the 1 BPM minimum
+            auto none = ApplicationState().collectLine("clock");
+            expectEquals(none.size(), 0);
+        }
+
+        beginTest("Variable-argument commands without arguments send nothing");
+        {
+            // syx and raw execute with whatever bytes were provided; with none
+            // at all they skip instead of emitting empty or invalid messages
+            expectEquals(ApplicationState().collectLine("syx").size(), 0);
+            expectEquals(ApplicationState().collectLine("raw").size(), 0);
+            expectEquals(ApplicationState().collectLine("syx raw on 60 100").size(), 1);
+        }
+
         beginTest("Channel, octave and hex settings carry across a command line");
         {
             // the channel set earlier applies to later messages

@@ -53,7 +53,8 @@ These are all the supported commands:
   pb      value         Send Pitch Bend value (0-16383 or value/range)
   rpn     number value  Send RPN number (0-16383) with value (0-16383)
   nrpn    number value  Send NRPN number (0-16383) with value (0-16383)
-  clock   bpm           Send 2 beats of MIDI Timing Clock for a BPM (1-999)
+  clock   bpm (beats)   Send MIDI Timing Clock for a BPM (1-999), optionally for
+                        a number of beats (default 2, 0 = until stopped)
   mc                    Send one MIDI Timing Clock
   start                 Start the current sequence playing
   stop                  Stop the current sequence

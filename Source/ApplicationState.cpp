@@ -122,7 +122,8 @@ ApplicationState::ApplicationState()
     commands_.add({"pb",    	"pitch-bend",               PITCH_BEND,             1, {"value"},            {"Send Pitch Bend value (0-16383 or value/range)"}});
     commands_.add({"rpn",   	"",                         RPN,                    2, {"number value"},     {"Send RPN number (0-16383) with value (0-16383)"}});
     commands_.add({"nrpn",  	"",                         NRPN,                   2, {"number value"},     {"Send NRPN number (0-16383) with value (0-16383)"}});
-    commands_.add({"clock", 	"",                         CLOCK,                  1, {"bpm"},              {"Send 2 beats of MIDI Timing Clock for a BPM (1-999)"}});
+    commands_.add({"clock", 	"",                         CLOCK,                 -1, {"bpm (beats)"},      {"Send MIDI Timing Clock for a BPM (1-999), optionally",
+                                                                                        "for a number of beats (default 2, 0 = until stopped)"}});
     commands_.add({"mc",    	"midi-clock",               MIDI_CLOCK,             0, {""},                 {"Send one MIDI Timing Clock"}});
     commands_.add({"start", 	"",                         START,                  0, {""},                 {"Start the current sequence playing"}});
     commands_.add({"stop",  	"",                         STOP,                   0, {""},                 {"Stop the current sequence"}});

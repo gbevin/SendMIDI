@@ -50,9 +50,9 @@ void ApplicationCommand::execute(ApplicationState& state)
         case NONE:
             break;
         case LIST:
-            for (auto&& device : MidiOutput::getAvailableDevices())
+            for (auto&& name : ApplicationState::displayNames(MidiOutput::getAvailableDevices()))
             {
-                std::cout << device.name << std::endl;
+                std::cout << name << std::endl;
             }
             break;
         case DEVICE:
@@ -269,7 +269,10 @@ void ApplicationCommand::execute(ApplicationState& state)
             {
                 mem[i] = (uint8)opts_[i].getIntValue();
             }
-            state.sendMidiMessage(MidiMessage::createSysExMessage(mem.getData(), (int)mem.getSize()));
+            auto msg = MidiMessage::createSysExMessage(mem.getData(), (int)mem.getSize());
+            auto msgSize = msg.getRawDataSize();
+            state.sendMidiMessage(std::move(msg));
+            state.waitForSysExTransmission(msgSize);
             break;
         }
         case SYSTEM_EXCLUSIVE_FILE:

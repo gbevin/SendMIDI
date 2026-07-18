@@ -273,32 +273,73 @@ int64_t ApplicationState::parseTimestamp(const String& param)
     return timestamp;
 }
 
+StringArray ApplicationState::displayNames(const Array<MidiDeviceInfo>& devices)
+{
+    StringArray names;
+    for (int i = 0; i < devices.size(); ++i)
+    {
+        int total = 0;
+        int position = 1;
+        for (int j = 0; j < devices.size(); ++j)
+        {
+            if (devices[j].name == devices[i].name)
+            {
+                total += 1;
+                if (j < i)
+                {
+                    position += 1;
+                }
+            }
+        }
+        if (total > 1)
+        {
+            names.add(devices[i].name + " (" + String(position) + ")");
+        }
+        else
+        {
+            names.add(devices[i].name);
+        }
+    }
+    return names;
+}
+
+int ApplicationState::matchDeviceIndex(const Array<MidiDeviceInfo>& devices, const String& name)
+{
+    StringArray names = displayNames(devices);
+    for (int i = 0; i < devices.size(); ++i)
+    {
+        if (names[i] == name)
+        {
+            return i;
+        }
+    }
+    for (int i = 0; i < devices.size(); ++i)
+    {
+        if (devices[i].name == name)
+        {
+            return i;
+        }
+    }
+    for (int i = 0; i < devices.size(); ++i)
+    {
+        if (devices[i].name.containsIgnoreCase(name))
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void ApplicationState::openOutputDevice(const String& name)
 {
     midiOut_ = nullptr;
     midiOutName_ = name;
     auto devices = MidiOutput::getAvailableDevices();
-    for (int i = 0; i < devices.size(); ++i)
+    auto index = matchDeviceIndex(devices, name);
+    if (index >= 0)
     {
-        if (devices[i].name == midiOutName_)
-        {
-            midiOut_ = MidiOutput::openDevice(devices[i].identifier);
-            midiOutName_ = devices[i].name;
-            break;
-        }
-    }
-    
-    if (midiOut_ == nullptr)
-    {
-        for (int i = 0; i < devices.size(); ++i)
-        {
-            if (devices[i].name.containsIgnoreCase(midiOutName_))
-            {
-                midiOut_ = MidiOutput::openDevice(devices[i].identifier);
-                midiOutName_ = devices[i].name;
-                break;
-            }
-        }
+        midiOut_ = MidiOutput::openDevice(devices[index].identifier);
+        midiOutName_ = devices[index].name;
     }
     if (midiOut_ == nullptr)
     {
@@ -321,31 +362,15 @@ bool ApplicationState::tryToConnectMidiInput(const String& name)
 {
     std::unique_ptr<MidiInput> midi_input = nullptr;
     String midi_input_name = name;
-    
+
     auto devices = MidiInput::getAvailableDevices();
-    for (int i = 0; i < devices.size(); ++i)
+    auto index = matchDeviceIndex(devices, name);
+    if (index >= 0)
     {
-        if (devices[i].name == midi_input_name)
-        {
-            midi_input = MidiInput::openDevice(devices[i].identifier, this);
-            midi_input_name = devices[i].name;
-            break;
-        }
+        midi_input = MidiInput::openDevice(devices[index].identifier, this);
+        midi_input_name = devices[index].name;
     }
-    
-    if (midi_input == nullptr)
-    {
-        for (int i = 0; i < devices.size(); ++i)
-        {
-            if (devices[i].name.containsIgnoreCase(midi_input_name))
-            {
-                midi_input = MidiInput::openDevice(devices[i].identifier, this);
-                midi_input_name = devices[i].name;
-                break;
-            }
-        }
-    }
-    
+
     if (midi_input)
     {
         midi_input->start();
@@ -568,6 +593,18 @@ void ApplicationState::sendMidiMessage(MidiMessage&& msg)
             missingOutputPortWarningPrinted = true;
         }
     }
+}
+
+void ApplicationState::waitForSysExTransmission(int byteCount)
+{
+    if (messageSink_ != nullptr)
+    {
+        return;
+    }
+    // the process exits right after the commands are done, and closing the
+    // port too early can cut off a SysEx that is still on its way out, so
+    // wait for the time the bytes take at worst-case MIDI speed
+    Thread::sleep(jmax(1, (byteCount * 8 * 1000) / 31250));
 }
 
 void ApplicationState::sendRPN(int channel, int number, int value)
@@ -848,7 +885,9 @@ void ApplicationState::printUsage()
     std::cout << std::endl;
     std::cout << "The MIDI device name doesn't have to be an exact match." << std::endl;
     std::cout << "If SendMIDI can't find the exact name that was specified, it will pick the" << std::endl
-    << "first MIDI output port that contains the provided text, irrespective of case." << std::endl;
+    << "first MIDI output port that contains the provided text, irrespective of case." << std::endl
+    << "Ports that share the same name are listed with a number, like \"Port (2)\"," << std::endl
+    << "and that numbered name can be used to select that specific port." << std::endl;
     std::cout << std::endl;
     std::cout << "Where notes can be provided as arguments, they can also be written as note" << std::endl
     << "names, by default from C-2 to G8 which corresponds to note numbers 0 to 127." << std::endl

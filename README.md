@@ -94,7 +94,7 @@ By default, numbers are interpreted in the decimal system, this can be changed t
 Additionally, by suffixing a number with "M" or "H", it will be interpreted as a decimal or hexadecimal respectively.
 
 The MIDI device name doesn't have to be an exact match.
-If SendMIDI can't find the exact name that was specified, it will pick the first MIDI output port that contains the provided text, irrespective of case.
+If SendMIDI can't find the exact name that was specified, it will pick the first MIDI output port that contains the provided text, irrespective of case. Ports that share the same name are listed with a number, like "Port (2)", and that numbered name can be used to select that specific port.
 
 Where notes can be provided as arguments, they can also be written as note names, by default from C-2 to G8 which corresponds to note numbers 0 to 127. By setting the octave for middle C, the note name range can be changed. Sharps can be added by using the '#' symbol after the note letter, and flats by using the letter 'b'.
 

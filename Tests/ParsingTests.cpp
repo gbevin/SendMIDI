@@ -77,6 +77,39 @@ public:
             expectEquals((int)ApplicationState::limit7Bit(-5), 0);
             expectEquals((int)ApplicationState::limit14Bit(99999), 16383);
         }
+
+        beginTest("Ports that share a name get numbered and can be picked");
+        {
+            Array<MidiDeviceInfo> devices;
+            devices.add({"sooperlooper", "id1"});
+            devices.add({"Synth", "id2"});
+            devices.add({"sooperlooper", "id3"});
+
+            auto names = ApplicationState::displayNames(devices);
+            expectEquals(names[0], String("sooperlooper (1)"));
+            expectEquals(names[1], String("Synth"));
+            expectEquals(names[2], String("sooperlooper (2)"));
+
+            // a numbered name selects that specific port
+            expectEquals(ApplicationState::matchDeviceIndex(devices, "sooperlooper (2)"), 2);
+            expectEquals(ApplicationState::matchDeviceIndex(devices, "sooperlooper (1)"), 0);
+            // the plain name still picks the first one, as before
+            expectEquals(ApplicationState::matchDeviceIndex(devices, "sooperlooper"), 0);
+        }
+
+        beginTest("Port matching prefers an exact name over a partial one");
+        {
+            Array<MidiDeviceInfo> devices;
+            devices.add({"loopMidi Port 10", "id1"});
+            devices.add({"loopMidi Port 1", "id2"});
+
+            // the exact name wins even when an earlier port contains it
+            expectEquals(ApplicationState::matchDeviceIndex(devices, "loopMidi Port 1"), 1);
+            // partial matching still works, ignoring case
+            expectEquals(ApplicationState::matchDeviceIndex(devices, "port 10"), 0);
+            expectEquals(ApplicationState::matchDeviceIndex(devices, "LOOPMIDI"), 0);
+            expectEquals(ApplicationState::matchDeviceIndex(devices, "nothing here"), -1);
+        }
     }
 };
 

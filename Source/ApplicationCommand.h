@@ -51,6 +51,7 @@ enum CommandIndex
     RESET,
     SYSTEM_EXCLUSIVE,
     SYSTEM_EXCLUSIVE_FILE,
+    NO_WAIT,
     TIME_CODE,
     SONG_POSITION,
     SONG_SELECT,

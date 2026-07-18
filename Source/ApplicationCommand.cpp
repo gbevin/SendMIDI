@@ -103,6 +103,7 @@ void ApplicationCommand::execute(ApplicationState& state)
         }
         case DECIMAL:
         case HEXADECIMAL:
+        case NO_WAIT:
             // these are not commands but rather configuration options
             // allow them to be inlined anywhere by handling them immediately in the
             // parseParameters method
@@ -289,18 +290,21 @@ void ApplicationCommand::execute(ApplicationState& state)
                     const auto data_size = (int)mem.getSize();
                     const auto buffer_size = 256;
                     state.sendMidiMessage(MidiMessage(data, data_size));
-                    
-                    std::cout << "Waiting for typical completion on DIN connections 0% (could be done sooner)" << std::flush;
-                    for (auto i = 0; i < data_size; i += buffer_size)
+
+                    if (!state.noWait_)
                     {
-                        auto length = std::min(buffer_size, data_size - i);
-                        std::cout << "\rWaiting for typical completion on DIN connections " << (((i + length) * 100) / data_size) << "% (could be done sooner)" << std::flush;
-                        // don't exceed 31250 baudrate (bits per second)
-                        Thread::sleep((buffer_size * 8 * 1000) / 31250);
+                        std::cout << "Waiting for typical completion on DIN connections 0% (could be done sooner)" << std::flush;
+                        for (auto i = 0; i < data_size; i += buffer_size)
+                        {
+                            auto length = std::min(buffer_size, data_size - i);
+                            std::cout << "\rWaiting for typical completion on DIN connections " << (((i + length) * 100) / data_size) << "% (could be done sooner)" << std::flush;
+                            // don't exceed 31250 baudrate (bits per second)
+                            Thread::sleep((buffer_size * 8 * 1000) / 31250);
+                        }
+                        std::cout << "\rWaiting for typical completion on DIN connections 100%" << std::endl;
+
+                        Thread::sleep(((data_size / buffer_size) + 1) * (8 * 1000) / 31250);
                     }
-                    std::cout << "\rWaiting for typical completion on DIN connections 100%" << std::endl;
-                    
-                    Thread::sleep(((data_size / buffer_size) + 1) * (8 * 1000) / 31250);
                 }
             }
             else

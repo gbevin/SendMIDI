@@ -132,6 +132,7 @@ ApplicationState::ApplicationState()
     commands_.add({"rst",   	"reset",                    RESET,                  0, {""},                 {"Send Reset"}});
     commands_.add({"syx",   	"system-exclusive",         SYSTEM_EXCLUSIVE,      -1, {"bytes"},            {"Send SysEx from a series of bytes (no F0/F7 delimiters)"}});
     commands_.add({"syf",   	"system-exclusive-file",    SYSTEM_EXCLUSIVE_FILE,  1, {"path"},             {"Send SysEx from a .syx file"}});
+    commands_.add({"nowait",	"no-wait",                  NO_WAIT,                0, {""},                 {"Don't wait for SysEx to be sent at worst-case MIDI speed"}});
     commands_.add({"tc",    	"time-code",                TIME_CODE,              2, {"type value"},       {"Send MIDI Time Code with type (0-7) and value (0-15)"}});
     commands_.add({"spp",   	"song-position",            SONG_POSITION,          1, {"beats"},            {"Send Song Position Pointer with beat (0-16383)"}});
     commands_.add({"ss",    	"song-select",              SONG_SELECT,            1, {"number"},           {"Send Song Select with song number (0-127)"}});
@@ -147,6 +148,7 @@ ApplicationState::ApplicationState()
     channel_ = 1;
     octaveMiddleC_ = DEFAULT_OCTAVE_MIDDLE_C;
     useHexadecimalsByDefault_ = false;
+    noWait_ = false;
     currentCommand_ = ApplicationCommand::Dummy();
     lastTimeStampCounter_ = 0;
     lastTimeStamp_ = 0;
@@ -471,6 +473,9 @@ void ApplicationState::parseParameters(StringArray& parameters)
                 case HEXADECIMAL:
                     useHexadecimalsByDefault_ = true;
                     break;
+                case NO_WAIT:
+                    noWait_ = true;
+                    break;
                 default:
                     handleVarArgCommand();
                     
@@ -597,7 +602,7 @@ void ApplicationState::sendMidiMessage(MidiMessage&& msg)
 
 void ApplicationState::waitForSysExTransmission(int byteCount)
 {
-    if (messageSink_ != nullptr)
+    if (messageSink_ != nullptr || noWait_)
     {
         return;
     }

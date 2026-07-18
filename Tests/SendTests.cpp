@@ -251,6 +251,16 @@ public:
             expectEquals(ApplicationState().collectLine("syx raw on 60 100").size(), 1);
         }
 
+        beginTest("The nowait option slots in anywhere without affecting messages");
+        {
+            // like dec and hex it's an inline setting, not a command, so the
+            // surrounding messages come through untouched
+            auto m = ApplicationState().collectLine("nowait syx 1 2 3 no-wait on 60 100");
+            expectEquals(m.size(), 2);
+            expect(m[0].isSysEx());
+            expect(m[1].isNoteOn());
+        }
+
         beginTest("Channel, octave and hex settings carry across a command line");
         {
             // the channel set earlier applies to later messages

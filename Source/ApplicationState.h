@@ -68,6 +68,7 @@ public:
 
     int channel_;
     int octaveMiddleC_;
+    bool noWait_;
     
 private:
     ApplicationCommand* findApplicationCommand(const String& param);

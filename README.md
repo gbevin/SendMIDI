@@ -63,6 +63,7 @@ These are all the supported commands:
   rst                   Send Reset
   syx     bytes         Send SysEx from a series of bytes (no F0/F7 delimiters)
   syf     path          Send SysEx from a .syx file
+  nowait                Don't wait for SysEx to be sent at worst-case MIDI speed
   tc      type value    Send MIDI Time Code with type (0-7) and value (0-15)
   spp     beats         Send Song Position Pointer with beat (0-16383)
   ss      number        Send Song Select with song number (0-127)
@@ -86,8 +87,8 @@ Alternatively, you can use the following long versions of the commands:
   device virtual decimal hexadecimal channel octave-middle-c note-on note-off
   poly-pressure control-change control-change-14 program-change
   channel-pressure pitch-bend midi-clock continue active-sensing reset
-  system-exclusive system-exclusive-file time-code song-position song-select
-  tune-request mpe-profile mpe-test raw-midi
+  system-exclusive system-exclusive-file no-wait time-code song-position
+  song-select tune-request mpe-profile mpe-test raw-midi
 ```
 
 By default, numbers are interpreted in the decimal system, this can be changed to hexadecimal by sending the "hex" command.

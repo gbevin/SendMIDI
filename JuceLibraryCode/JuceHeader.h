@@ -42,7 +42,7 @@ namespace ProjectInfo
 {
     const char* const  projectName    = "sendmidi";
     const char* const  companyName    = "Uwyn";
-    const char* const  versionString  = "1.4.1";
-    const int          versionNumber  = 0x10401;
+    const char* const  versionString  = "1.4.2";
+    const int          versionNumber  = 0x10402;
 }
 #endif

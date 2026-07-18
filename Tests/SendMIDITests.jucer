@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="SmTst1" name="SendMIDITests" projectType="consoleapp" version="1.4.1"
+<JUCERPROJECT id="SmTst1" name="SendMIDITests" projectType="consoleapp" version="1.4.2"
               bundleIdentifier="com.uwyn.sendmiditests" includeBinaryInAppConfig="1"
               companyName="Uwyn" companyWebsite="http://www.uwyn.com" companyEmail="info@uwyn.com"
               displaySplashScreen="1" reportAppUsage="1" splashScreenColour="Dark"

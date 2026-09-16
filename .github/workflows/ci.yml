@@ -71,12 +71,9 @@ jobs:
             e2e/receivemidi/Builds/MacOSX/build/Release/receivemidi
 
       # ---------------------------------------------------------------- Linux
-      # no end-to-end tests here: the runner kernels are built without sound
-      # support (CONFIG_SOUND is not set), so there is no ALSA sequencer to
-      # create virtual MIDI ports with
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev qemu-system-x86 cloud-image-utils
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
@@ -92,6 +89,21 @@ jobs:
         if: runner.os == 'Linux'
         run: ./Builds/LinuxMakefile/build/sendmidi --version | grep -q "sendmidi v"
 
+      - name: Build the other tools for the end-to-end tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          make -C e2e/receivemidi/Builds/LinuxMakefile CONFIG=Release -j"$(nproc)"
+
+      - name: End-to-end test (Linux)
+        if: runner.os == 'Linux'
+        # the runner kernels are built without sound support, so there is no ALSA
+        # sequencer to make virtual MIDI ports with; these tests run in a guest
+        # whose kernel has one
+        run: |
+          sudo chmod 666 /dev/kvm
+          ./Scripts/linux-guest-test.sh ./Scripts/e2e-test.sh ./Builds/LinuxMakefile/build/sendmidi e2e/receivemidi/Builds/LinuxMakefile/build/receivemidi
+
+      # -------------------------------------------------------------- Windows
       - name: Add MSBuild to PATH
         if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v3

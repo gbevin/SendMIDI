@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -25,6 +37,9 @@ namespace juce
 
 //==============================================================================
 inline constexpr auto dynamicExtent = std::numeric_limits<size_t>::max();
+
+template <typename Value, size_t Extent>
+class Span;
 
 namespace detail
 {
@@ -42,6 +57,25 @@ namespace detail
     constexpr auto hasDataAndSize<T,
                                   Void<decltype (std::data (std::declval<T>())),
                                        decltype (std::size (std::declval<T>()))>> = true;
+
+    template <typename From, typename To>
+    constexpr auto isSpanConvertible = std::is_convertible_v<From (*)[], To (*)[]>;
+
+    template <typename T>
+    constexpr auto isSpanType = false;
+
+    template <typename Value, size_t Extent>
+    constexpr auto isSpanType<Span<Value, Extent>> = true;
+
+    template <typename Range, typename Value, typename = void>
+    constexpr auto isSpanCompatibleRange = false;
+
+    template <typename Range, typename Value>
+    constexpr auto isSpanCompatibleRange<Range,
+                                         Value,
+                                         Void<std::enable_if_t<hasDataAndSize<Range>
+                                                               && ! isSpanType<std::remove_cv_t<std::remove_reference_t<Range>>>>>>
+        = isSpanConvertible<std::remove_pointer_t<decltype (std::data (std::declval<Range&>()))>, Value>;
 
     template <size_t Extent>
     struct NumBase
@@ -106,9 +140,17 @@ public:
     constexpr Span (It it, size_t end)
         : Base (end), ptr (detail::toAddress (it)) {}
 
-    template <typename Range, std::enable_if_t<detail::hasDataAndSize<Range>, int> = 0>
+    template <typename Range, std::enable_if_t<detail::isSpanCompatibleRange<Range, Value>, int> = 0>
     constexpr Span (Range&& range)
-        : Base (std::size (range)), ptr (std::data (range)) {}
+        : Base (static_cast<size_t> (std::size (range))),
+          ptr (std::data (range)) {}
+
+    template <typename OtherValue,
+              size_t OtherExtent,
+              std::enable_if_t<(Extent == dynamicExtent || Extent == OtherExtent)
+                               && detail::isSpanConvertible<OtherValue, Value>, int> = 0>
+    constexpr Span (const Span<OtherValue, OtherExtent>& other) noexcept
+        : Base (other.size()), ptr (other.data()) {}
 
     constexpr Span (const Span&) = default;
 
@@ -119,6 +161,7 @@ public:
     constexpr Span& operator= (Span&&) noexcept = default;
 
     using Base::size;
+    constexpr size_t getSizeInBytes() const { return size() * sizeof (Value); }
 
     constexpr Value* begin() const { return ptr; }
     constexpr Value* end()   const { return ptr + size(); }

@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -23,9 +35,11 @@
 namespace juce
 {
 
-#if ! DOXYGEN && (JUCE_MAC || JUCE_IOS)
+/** @cond */
+#if JUCE_MAC || JUCE_IOS
  using OSType = unsigned int;
 #endif
+/** @endcond */
 
 //==============================================================================
 /**
@@ -349,6 +363,9 @@ public:
     bool hasReadAccess() const;
 
     /** Changes the write-permission of a file or directory.
+
+        Note that on Windows, there is no notion of a directory itself being read-only or not, and
+        the function will always return true when called with the non-recursive option.
 
         @param shouldBeReadOnly     whether to add or remove write-permission
         @param applyRecursively     if the file is a directory and this is true, it will
@@ -739,7 +756,7 @@ public:
         the file first and then re-writing it, it creates a new temporary file,
         writes the data to that, and then moves the new file to replace the existing
         file. This means that if the power gets pulled out or something crashes,
-        you're a lot less likely to end up with a corrupted or unfinished file..
+        you're a lot less likely to end up with a corrupted or unfinished file.
 
         Returns true if the operation succeeds, or false if it fails.
 
@@ -774,7 +791,7 @@ public:
         the file first and then re-writing it, it creates a new temporary file,
         writes the text to that, and then moves the new file to replace the existing
         file. This means that if the power gets pulled out or something crashes,
-        you're a lot less likely to end up with an empty file..
+        you're a lot less likely to end up with an empty file.
 
         For an explanation of the parameters here, see the appendText() method.
 
@@ -890,7 +907,8 @@ public:
             On Windows, this might be "\Documents and Settings\username\Application Data".
             On the Mac, it might be "~/Library". If you're going to store your settings in here,
             always create your own sub-folder to put them in, to avoid making a mess.
-            On GNU/Linux it is "~/.config".
+            On GNU/Linux it is "~/.config" and you may need to create the directory before
+            using it.
         */
         userApplicationDataDirectory,
 
@@ -973,7 +991,10 @@ public:
         globalApplicationsDirectoryX86,
 
         /** On a Windows machine returns the %LOCALAPPDATA% folder. */
-        windowsLocalAppData
+        windowsLocalAppData,
+
+        /** On a Windows machine returns the %COMMONPROGRAMFILES% folder. */
+        windowsProgramFilesCommon,
        #endif
     };
 
@@ -1137,7 +1158,8 @@ public:
         bool foldersFirst;
     };
 
-   #if JUCE_ALLOW_STATIC_NULL_VARIABLES && ! defined (DOXYGEN)
+   #if JUCE_ALLOW_STATIC_NULL_VARIABLES
+    /** @cond */
     /* These static objects are deprecated because it's too easy to accidentally use them indirectly
        during a static constructor, which leads to very obscure order-of-initialisation bugs.
        Use File::getSeparatorChar() and File::getSeparatorString(), and instead of File::nonexistent,
@@ -1146,6 +1168,7 @@ public:
     [[deprecated]] static const juce_wchar separator;
     [[deprecated]] static const StringRef separatorString;
     [[deprecated]] static const File nonexistent;
+    /** @endcond */
    #endif
 
 private:

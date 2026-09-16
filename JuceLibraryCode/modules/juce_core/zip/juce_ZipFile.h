@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -38,26 +50,35 @@ public:
     /** Creates a ZipFile to read a specific file. */
     explicit ZipFile (const File& file);
 
+    /** Creates a ZipFile for the given stream. */
+    explicit ZipFile (std::unique_ptr<InputStream> inputStream);
+
+    /** Creates a ZipFile for the given input source. */
+    explicit ZipFile (std::unique_ptr<InputSource> inputSource);
+
+    /** Creates a ZipFile for the given stream.
+
+        The stream will not be owned or deleted by this class - if you want the ZipFile to
+        manage the stream's lifetime, use the constructor that takes a unique_ptr argument.
+    */
+    explicit ZipFile (InputStream& inputStream);
+
     //==============================================================================
-    /** Creates a ZipFile for a given stream.
+    /** @deprecated
 
         @param inputStream                  the stream to read from
         @param deleteStreamWhenDestroyed    if set to true, the object passed-in
                                             will be deleted when this ZipFile object is deleted
     */
+    [[deprecated ("Prefer the overload that takes a unique_ptr, or the overload that takes a reference")]]
     ZipFile (InputStream* inputStream, bool deleteStreamWhenDestroyed);
 
-    /** Creates a ZipFile for a given stream.
-        The stream will not be owned or deleted by this class - if you want the ZipFile to
-        manage the stream's lifetime, use the other constructor.
-    */
-    explicit ZipFile (InputStream& inputStream);
-
-    /** Creates a ZipFile for an input source.
+    /** @deprecated
 
         The inputSource object will be owned by the zip file, which will delete
         it later when not needed.
     */
+    [[deprecated ("Prefer the overload that takes a unique_ptr")]]
     explicit ZipFile (InputSource* inputSource);
 
     /** Destructor. */
@@ -225,6 +246,11 @@ public:
         void addFile (const File& fileToAdd, int compressionLevel,
                       const String& storedPathName = String());
 
+        /** @deprecated */
+        [[deprecated ("Prefer the overload that takes a unique_ptr argument")]]
+        void addEntry (InputStream* streamToRead, int compressionLevel,
+                       const String& storedPathName, Time fileModificationTime);
+
         /** Adds a stream to the list of items which will be added to the archive.
 
             @param streamToRead this stream isn't read immediately - a pointer to the stream is
@@ -237,8 +263,10 @@ public:
             @param fileModificationTime the timestamp that will be stored as the last modification time
                                         of this entry
         */
-        void addEntry (InputStream* streamToRead, int compressionLevel,
-                       const String& storedPathName, Time fileModificationTime);
+        void addEntry (std::unique_ptr<InputStream> streamToRead,
+                       int compressionLevel,
+                       const String& storedPathName,
+                       Time fileModificationTime);
 
         /** Generates the zip file, writing it to the specified stream.
             If the progress parameter is non-null, it will be updated with an approximate
@@ -256,6 +284,8 @@ public:
 
 private:
     //==============================================================================
+    explicit ZipFile (OptionalScopedPointer<InputStream>);
+
     struct ZipInputStream;
     struct ZipEntryHolder;
 

@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -38,42 +50,79 @@ public:
     //==============================================================================
     /** Creates a WaitableEvent object.
 
-        The object is initially in an unsignalled state.
+        The object is initially in an un-signalled state.
 
-        @param manualReset  If this is false, the event will be reset automatically when the wait()
-                            method is called. If manualReset is true, then once the event is signalled,
-                            the only way to reset it will be by calling the reset() method.
+        @param manualReset  If this is false, the event will be reset
+                            automatically when the wait() method is called.
+                            If manualReset is true, then once the event is
+                            signalled, the only way to reset it will be by
+                            calling the reset() method.
     */
     explicit WaitableEvent (bool manualReset = false) noexcept;
 
     //==============================================================================
     /** Suspends the calling thread until the event has been signalled.
 
-        This will wait until the object's signal() method is called by another thread,
-        or until the timeout expires.
+        This will wait until the object's signal() method is called by another
+        thread, or until the timeout expires.
 
-        After the event has been signalled, this method will return true and if manualReset
-        was set to false in the WaitableEvent's constructor, then the event will be reset.
+        After the event has been signalled, this method will return true and if
+        manualReset was set to false in the WaitableEvent's constructor, then
+        the event will be reset.
 
-        @param timeOutMilliseconds  the maximum time to wait, in milliseconds. A negative
-                                    value will cause it to wait forever.
+        @param timeOut  the maximum time to wait.
 
-        @returns    true if the object has been signalled, false if the timeout expires first.
+        @returns    true if the object has been signalled, false if the timeout
+                    expires first.
         @see signal, reset
     */
-    bool wait (double timeOutMilliseconds = -1.0) const;
+    bool wait (Seconds timeOut) const;
+
+    /** Suspends the calling thread until the event has been signalled.
+
+        This will wait until the object's signal() method is called by another
+        thread, or until the timeout expires.
+
+        After the event has been signalled, this method will return true and if
+        manualReset was set to false in the WaitableEvent's constructor, then
+        the event will be reset.
+
+        @param timeOutMilliseconds  the maximum time to wait, in milliseconds.
+                                    A negative value will cause it to wait
+                                    forever.
+
+        @returns    true if the object has been signalled, false if the timeout
+                    expires first.
+        @see signal, reset
+    */
+    bool wait (double timeOutMilliseconds) const;
+
+    /** Suspends the calling thread until the event has been signalled.
+
+        This will wait until the object's signal() method is called by another
+        thread.
+
+        After the event has been signalled, this method will return and if
+        manualReset was set to false in the WaitableEvent's constructor, then
+        the event will be reset.
+
+        @see signal, reset
+    */
+    void wait() const;
 
     /** Wakes up any threads that are currently waiting on this object.
 
-        If signal() is called when nothing is waiting, the next thread to call wait()
-        will return immediately and reset the signal.
+        If signal() is called when nothing is waiting, the next thread to call
+        wait() will return immediately and reset the signal.
 
-        If the WaitableEvent is manual reset, all current and future threads that wait upon this
-        object will be woken, until reset() is explicitly called.
+        If the WaitableEvent is manual reset, all current and future threads
+        that wait upon this object will be woken, until reset() is explicitly
+        called.
 
-        If the WaitableEvent is automatic reset, and one or more threads is waiting upon the object,
-        then one of them will be woken up. If no threads are currently waiting, then the next thread
-        to call wait() will be woken up. As soon as a thread is woken, the signal is automatically
+        If the WaitableEvent is automatic reset, and one or more threads is
+        waiting upon the object, then one of them will be woken up. If no
+        threads are currently waiting, then the next thread to call wait() will
+        be woken up. As soon as a thread is woken, the signal is automatically
         reset.
 
         @see wait, reset

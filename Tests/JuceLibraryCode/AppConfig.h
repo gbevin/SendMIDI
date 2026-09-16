@@ -20,30 +20,7 @@
 
 // [END_USER_CODE_SECTION]
 
-/*
-  ==============================================================================
-
-   In accordance with the terms of the JUCE 7 End-Use License Agreement, the
-   JUCE Code in SECTION A cannot be removed, changed or otherwise rendered
-   ineffective unless you have a JUCE Indie or Pro license, or are using JUCE
-   under the GPL v3 license.
-
-   End User License Agreement: www.juce.com/juce-7-licence
-
-  ==============================================================================
-*/
-
-// BEGIN SECTION A
-
-#ifndef JUCE_DISPLAY_SPLASH_SCREEN
- #define JUCE_DISPLAY_SPLASH_SCREEN 1
-#endif
-
-// END SECTION A
-
-#define JUCE_USE_DARK_SPLASH_SCREEN 1
-
-#define JUCE_PROJUCER_VERSION 0x7000c
+#define JUCE_PROJUCER_VERSION 0x90002
 
 //==============================================================================
 #define JUCE_MODULE_AVAILABLE_juce_audio_basics         1
@@ -62,8 +39,16 @@
  //#define JUCE_USE_WINRT_MIDI 0
 #endif
 
+#ifndef    JUCE_USE_WINDOWS_MIDI_SERVICES
+ //#define JUCE_USE_WINDOWS_MIDI_SERVICES 0
+#endif
+
 #ifndef    JUCE_ASIO
  //#define JUCE_ASIO 0
+#endif
+
+#ifndef    JUCE_ASIO_USE_EXTERNAL_SDK
+ //#define JUCE_ASIO_USE_EXTERNAL_SDK 0
 #endif
 
 #ifndef    JUCE_WASAPI
@@ -80,10 +65,6 @@
 
 #ifndef    JUCE_JACK
  //#define JUCE_JACK 0
-#endif
-
-#ifndef    JUCE_BELA
- //#define JUCE_BELA 0
 #endif
 
 #ifndef    JUCE_USE_ANDROID_OBOE

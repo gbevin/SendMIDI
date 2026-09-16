@@ -1,31 +1,42 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
 
-#ifndef DOXYGEN
-
+/** @cond */
 namespace juce::universal_midi_packets
 {
 
-/** Represents a MIDI message that happened at a particular time.
+/** Represents a MIDI message on bytestream transport that happened at a particular time.
 
     Unlike MidiMessage, BytestreamMidiView is non-owning.
 */
@@ -40,13 +51,11 @@ struct BytestreamMidiView
         to a temporary.
     */
     explicit BytestreamMidiView (const MidiMessage* msg)
-        : bytes (unalignedPointerCast<const std::byte*> (msg->getRawData()),
-                 static_cast<size_t> (msg->getRawDataSize())),
+        : bytes (msg->asSpan()),
           timestamp (msg->getTimeStamp()) {}
 
     explicit BytestreamMidiView (const MidiMessageMetadata msg)
-        : bytes (unalignedPointerCast<const std::byte*> (msg.data),
-                 static_cast<size_t> (msg.numBytes)),
+        : bytes (msg.asSpan()),
           timestamp (msg.samplePosition) {}
 
     MidiMessage getMessage() const
@@ -54,15 +63,18 @@ struct BytestreamMidiView
         return MidiMessage (bytes.data(), (int) bytes.size(), timestamp);
     }
 
-    bool isSysEx() const
+    MidiMessageMetadata getMidiMessageMetadata() const
     {
-        return ! bytes.empty() && bytes.front() == std::byte { 0xf0 };
+        return MidiMessageMetadata { reinterpret_cast<const uint8*> (bytes.data()),
+                                     (int) bytes.size(),
+                                     (int) timestamp };
     }
 
     Span<const std::byte> bytes;
     double timestamp = 0.0;
 };
 
+//==============================================================================
 /**
     Functions to assist conversion of UMP messages to/from other formats,
     especially older 'bytestream' formatted MidiMessages.
@@ -71,19 +83,40 @@ struct BytestreamMidiView
 */
 struct Conversion
 {
-    /** Converts from a MIDI 1 bytestream to MIDI 1 on Universal MIDI Packets.
-
-        `callback` is a function which accepts a single View argument.
+    /** Converts 7-bit data (the most significant bit of each byte must be unset) to a series of
+        Universal MIDI Packets.
     */
     template <typename PacketCallbackFunction>
-    static void toMidi1 (const BytestreamMidiView& m, PacketCallbackFunction&& callback)
+    static void umpFrom7BitData (BytesOnGroup msg, PacketCallbackFunction&& callback)
     {
-        const auto size = m.bytes.size();
+        // If this is hit, non-7-bit data was supplied.
+        // Maybe you forgot to trim the leading/trailing bytes that delimit a bytestream SysEx message.
+        jassert (std::all_of (msg.bytes.begin(), msg.bytes.end(), [] (std::byte b) { return (b & std::byte { 0x80 }) == std::byte{}; }));
+
+        Factory::splitIntoPackets (msg.bytes, 6, [&] (SysEx7::Kind kind, Span<const std::byte> bytesThisTime)
+        {
+            const auto packet = Factory::Detail::makeSysEx (msg.group, kind, bytesThisTime);
+            const uint32_t paddedPacket[] { packet[0], packet[1], 0, 0 };
+            callback (View (paddedPacket));
+        });
+    }
+
+    /** Converts from a MIDI 1 bytestream to MIDI 1 on Universal MIDI Packets.
+
+        @param bytes    the bytes in a single well-formed bytestream MIDI message
+        @param callback a function that accepts a single View argument. This may be called several
+                        times for each invocation of toMidi1 if the bytestream message converts
+                        to multiple Universal MIDI Packets.
+    */
+    template <typename PacketCallbackFunction>
+    static void toMidi1 (const BytesOnGroup& groupBytes, PacketCallbackFunction&& callback)
+    {
+        const auto size = groupBytes.bytes.size();
 
         if (size <= 0)
             return;
 
-        const auto* data = m.bytes.data();
+        const auto* data = groupBytes.bytes.data();
         const auto firstByte = data[0];
 
         if (firstByte != std::byte { 0xf0 })
@@ -98,45 +131,19 @@ struct Conversion
                     case 3: return 0xffffffff;
                 }
 
+                // This function can only handle a single bytestream MIDI message at a time!
+                jassertfalse;
                 return 0x00000000;
             }();
 
             const auto extraByte = ((((firstByte & std::byte { 0xf0 }) == std::byte { 0xf0 }) ? std::byte { 0x1 } : std::byte { 0x2 }) << 0x4);
-            const PacketX1 packet { mask & Utils::bytesToWord (extraByte, data[0], data[1], data[2]) };
-            callback (View (packet.data()));
+            const std::byte group { (uint8_t) (groupBytes.group & 0xf) };
+            const uint32_t packet[] { mask & Utils::bytesToWord (extraByte | group, data[0], data[1], data[2]), 0, 0, 0 };
+            callback (View (packet));
             return;
         }
 
-        const auto numSysExBytes = (ssize_t) (size - 2);
-        const auto numMessages = SysEx7::getNumPacketsRequiredForDataSize ((uint32_t) numSysExBytes);
-        auto* dataOffset = data + 1;
-
-        if (numMessages <= 1)
-        {
-            const auto packet = Factory::makeSysExIn1Packet (0, (uint8_t) numSysExBytes, dataOffset);
-            callback (View (packet.data()));
-            return;
-        }
-
-        constexpr ssize_t byteIncrement = 6;
-
-        for (auto i = static_cast<ssize_t> (numSysExBytes); i > 0; i -= byteIncrement, dataOffset += byteIncrement)
-        {
-            const auto func = [&]
-            {
-                if (i == numSysExBytes)
-                    return Factory::makeSysExStart;
-
-                if (i <= byteIncrement)
-                    return Factory::makeSysExEnd;
-
-                return Factory::makeSysExContinue;
-            }();
-
-            const auto bytesNow = std::min (byteIncrement, i);
-            const auto packet = func (0, (uint8_t) bytesNow, dataOffset);
-            callback (View (packet.data()));
-        }
+        umpFrom7BitData ({ groupBytes.group, Span (data + 1, size - 2) }, std::forward<PacketCallbackFunction> (callback));
     }
 
     /** Widens a 7-bit MIDI 1.0 value to a 8-bit MIDI 2.0 value. */
@@ -217,7 +224,7 @@ struct Conversion
     {
         const auto firstWord = v[0];
 
-        if (Utils::getMessageType (firstWord) != 0x4)
+        if (Utils::getMessageType (firstWord) != Utils::MessageKind::channelVoice2)
         {
             callback (v);
             return;
@@ -226,7 +233,7 @@ struct Conversion
         const auto status = Utils::getStatus (firstWord);
         const auto typeAndGroup = ((std::byte { 0x2 } << 0x4) | std::byte { Utils::getGroup (firstWord) });
 
-        switch (status)
+        switch ((uint8_t) status)
         {
             case 0x8:   // note off
             case 0x9:   // note on
@@ -239,10 +246,10 @@ struct Conversion
 
                 // If this is a note-on, and the scaled byte is 0,
                 // the scaled velocity should be 1 instead of 0
-                const auto needsCorrection = status == 0x9 && byte3 == std::byte { 0 };
+                const auto needsCorrection = status == std::byte { 0x9 } && byte3 == std::byte { 0 };
                 const auto correctedByte = needsCorrection ? std::byte { 1 } : byte3;
 
-                const auto shouldIgnore = status == 0xb && [&]
+                const auto shouldIgnore = status == std::byte { 0xb } && [&]
                 {
                     switch (uint8_t (byte2))
                     {
@@ -287,8 +294,8 @@ struct Conversion
             case 0x2:   // rpn
             case 0x3:   // nrpn
             {
-                const auto ccX = status == 0x2 ? std::byte { 101 } : std::byte { 99 };
-                const auto ccY = status == 0x2 ? std::byte { 100 } : std::byte { 98 };
+                const auto ccX = status == std::byte { 0x2 } ? std::byte { 101 } : std::byte { 99 };
+                const auto ccY = status == std::byte { 0x2 } ? std::byte { 100 } : std::byte { 98 };
                 const auto statusAndChannel = std::byte ((0xb << 0x4) | Utils::getChannel (firstWord));
                 const auto data = scaleTo14 (v[1]);
 
@@ -351,5 +358,4 @@ struct Conversion
 };
 
 } // namespace juce::universal_midi_packets
-
-#endif
+/** @endcond */

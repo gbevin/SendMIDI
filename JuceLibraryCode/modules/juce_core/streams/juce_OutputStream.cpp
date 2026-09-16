@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -36,7 +48,7 @@ struct DanglingStreamChecker
             It's always a bad idea to leak any object, but if you're leaking output
             streams, then there's a good chance that you're failing to flush a file
             to disk properly, which could result in corrupted data and other similar
-            nastiness..
+            nastiness.
         */
         jassert (activeStreams.size() == 0);
 
@@ -230,8 +242,14 @@ bool OutputStream::writeText (const String& text, bool asUTF16, bool writeUTF16B
                 continue;
             }
 
-            if (! writeShort ((short) c))
-                return false;
+            CharPointer_UTF16::CharType buffer[2]{};
+            CharPointer_UTF16 begin { buffer };
+            auto end = begin;
+            end.write (c);
+
+            for (const auto unit : makeRange (begin.getAddress(), end.getAddress()))
+                if (! writeShort ((short) unit))
+                    return false;
         }
     }
     else
@@ -390,5 +408,44 @@ JUCE_API OutputStream& JUCE_CALLTYPE operator<< (OutputStream& stream, const New
 {
     return stream << stream.getNewLineString();
 }
+
+#if JUCE_UNIT_TESTS
+
+class OutputStreamUTF16Test final : public UnitTest
+{
+public:
+    OutputStreamUTF16Test() : UnitTest { "OutputStream::writeText UTF16", UnitTestCategories::streams } {}
+
+    void runTest() final
+    {
+        beginTest ("writeText UTF16 - Can support full unicode codepoints");
+        {
+            static constexpr juce_wchar stringA[] { 0x1F600, 0x00 }; // Grinning face emoji
+            static constexpr juce_wchar stringB[] { 0xA, 0xB, 0xC, 0x0 }; // ASCII
+            static constexpr juce_wchar stringC[] { 0xAAAA, 0xBBBB, 0xCCCC, 0x0 }; // two-byte characters
+
+            CharPointer_UTF32 pointers[] { CharPointer_UTF32 (stringA),
+                                           CharPointer_UTF32 (stringB),
+                                           CharPointer_UTF32 (stringC) };
+
+            for (auto originalPtr : pointers)
+            {
+                MemoryOutputStream stream;
+                stream.writeText (originalPtr, true, false, "\n");
+
+                expect (stream.getDataSize() != 0);
+
+                CharPointer_UTF16 writtenPtr { reinterpret_cast<const CharPointer_UTF16::CharType*> (stream.getData()) };
+
+                for (; *originalPtr != 0; ++originalPtr, ++writtenPtr)
+                    expect (*originalPtr == *writtenPtr);
+            }
+        }
+    }
+};
+
+static OutputStreamUTF16Test outputStreamUTF16Test;
+
+#endif
 
 } // namespace juce

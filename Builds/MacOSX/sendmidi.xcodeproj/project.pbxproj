@@ -10,36 +10,40 @@
 		02AAAD8EA7B9E68E755410F2 /* MpeTestScenario.cpp */ = {isa = PBXBuildFile; fileRef = DB6CC86C059C1CA80AB913D3; };
 		07D003296AAD48C717CA6983 /* ApplicationCommand.cpp */ = {isa = PBXBuildFile; fileRef = BA15E7A2E5D90E5340273E40; };
 		08A5E7A6A0B3F06A21DF7BC3 /* include_juce_core.mm */ = {isa = PBXBuildFile; fileRef = 7DD493C8E6F3B7C63C78F6DE; };
-		13C3A1DB5E611E52E44D3CF8 /* Accelerate.framework */ = {isa = PBXBuildFile; fileRef = E1978AA23491E4057B34FAF6; };
+		1330034E064060B895F6F5F0 /* AudioToolbox.framework */ = {isa = PBXBuildFile; fileRef = 5D3F4C219DB9D465708B6231; };
 		18F794DA60F6E1C53383426A /* RecentFilesMenuTemplate.nib */ = {isa = PBXBuildFile; fileRef = AE03F584DF5EFEE8BE9C71BE; };
-		1CD0216F853135DDC28315F0 /* CoreMIDI.framework */ = {isa = PBXBuildFile; fileRef = BF812B73A42627ED8AD203EA; };
-		2B50A8D000C0D831B3F9702E /* IOKit.framework */ = {isa = PBXBuildFile; fileRef = D2BC5390A6F33C796C125CA6; };
+		191A1A5969D398EC30A74192 /* Accelerate.framework */ = {isa = PBXBuildFile; fileRef = E1978AA23491E4057B34FAF6; };
 		2BA07F2CF2B004870E08CD28 /* Main.cpp */ = {isa = PBXBuildFile; fileRef = B2451D1DBA700503A8FEDC18; };
-		5DC8BD2E0E589697B3A66001 /* CoreAudio.framework */ = {isa = PBXBuildFile; fileRef = 39BBB61E6B2796DB8C72B46D; };
 		65C195657857F267C7A346F5 /* MpeProfileNegotation.cpp */ = {isa = PBXBuildFile; fileRef = 72686C5762C0131F6547BE59; };
 		676C45DAB727EB1C22FF8A69 /* include_juce_data_structures.mm */ = {isa = PBXBuildFile; fileRef = 08ACADE6BD3415FD33BA447B; };
 		6880B81F73F0FA7247CF39DD /* ApplicationState.cpp */ = {isa = PBXBuildFile; fileRef = 28F1F23438CA15D2AF8C89C3; };
-		6902382771EAA2D95B1FC548 /* Security.framework */ = {isa = PBXBuildFile; fileRef = C9F8D0428E730A57BD28709B; };
-		74E75096858F409D9620368B /* AudioToolbox.framework */ = {isa = PBXBuildFile; fileRef = 5D3F4C219DB9D465708B6231; };
-		8C315CE0BB161E8F64351690 /* Foundation.framework */ = {isa = PBXBuildFile; fileRef = 07349D8481B1ED49EE53EB64; };
-		8E8410A6B527CB8A75830C3C /* Cocoa.framework */ = {isa = PBXBuildFile; fileRef = 8C841A693EA83A57B62FDF16; };
+		6FE1BA219791044A5B09AD42 /* Foundation.framework */ = {isa = PBXBuildFile; fileRef = 07349D8481B1ED49EE53EB64; };
+		7224BA9BC5C868B8FA339602 /* IOKit.framework */ = {isa = PBXBuildFile; fileRef = D2BC5390A6F33C796C125CA6; };
+		856575A9167E53A7DAA3DB44 /* CoreAudio.framework */ = {isa = PBXBuildFile; fileRef = 39BBB61E6B2796DB8C72B46D; };
+		86E9EB6AA83FB2C7738F9B8C /* Security.framework */ = {isa = PBXBuildFile; fileRef = C9F8D0428E730A57BD28709B; };
 		963D7D369E973DFC79F8D613 /* ConsoleApp */ = {isa = PBXBuildFile; fileRef = 92335890AFA077CA46856B96; };
 		9B0F8BACA6BC3E1F951394D8 /* include_juce_audio_devices.mm */ = {isa = PBXBuildFile; fileRef = E36ADE62396919C537A4D356; };
 		AADC62C5B9CB859326A74332 /* include_juce_events.mm */ = {isa = PBXBuildFile; fileRef = F0AC19E3023CA8E85D590A1B; };
+		C5B95C13C84DC7EA7C5E5D7A /* Cocoa.framework */ = {isa = PBXBuildFile; fileRef = 8C841A693EA83A57B62FDF16; };
 		DEC01D2856CBEABC6569DE16 /* include_juce_midi_ci.cpp */ = {isa = PBXBuildFile; fileRef = 3B899882E9F48AFC64E535EF; };
+		E09E85DB2D49CBF31BDB9E27 /* CoreMIDI.framework */ = {isa = PBXBuildFile; fileRef = BF812B73A42627ED8AD203EA; };
+		E86BA54E4BE45E47CFF04DE7 /* include_juce_core_zlib.c */ = {isa = PBXBuildFile; fileRef = 5A098FB8EF3D8B427E73F460; };
 		E8C4E438B2F64618624EAAD8 /* TerminalColor.cpp */ = {isa = PBXBuildFile; fileRef = 52E0070156CA6392E10997DF; };
 		F00D5676A75100DF5C848DF8 /* include_juce_audio_basics.mm */ = {isa = PBXBuildFile; fileRef = BC898F0BA43B56118F3015D2; };
+		F5BF3E48A80656219D718084 /* include_juce_core_CompilationTime.cpp */ = {isa = PBXBuildFile; fileRef = 0EA7D22FC0F58287B3D3909D; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		07349D8481B1ED49EE53EB64 /* Foundation.framework */ /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		08ACADE6BD3415FD33BA447B /* include_juce_data_structures.mm */ /* include_juce_data_structures.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_data_structures.mm; path = ../../JuceLibraryCode/include_juce_data_structures.mm; sourceTree = SOURCE_ROOT; };
+		0EA7D22FC0F58287B3D3909D /* include_juce_core_CompilationTime.cpp */ /* include_juce_core_CompilationTime.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_core_CompilationTime.cpp; path = ../../JuceLibraryCode/include_juce_core_CompilationTime.cpp; sourceTree = SOURCE_ROOT; };
 		24749B444222A65B40FE5D2E /* JuceHeader.h */ /* JuceHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceHeader.h; path = ../../JuceLibraryCode/JuceHeader.h; sourceTree = SOURCE_ROOT; };
 		28F1F23438CA15D2AF8C89C3 /* ApplicationState.cpp */ /* ApplicationState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ApplicationState.cpp; path = ../../Source/ApplicationState.cpp; sourceTree = SOURCE_ROOT; };
 		32182945DF1F1B1E5A2F590A /* TerminalColor.h */ /* TerminalColor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TerminalColor.h; path = ../../Source/TerminalColor.h; sourceTree = SOURCE_ROOT; };
 		39BBB61E6B2796DB8C72B46D /* CoreAudio.framework */ /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		3B899882E9F48AFC64E535EF /* include_juce_midi_ci.cpp */ /* include_juce_midi_ci.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_midi_ci.cpp; path = ../../JuceLibraryCode/include_juce_midi_ci.cpp; sourceTree = SOURCE_ROOT; };
 		52E0070156CA6392E10997DF /* TerminalColor.cpp */ /* TerminalColor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TerminalColor.cpp; path = ../../Source/TerminalColor.cpp; sourceTree = SOURCE_ROOT; };
+		5A098FB8EF3D8B427E73F460 /* include_juce_core_zlib.c */ /* include_juce_core_zlib.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_core_zlib.c; path = ../../JuceLibraryCode/include_juce_core_zlib.c; sourceTree = SOURCE_ROOT; };
 		5D3F4C219DB9D465708B6231 /* AudioToolbox.framework */ /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		69CA7701920713AC1D657BF8 /* MpeTestScenario.h */ /* MpeTestScenario.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MpeTestScenario.h; path = ../../Source/MpeTestScenario.h; sourceTree = SOURCE_ROOT; };
 		72686C5762C0131F6547BE59 /* MpeProfileNegotation.cpp */ /* MpeProfileNegotation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MpeProfileNegotation.cpp; path = ../../Source/MpeProfileNegotation.cpp; sourceTree = SOURCE_ROOT; };
@@ -75,14 +79,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				13C3A1DB5E611E52E44D3CF8,
-				74E75096858F409D9620368B,
-				8E8410A6B527CB8A75830C3C,
-				5DC8BD2E0E589697B3A66001,
-				1CD0216F853135DDC28315F0,
-				8C315CE0BB161E8F64351690,
-				2B50A8D000C0D831B3F9702E,
-				6902382771EAA2D95B1FC548,
+				191A1A5969D398EC30A74192,
+				1330034E064060B895F6F5F0,
+				C5B95C13C84DC7EA7C5E5D7A,
+				856575A9167E53A7DAA3DB44,
+				E09E85DB2D49CBF31BDB9E27,
+				6FE1BA219791044A5B09AD42,
+				7224BA9BC5C868B8FA339602,
+				86E9EB6AA83FB2C7738F9B8C,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -104,6 +108,8 @@
 				BC898F0BA43B56118F3015D2,
 				E36ADE62396919C537A4D356,
 				7DD493C8E6F3B7C63C78F6DE,
+				0EA7D22FC0F58287B3D3909D,
+				5A098FB8EF3D8B427E73F460,
 				08ACADE6BD3415FD33BA447B,
 				F0AC19E3023CA8E85D590A1B,
 				3B899882E9F48AFC64E535EF,
@@ -194,9 +200,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 933CE2D68C7DD2774A2E08A7;
 			buildPhases = (
-				D5E7418E36E50322EC4F02A4,
 				BD9D8057DF82C1BC95612F57,
 				F7406008045C13301F5F1C28,
+				FA1DAC505B4C0033600AD6DF,
 			);
 			buildRules = (
 			);
@@ -233,16 +239,19 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXResourcesBuildPhase section */
-		D5E7418E36E50322EC4F02A4 = {
-			isa = PBXResourcesBuildPhase;
+/* Begin PBXShellScriptBuildPhase section */
+		FA1DAC505B4C0033600AD6DF /* Sign Target */ = {
+			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				18F794DA60F6E1C53383426A,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
+			name = "Sign Target";
+			alwaysOutOfDate = 1;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\n\necho Signing Identity:	${EXPANDED_CODE_SIGN_IDENTITY_NAME:-${CODE_SIGN_IDENTITY}}\n\nentitlementsFile=\"${TARGET_TEMP_DIR}/${FULL_PRODUCT_NAME}.xcent\"\n\nif [[ ! -f \"${entitlementsFile}\" ]]; then\n  entitlementsFile=\"\"\nfi\n\necho Entitlements File:	${entitlementsFile:-None}\necho\necho Running codesign --force --sign \\\"${EXPANDED_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY}}\\\" --verbose=4 --timestamp -o runtime ${entitlementsFile:+--entitlements \\\"${entitlementsFile}\\\"} --generate-entitlement-der \\\"${CODESIGNING_FOLDER_PATH}\\\"\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY}}\" --verbose=4 --timestamp -o runtime ${entitlementsFile:+--entitlements \"${entitlementsFile}\"} --generate-entitlement-der \"${CODESIGNING_FOLDER_PATH}\"\necho\necho Running codesign --verify --deep --verbose=4 \\\"${CODESIGNING_FOLDER_PATH}\\\"\ncodesign --verify --deep --verbose=4 \"${CODESIGNING_FOLDER_PATH}\"\n";
 		};
-/* End PBXResourcesBuildPhase section */
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		BD9D8057DF82C1BC95612F57 = {
@@ -258,6 +267,8 @@
 				F00D5676A75100DF5C848DF8,
 				9B0F8BACA6BC3E1F951394D8,
 				08A5E7A6A0B3F06A21DF7BC3,
+				F5BF3E48A80656219D718084,
+				E86BA54E4BE45E47CFF04DE7,
 				676C45DAB727EB1C22FF8A69,
 				AADC62C5B9CB859326A74332,
 				DEC01D2856CBEABC6569DE16,
@@ -289,6 +300,7 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = NO;
@@ -308,7 +320,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_CODE_SIGN_FLAGS = --timestamp;
+				OTHER_CODE_SIGN_FLAGS = "--dryrun";
 				PRODUCT_NAME = "sendmidi";
 				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wreorder";
@@ -323,9 +335,12 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				CODE_SIGN_ENTITLEMENTS = "ConsoleApp.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				DEAD_CODE_STRIPPING = YES;
+				DEPLOYMENT_POSTPROCESSING = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				EXCLUDED_ARCHS = "";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
@@ -356,8 +371,12 @@
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../JuceLibraryCode/modules";
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uwyn.sendmidi;
 				PRODUCT_NAME = "sendmidi";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
 			};
@@ -385,6 +404,7 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = NO;
@@ -403,7 +423,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				OTHER_CODE_SIGN_FLAGS = --timestamp;
+				OTHER_CODE_SIGN_FLAGS = "--dryrun";
 				PRODUCT_NAME = "sendmidi";
 				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wreorder";
@@ -418,9 +438,12 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				CODE_SIGN_ENTITLEMENTS = "ConsoleApp.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = NO;
+				DEPLOYMENT_POSTPROCESSING = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				EXCLUDED_ARCHS = "";
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -450,8 +473,12 @@
 				INSTALL_PATH = "/usr/bin";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../JuceLibraryCode/modules";
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uwyn.sendmidi;
 				PRODUCT_NAME = "sendmidi";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
 			};

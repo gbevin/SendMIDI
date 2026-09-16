@@ -1,27 +1,38 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
 
-#ifndef DOXYGEN
-
+/** @cond */
 namespace juce::universal_midi_packets
 {
 
@@ -44,12 +55,11 @@ public:
         continue from that point in the packet (unless `reset` is called first).
     */
     template <typename PacketCallbackFunction>
-    void dispatch (const uint32_t* begin,
-                   const uint32_t* end,
+    void dispatch (Span<const uint32_t> words,
                    double timeStamp,
                    PacketCallbackFunction&& callback)
     {
-        std::for_each (begin, end, [&] (uint32_t word)
+        for (const auto word : words)
         {
             nextPacket[currentPacketLen++] = word;
 
@@ -58,7 +68,7 @@ public:
                 callback (View (nextPacket.data()), timeStamp);
                 currentPacketLen = 0;
             }
-        });
+        }
     }
 
 private:
@@ -82,9 +92,10 @@ public:
         Channel messages will be converted to the requested protocol format `pp`.
         `storageSize` bytes will be allocated to store incomplete messages.
     */
-    explicit BytestreamToUMPDispatcher (PacketProtocol pp, int storageSize)
+    BytestreamToUMPDispatcher (uint8_t targetGroup, PacketProtocol pp, int storageSize)
         : concatenator (storageSize),
-          converter (pp)
+          converter (pp),
+          group (targetGroup)
     {}
 
     void reset()
@@ -95,53 +106,52 @@ public:
 
     /** Calls `callback` with a View of each converted packet as it becomes ready.
 
-        @param begin        the first byte in a range of bytes representing bytestream-encoded MIDI messages.
-        @param end          one-past the last byte in a range of bytes representing bytestream-encoded MIDI messages.
+        @param bytes        range of bytes representing bytestream-encoded MIDI messages.
         @param timestamp    a timestamp to apply to the created packets.
         @param callback     a callback which will be passed a View pointing to each new packet as it becomes ready.
     */
     template <typename PacketCallbackFunction>
-    void dispatch (const uint8_t* begin,
-                   const uint8_t* end,
+    void dispatch (Span<const std::byte> bytes,
                    double timestamp,
                    PacketCallbackFunction&& callback)
     {
         using CallbackPtr = decltype (std::addressof (callback));
 
-       #if JUCE_MINGW
-        #define JUCE_MINGW_HIDDEN_VISIBILITY __attribute__ ((visibility ("hidden")))
-       #else
-        #define JUCE_MINGW_HIDDEN_VISIBILITY
-       #endif
-
-        struct JUCE_MINGW_HIDDEN_VISIBILITY Callback
+        struct Callback
         {
             Callback (BytestreamToUMPDispatcher& d, CallbackPtr c)
                 : dispatch (d), callbackPtr (c) {}
 
             void handleIncomingMidiMessage (void*, const MidiMessage& msg) const
             {
-                Conversion::toMidi1 (BytestreamMidiView (&msg), [&] (const View& view)
+                Conversion::toMidi1 ({ dispatch.group, msg.asSpan() }, [&] (const View& view)
                 {
-                    dispatch.converter.convert (view, *callbackPtr);
+                    dispatch.converter.convert (view, [&] (const View& v)
+                    {
+                        (*callbackPtr) (v, msg.getTimeStamp());
+                    });
                 });
             }
 
-            void handlePartialSysexMessage (void*, const uint8_t*, int, double) const {}
+            void handlePartialSysexMessage (void*, const uint8*, int, double) const {}
 
             BytestreamToUMPDispatcher& dispatch;
             CallbackPtr callbackPtr = nullptr;
         };
 
-       #undef JUCE_MINGW_HIDDEN_VISIBILITY
-
         Callback inputCallback { *this, &callback };
-        concatenator.pushMidiData (begin, int (end - begin), timestamp, (void*) nullptr, inputCallback);
+        concatenator.pushMidiData (bytes, timestamp, (void*) nullptr, inputCallback);
+    }
+
+    PacketProtocol getProtocol() const
+    {
+        return converter.getProtocol();
     }
 
 private:
     MidiDataConcatenator concatenator;
     GenericUMPConverter converter;
+    uint8_t group{};
 };
 
 //==============================================================================
@@ -178,12 +188,11 @@ public:
         @param callback     a callback which will be passed a MidiMessage each time a new message becomes ready.
     */
     template <typename BytestreamMessageCallback>
-    void dispatch (const uint32_t* begin,
-                   const uint32_t* end,
+    void dispatch (Span<const uint32_t> words,
                    double timestamp,
                    BytestreamMessageCallback&& callback)
     {
-        dispatcher.dispatch (begin, end, timestamp, [&] (const View& view, double time)
+        dispatcher.dispatch (words, timestamp, [&] (const View& view, double time)
         {
             converter.convert (view, time, callback);
         });
@@ -195,5 +204,4 @@ private:
 };
 
 } // namespace juce::universal_midi_packets
-
-#endif
+/** @endcond */

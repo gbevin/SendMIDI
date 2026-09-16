@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -51,7 +63,7 @@ namespace AndroidStatsHelpers
     {
         auto* env = getEnv();
 
-        if (auto settings = (jclass) env->FindClass ("android/provider/Settings$Secure"))
+        if (LocalRef<jclass> settings { env->FindClass ("android/provider/Settings$Secure") })
         {
             if (auto fId = env->GetStaticFieldID (settings, "ANDROID_ID", "Ljava/lang/String;"))
             {
@@ -68,10 +80,10 @@ namespace AndroidStatsHelpers
         auto* env = getEnv();
         LocalRef<jobject> locale (env->CallStaticObjectMethod (JavaLocale, JavaLocale.getDefault));
 
-        auto stringResult = isRegion ? env->CallObjectMethod (locale.get(), JavaLocale.getCountry)
-                                     : env->CallObjectMethod (locale.get(), JavaLocale.getLanguage);
+        LocalRef stringResult { isRegion ? (jstring) env->CallObjectMethod (locale.get(), JavaLocale.getCountry)
+                                         : (jstring) env->CallObjectMethod (locale.get(), JavaLocale.getLanguage) };
 
-        return juceString (LocalRef<jstring> ((jstring) stringResult));
+        return juceString (stringResult);
     }
 
     static String getAndroidOsBuildValue (const char* fieldName)
@@ -236,7 +248,7 @@ uint32 juce_millisecondsSinceStartup() noexcept
     timespec t;
     clock_gettime (CLOCK_MONOTONIC, &t);
 
-    return static_cast<uint32> (t.tv_sec) * 1000U + static_cast<uint32> (t.tv_nsec) / 1000000U;
+    return static_cast<uint32> (t.tv_sec) * 1'000U + static_cast<uint32> (t.tv_nsec) / 1'000'000U;
 }
 
 int64 Time::getHighResolutionTicks() noexcept
@@ -244,12 +256,12 @@ int64 Time::getHighResolutionTicks() noexcept
     timespec t;
     clock_gettime (CLOCK_MONOTONIC, &t);
 
-    return (t.tv_sec * (int64) 1000000) + (t.tv_nsec / 1000);
+    return (t.tv_sec * (int64) 1'000'000) + (t.tv_nsec / 1'000);
 }
 
 int64 Time::getHighResolutionTicksPerSecond() noexcept
 {
-    return 1000000;  // (microseconds)
+    return 1'000'000;  // (microseconds)
 }
 
 double Time::getMillisecondCounterHiRes() noexcept

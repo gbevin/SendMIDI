@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -40,17 +52,19 @@ class UnitTestRunner;
 
         void runTest() override
         {
-            beginTest ("Part 1");
+            testCase ("Part 1", [&]
+            {
+                expect (myFoobar.doesSomething());
+                expect (myFoobar.doesSomethingElse());
+            });
 
-            expect (myFoobar.doesSomething());
-            expect (myFoobar.doesSomethingElse());
+            testCase ("Part 2", [&]
+            {
+                expect (myOtherFoobar.doesSomething());
+                expect (myOtherFoobar.doesSomethingElse());
+            });
 
-            beginTest ("Part 2");
-
-            expect (myOtherFoobar.doesSomething());
-            expect (myOtherFoobar.doesSomethingElse());
-
-            ...etc..
+            ...etc...
         }
     };
 
@@ -94,6 +108,9 @@ public:
     /** Returns the set of UnitTests in a specified category. */
     static Array<UnitTest*> getTestsInCategory (const String& category);
 
+    /** Returns the set of UnitTests with a specified name. */
+    static Array<UnitTest*> getTestsWithName (const String& name);
+
     /** Returns a StringArray containing all of the categories of UnitTests that have been registered. */
     static StringArray getAllCategories();
 
@@ -110,7 +127,7 @@ public:
 
     /** Implement this method in your subclass to actually run your tests.
 
-        The content of your implementation should call beginTest() and expect()
+        The content of your implementation should call testCase() and expect()
         to perform the tests.
     */
     virtual void runTest() = 0;
@@ -119,8 +136,53 @@ public:
     /** Tells the system that a new subsection of tests is beginning.
         This should be called from your runTest() method, and may be called
         as many times as you like, to demarcate different sets of tests.
+
+        In general prefer using testCase() rather than manually calling
+        beginTest().
+
+        @see testCase
     */
     void beginTest (const String& testName);
+
+    /** Begins running a new subsection of the test.
+
+        Example...
+        @code
+        void runTest() override
+        {
+            testCase ("My first test", [&]
+            {
+                // do something
+                expect (someCondition);
+            });
+
+            testCase ("My second test", [&]
+            {
+                // do something else
+                expect (someOtherCondition);
+            });
+        }
+        @endcode
+    */
+    template <typename Invokable>
+    void testCase (const String& testName, Invokable&& test)
+    {
+        beginTest (testName);
+        const ScopedValueSetter svs { isRunningTestCase, true };
+
+        try
+        {
+            test();
+        }
+        catch (const std::exception& e)
+        {
+            expect (false, "An uncaught exception was thrown: " + String (e.what()));
+        }
+        catch (...)
+        {
+            expect (false, "An uncaught exception was thrown");
+        }
+    }
 
     //==============================================================================
     /** Checks that the result of a test is true, and logs this result.
@@ -131,10 +193,12 @@ public:
         @code
         void runTest()
         {
-            beginTest ("basic tests");
-            expect (x + y == 2);
-            expect (getThing() == someThing);
-            ...etc...
+            testCase ("basic tests", [&]
+            {
+                expect (x + y == 2);
+                expect (getThing() == someThing);
+                ...etc...
+            });
         }
         @endcode
 
@@ -302,6 +366,7 @@ private:
     //==============================================================================
     const String name, category;
     UnitTestRunner* runner = nullptr;
+    bool isRunningTestCase{};
 
     JUCE_DECLARE_NON_COPYABLE (UnitTest)
 };
@@ -356,6 +421,14 @@ public:
         the randomSeed argument, or pass 0 to have a randomly-generated seed chosen.
     */
     void runTestsInCategory (const String& category, int64 randomSeed = 0);
+
+    /** Runs all the UnitTest objects with a specified name.
+        This calls runTests() for all the objects listed in UnitTest::getTestsWithName().
+
+        If you want to run the tests with a predetermined seed, you can pass that into
+        the randomSeed argument, or pass 0 to have a randomly-generated seed chosen.
+    */
+    void runTestsWithName (const String& name, int64 randomSeed = 0);
 
     /** Sets a flag to indicate whether an assertion should be triggered if a test fails.
         This is true by default.

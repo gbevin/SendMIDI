@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -129,16 +141,19 @@ inline var nsDictionaryToVar (const NSDictionary* dictionary)
     return jsonDataToVar (jsonObjectToData (dictionary));
 }
 
-#if JUCE_MAC
+// NSRect is just another name for CGRect, but CGRect is available on iOS *and* macOS.
+// Use makeCGRect below.
 template <typename RectangleType>
-NSRect makeNSRect (const RectangleType& r) noexcept
+CGRect makeNSRect (const RectangleType& r) noexcept = delete;
+
+template <typename RectangleType>
+CGRect makeCGRect (const RectangleType& r) noexcept
 {
-    return NSMakeRect (static_cast<CGFloat> (r.getX()),
+    return CGRectMake (static_cast<CGFloat> (r.getX()),
                        static_cast<CGFloat> (r.getY()),
                        static_cast<CGFloat> (r.getWidth()),
                        static_cast<CGFloat> (r.getHeight()));
 }
-#endif
 
 #if JUCE_INTEL
  template <typename T>
@@ -168,7 +183,11 @@ template <typename SuperType, typename ReturnType, typename... Params>
 inline ReturnType ObjCMsgSendSuper (id self, SEL sel, Params... params)
 {
     using SuperFn = ReturnType (*) (struct objc_super*, SEL, Params...);
+
+    // objc_msgSendSuper_stret is declared to return void, but will actually return non-void
+    JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wcast-function-type-mismatch")
     const auto fn = reinterpret_cast<SuperFn> (MetaSuperFn<ReturnType>::value);
+    JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
     objc_super s = { self, [SuperType class] };
     return fn (&s, sel, params...);
@@ -298,12 +317,22 @@ struct ObjCClass
         jassert (cls != nil);
     }
 
-    virtual ~ObjCClass()
+    ~ObjCClass()
     {
         auto kvoSubclassName = String ("NSKVONotifying_") + class_getName (cls);
 
         if (objc_getClass (kvoSubclassName.toUTF8()) == nullptr)
             objc_disposeClassPair (cls);
+    }
+
+    ObjCClass (ObjCClass&& other) noexcept
+        : cls (std::exchange (other.cls, {})) {}
+
+    ObjCClass& operator= (ObjCClass&& other) noexcept
+    {
+        auto tmp = std::move (other);
+        std::swap (tmp.cls, cls);
+        return *this;
     }
 
     void registerClass()
@@ -331,7 +360,11 @@ struct ObjCClass
     void addMethod (SEL selector, Result (*callbackFn) (id, SEL, Args...))
     {
         const auto s = detail::makeCompileTimeStr (@encode (Result), @encode (id), @encode (SEL), @encode (Args)...);
+
+        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wcast-function-type-mismatch")
         [[maybe_unused]] const auto b = class_addMethod (cls, selector, (IMP) callbackFn, s.data());
+        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+
         jassert (b);
     }
 
@@ -359,12 +392,12 @@ private:
 };
 
 //==============================================================================
-#ifndef DOXYGEN
+/** @cond */
 template <class JuceClass>
 struct ObjCLifetimeManagedClass : public ObjCClass<NSObject>
 {
     ObjCLifetimeManagedClass()
-        : ObjCClass<NSObject> ("ObjCLifetimeManagedClass_")
+        : ObjCClass ("ObjCLifetimeManagedClass_")
     {
         addIvar<JuceClass*> ("cppObject");
 
@@ -401,7 +434,7 @@ struct ObjCLifetimeManagedClass : public ObjCClass<NSObject>
 
 template <typename Class>
 ObjCLifetimeManagedClass<Class> ObjCLifetimeManagedClass<Class>::objCLifetimeManagedClass;
-#endif
+/** @endcond */
 
 // this will return an NSObject which takes ownership of the JUCE instance passed-in
 // This is useful to tie the life-time of a juce instance to the life-time of an NSObject
@@ -551,5 +584,95 @@ private:
     id object = nullptr;
     Class klass = nullptr;
 };
+
+//==============================================================================
+/*
+    Forwards NSNotificationCenter callbacks to a std::function<void()>.
+*/
+class FunctionNotificationCenterObserver
+{
+public:
+    FunctionNotificationCenterObserver (NSNotificationName notificationName,
+                                        id objectToObserve,
+                                        std::function<void()> callback)
+        : onNotification (std::move (callback)),
+          observer (observerObject.get(), getSelector(), notificationName, objectToObserve)
+    {}
+
+private:
+    static SEL getSelector()
+    {
+        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
+        return @selector (notificationFired:);
+        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+    }
+
+    std::function<void()> onNotification;
+
+    NSUniquePtr<NSObject> observerObject
+    {
+        [this]
+        {
+            static auto observerClass = std::invoke ([]
+            {
+                ObjCClass<NSObject> k { "JUCEObserverClass_" };
+
+                k.addIvar<FunctionNotificationCenterObserver*> ("owner");
+
+                k.addMethod (getSelector(), [] (id self, SEL, NSNotification*)
+                {
+                    getIvar<FunctionNotificationCenterObserver*> (self, "owner")->onNotification();
+                });
+
+                k.registerClass();
+
+                return k;
+            });
+            auto* result = observerClass.createInstance();
+            object_setInstanceVariable (result, "owner", this);
+            return result;
+        }()
+    };
+
+    ScopedNotificationCenterObserver observer;
+
+    // Instances can't be copied or moved, because 'this' is stored as a member of the ObserverClass
+    // object.
+    JUCE_DECLARE_NON_COPYABLE (FunctionNotificationCenterObserver)
+    JUCE_DECLARE_NON_MOVEABLE (FunctionNotificationCenterObserver)
+};
+
+#if JUCE_IOS
+
+// Defines a function that will check the requested version both at
+// build time, and, if necessary, at runtime.
+// The function's first template argument is a trait type containing
+// two static member functions named newFn and oldFn.
+// When the deployment target is at least equal to major.minor,
+// newFn will be selected at compile time.
+// When the build sdk does not support iOS SDK major.minor,
+// oldFn will be selected at compile time.
+// Otherwise, the OS version will be checked at runtime and newFn
+// will be called if the OS version is at least equal to major.minor,
+// otherwise oldFn will be called.
+#define JUCE_DEFINE_IOS_VERSION_CHECKER_FOR_VERSION(major, minor)           \
+    template <typename Trait, typename... Args>                             \
+    auto ifelse_ ## major ## _ ## minor (Args&&... args)                    \
+    {                                                                       \
+        constexpr auto fullVersion = major * 10'000 + minor * 100;          \
+        if constexpr (fullVersion <= __IPHONE_OS_VERSION_MIN_REQUIRED)      \
+            return Trait::newFn (std::forward<Args> (args)...);             \
+        else if constexpr (__IPHONE_OS_VERSION_MAX_ALLOWED < fullVersion)   \
+            return Trait::oldFn (std::forward<Args> (args)...);             \
+        else if (@available (iOS major ## . ## minor, *))                   \
+            return Trait::newFn (std::forward<Args> (args)...);             \
+        else                                                                \
+            return Trait::oldFn (std::forward<Args> (args)...);             \
+    }
+
+JUCE_DEFINE_IOS_VERSION_CHECKER_FOR_VERSION (14, 0)
+JUCE_DEFINE_IOS_VERSION_CHECKER_FOR_VERSION (17, 0)
+
+#endif
 
 } // namespace juce

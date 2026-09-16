@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -331,7 +343,13 @@ struct var::VariantType
 
     static bool objectEquals (const ValueUnion& data, const ValueUnion& otherData, const VariantType& otherType) noexcept
     {
-        return otherType.toObject (otherData) == data.objectValue;
+        const auto* otherObject = otherType.toObject (otherData);
+
+        if (auto* dynamicObjectOther = dynamic_cast<const DynamicObject*> (otherObject))
+            if (auto* dynamicObjectSelf = dynamic_cast<const DynamicObject*> (data.objectValue))
+                return dynamicObjectSelf->equals (*dynamicObjectOther);
+
+        return otherObject == data.objectValue;
     }
 
     static void objectWriteToStream (const ValueUnion&, OutputStream& output)
@@ -583,10 +601,9 @@ var& var::operator= (ReferenceCountedObject* v)  { var v2 (v); swapWith (v2); re
 var& var::operator= (NativeFunction v)           { var v2 (v); swapWith (v2); return *this; }
 
 var::var (var&& other) noexcept
-    : type (other.type),
-      value (other.value)
+    : type (std::exchange (other.type, &Instance::attributesVoid)),
+      value (std::exchange (other.value, {}))
 {
-    other.type = &Instance::attributesVoid;
 }
 
 var& var::operator= (var&& other) noexcept
@@ -619,6 +636,38 @@ var& var::operator= (String&& v)
 }
 
 //==============================================================================
+Span<var> var::getArrayElements() &
+{
+    if (auto* array = getArray())
+        return Span { array->getRawDataPointer(), (size_t) array->size() };
+
+    return {};
+}
+
+Span<const var> var::getArrayElements() const&
+{
+    if (auto* array = getArray())
+        return Span { array->getRawDataPointer(), (size_t) array->size() };
+
+    return {};
+}
+
+Span<NamedValue> var::getObjectElements() &
+{
+    if (auto* obj = getDynamicObject())
+        return obj->getProperties().asSpan();
+
+    return {};
+}
+
+Span<const NamedValue> var::getObjectElements() const&
+{
+    if (auto* obj = getDynamicObject())
+        return obj->getProperties().asSpan();
+
+    return {};
+}
+
 bool var::equals (const var& other) const noexcept
 {
     return type->equals (value, other.value, *other.type);
@@ -884,13 +933,52 @@ var::NativeFunctionArgs::NativeFunctionArgs (const var& t, const var* args, int 
 //==============================================================================
 #if JUCE_ALLOW_STATIC_NULL_VARIABLES
 
-JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
-JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4996)
+JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
 
 const var var::null;
 
-JUCE_END_IGNORE_WARNINGS_GCC_LIKE
-JUCE_END_IGNORE_WARNINGS_MSVC
+JUCE_END_IGNORE_DEPRECATION_WARNINGS
+
+#endif
+
+//==============================================================================
+//==============================================================================
+#if JUCE_UNIT_TESTS
+
+struct VariantTests : public UnitTest
+{
+public:
+    VariantTests() : UnitTest ("Variant", UnitTestCategories::json) {}
+
+    void runTest() override
+    {
+        beginTest ("object comparisons have value semantics");
+        {
+            DynamicObject::Ptr a = new DynamicObject;
+            a->setProperty ("foo", 1);
+            a->setProperty ("bar", "hello world");
+            a->setProperty ("baz", 2.3);
+
+            const Array<var> nestedArray { var { 5 }, var { 6 }, var { 7 }, var { std::invoke ([]
+            {
+                auto* result = new DynamicObject;
+                result->setProperty ("innerA", 0);
+                result->setProperty ("innerB", "");
+                return result;
+            }) } };
+
+            a->setProperty ("nestedArray", nestedArray);
+
+            var varB = a->clone().release();
+            var varA = a.get();
+
+            expect (varA.equals (varB));
+            expect (varB.equals (varA));
+        }
+    }
+};
+
+static VariantTests variantTests;
 
 #endif
 

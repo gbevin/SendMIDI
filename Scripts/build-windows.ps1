@@ -15,13 +15,13 @@ Write-Output "Changing location to $curDir"
 Set-Location $curDir
 
 $signId = "Open Source Developer, Geert Bevin"
-$buildLocation = "Builds\VisualStudio2017\x64"
+$buildLocation = "Builds\VisualStudio2022\x64"
 
 Write-Output "Deleting previous build from $buildLocation"
 Remove-Item -LiteralPath $buildLocation -Force -Recurse
 
 Write-Output "Building project"
-MSBuild.exe .\Builds\VisualStudio2017\sendmidi.sln /p:Configuration=Release /p:PreferredToolArchitecture=x64 /p:Platform=x64 /clp:ErrorsOnly
+MSBuild.exe .\Builds\VisualStudio2022\sendmidi.sln /p:Configuration=Release /p:PreferredToolArchitecture=x64 /p:Platform=x64 /clp:ErrorsOnly
 
 Write-Output "Codesigning all artifacts"
 

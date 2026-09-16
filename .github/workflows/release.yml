@@ -28,14 +28,14 @@ jobs:
       - uses: actions/checkout@v5
       - uses: microsoft/setup-msbuild@v3
       - name: Build
-        run: msbuild Builds/VisualStudio2017/sendmidi.sln /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143
+        run: msbuild Builds/VisualStudio2022/sendmidi.sln /m /p:Configuration=Release /p:Platform=x64
       - name: Package
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}"
           $pkg = "sendmidi-windows-$version"
           New-Item -ItemType Directory -Path $pkg | Out-Null
-          Copy-Item -Path "Builds/VisualStudio2017/x64/Release/ConsoleApp/sendmidi.exe", "README.md", "COPYING.md" -Destination $pkg
+          Copy-Item -Path "Builds/VisualStudio2022/x64/Release/ConsoleApp/sendmidi.exe", "README.md", "COPYING.md" -Destination $pkg
           Compress-Archive -Path $pkg -DestinationPath "$pkg.zip"
           $hash = (Get-FileHash -Algorithm SHA256 "$pkg.zip").Hash.ToLower()
           Set-Content -Path "$pkg.zip.sha256" -Value "$hash  $pkg.zip" -Encoding ascii

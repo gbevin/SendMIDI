@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -53,6 +65,12 @@ public:
         @see getCurrentTime, currentTimeMillis
     */
     explicit Time (int64 millisecondsSinceEpoch) noexcept;
+
+    /** Creates a Time from a std::chrono::time_point. */
+    template <typename Clock>
+    explicit Time (std::chrono::time_point<Clock> timePoint) noexcept
+        : Time (std::chrono::duration_cast<std::chrono::duration<int64, std::milli>> (timePoint.time_since_epoch()).count())
+    {}
 
     /** Creates a time from a set of date components.
 
@@ -96,6 +114,20 @@ public:
         @see getMilliseconds
     */
     int64 toMilliseconds() const noexcept                           { return millisSinceEpoch; }
+
+    /** Returns the time since the Unix epoch expressed in the requested time unit. */
+    template <typename TimeUnit>
+    auto countDurationSinceEpochIn() const noexcept
+    {
+        return std::chrono::duration_cast<TimeUnit> (std::chrono::milliseconds { millisSinceEpoch }).count();
+    }
+
+    /** Converts this Time to a std::chrono::time_point. */
+    template <typename Clock>
+    auto toStdTimePoint() const noexcept
+    {
+        return std::chrono::time_point<Clock> (std::chrono::milliseconds { millisSinceEpoch });
+    }
 
     /** Returns the year (in this machine's local timezone).
         A 4-digit format is used, e.g. 2004.
@@ -281,7 +313,7 @@ public:
     static String getMonthName (int monthNumber, bool threeLetterVersion);
 
     //==============================================================================
-    // Static methods for getting system timers directly..
+    // Static methods for getting system timers directly
 
     /** Returns the current system time.
 
@@ -333,7 +365,7 @@ public:
     static uint32 getApproximateMillisecondCounter() noexcept;
 
     //==============================================================================
-    // High-resolution timers..
+    // High-resolution timers
 
     /** Returns the current high-resolution counter's tick-count.
 

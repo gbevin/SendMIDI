@@ -16,11 +16,8 @@
 
 #include <cassert>
 
-#include <SLES/OpenSLES.h>
-#include <SLES/OpenSLES_Android.h>
-#include <common/AudioClock.h>
-
 #include "common/OboeDebug.h"
+#include "oboe/AudioClock.h"
 #include "oboe/AudioStreamBuilder.h"
 #include "AudioOutputStreamOpenSLES.h"
 #include "AudioStreamOpenSLES.h"
@@ -30,9 +27,10 @@
 using namespace oboe;
 
 static SLuint32 OpenSLES_convertOutputUsage(Usage oboeUsage) {
-    SLuint32 openslStream = SL_ANDROID_STREAM_MEDIA;
+    SLuint32 openslStream;
     switch(oboeUsage) {
         case Usage::Media:
+        case Usage::Game:
             openslStream = SL_ANDROID_STREAM_MEDIA;
             break;
         case Usage::VoiceCommunication:
@@ -43,18 +41,15 @@ static SLuint32 OpenSLES_convertOutputUsage(Usage oboeUsage) {
             openslStream = SL_ANDROID_STREAM_ALARM;
             break;
         case Usage::Notification:
-        case Usage::NotificationRingtone:
         case Usage::NotificationEvent:
             openslStream = SL_ANDROID_STREAM_NOTIFICATION;
+            break;
+        case Usage::NotificationRingtone:
+            openslStream = SL_ANDROID_STREAM_RING;
             break;
         case Usage::AssistanceAccessibility:
         case Usage::AssistanceNavigationGuidance:
         case Usage::AssistanceSonification:
-            openslStream = SL_ANDROID_STREAM_SYSTEM;
-            break;
-        case Usage::Game:
-            openslStream = SL_ANDROID_STREAM_MEDIA;
-            break;
         case Usage::Assistant:
         default:
             openslStream = SL_ANDROID_STREAM_SYSTEM;
@@ -151,7 +146,7 @@ Result AudioOutputStreamOpenSLES::open() {
             SL_DATAFORMAT_PCM,       // formatType
             static_cast<SLuint32>(mChannelCount),           // numChannels
             static_cast<SLuint32>(mSampleRate * kMillisPerSecond),    // milliSamplesPerSec
-            bitsPerSample,                      // bitsPerSample
+            bitsPerSample,                      // mBitsPerSample
             bitsPerSample,                      // containerSize;
             channelCountToChannelMask(mChannelCount), // channelMask
             getDefaultByteOrder(),
@@ -182,8 +177,8 @@ Result AudioOutputStreamOpenSLES::open() {
 
     // Configure the stream.
     result = (*mObjectInterface)->GetInterface(mObjectInterface,
-                                               SL_IID_ANDROIDCONFIGURATION,
-                                               (void *)&configItf);
+            EngineOpenSLES::getInstance().getIidAndroidConfiguration(),
+            (void *)&configItf);
     if (SL_RESULT_SUCCESS != result) {
         LOGW("%s() GetInterface(SL_IID_ANDROIDCONFIGURATION) failed with %s",
              __func__, getSLErrStr(result));
@@ -209,7 +204,9 @@ Result AudioOutputStreamOpenSLES::open() {
         goto error;
     }
 
-    result = (*mObjectInterface)->GetInterface(mObjectInterface, SL_IID_PLAY, &mPlayInterface);
+    result = (*mObjectInterface)->GetInterface(mObjectInterface,
+                                               EngineOpenSLES::getInstance().getIidPlay(),
+                                               &mPlayInterface);
     if (SL_RESULT_SUCCESS != result) {
         LOGE("GetInterface PLAY result:%s", getSLErrStr(result));
         goto error;
@@ -237,7 +234,7 @@ Result AudioOutputStreamOpenSLES::close() {
     LOGD("AudioOutputStreamOpenSLES::%s()", __func__);
     std::lock_guard<std::mutex> lock(mLock);
     Result result = Result::OK;
-    if (getState() == StreamState::Closed){
+    if (getState() == StreamState::Closed) {
         result = Result::ErrorClosed;
     } else {
         (void) requestPause_l();
@@ -252,8 +249,7 @@ Result AudioOutputStreamOpenSLES::close() {
 }
 
 Result AudioOutputStreamOpenSLES::setPlayState_l(SLuint32 newState) {
-
-    LOGD("AudioOutputStreamOpenSLES(): %s() called", __func__);
+    LOGD("AudioOutputStreamOpenSLES::%s(%d) called", __func__, newState);
     Result result = Result::OK;
 
     if (mPlayInterface == nullptr){
@@ -270,7 +266,7 @@ Result AudioOutputStreamOpenSLES::setPlayState_l(SLuint32 newState) {
 }
 
 Result AudioOutputStreamOpenSLES::requestStart() {
-    LOGD("AudioOutputStreamOpenSLES(): %s() called", __func__);
+    LOGD("AudioOutputStreamOpenSLES::%s() called", __func__);
 
     mLock.lock();
     StreamState initialState = getState();
@@ -320,7 +316,7 @@ Result AudioOutputStreamOpenSLES::requestStart() {
 }
 
 Result AudioOutputStreamOpenSLES::requestPause() {
-    LOGD("AudioOutputStreamOpenSLES(): %s() called", __func__);
+    LOGD("AudioOutputStreamOpenSLES::%s() called", __func__);
     std::lock_guard<std::mutex> lock(mLock);
     return requestPause_l();
 }
@@ -363,7 +359,7 @@ Result AudioOutputStreamOpenSLES::requestFlush() {
 }
 
 Result AudioOutputStreamOpenSLES::requestFlush_l() {
-    LOGD("AudioOutputStreamOpenSLES(): %s() called", __func__);
+    LOGD("AudioOutputStreamOpenSLES::%s() called", __func__);
     if (getState() == StreamState::Closed) {
         return Result::ErrorClosed;
     }
@@ -374,7 +370,7 @@ Result AudioOutputStreamOpenSLES::requestFlush_l() {
     } else {
         SLresult slResult = (*mSimpleBufferQueueInterface)->Clear(mSimpleBufferQueueInterface);
         if (slResult != SL_RESULT_SUCCESS){
-            LOGW("Failed to clear buffer queue. OpenSLES error: %d", result);
+            LOGW("Failed to clear buffer queue. OpenSLES error: %s", getSLErrStr(slResult));
             result = Result::ErrorInternal;
         }
     }
@@ -387,9 +383,8 @@ Result AudioOutputStreamOpenSLES::requestStop() {
 }
 
 Result AudioOutputStreamOpenSLES::requestStop_l() {
-    LOGD("AudioOutputStreamOpenSLES(): %s() called", __func__);
-
     StreamState initialState = getState();
+    LOGD("AudioOutputStreamOpenSLES::%s() called, initialState = %d", __func__, initialState);
     switch (initialState) {
         case StreamState::Stopping:
         case StreamState::Stopped:

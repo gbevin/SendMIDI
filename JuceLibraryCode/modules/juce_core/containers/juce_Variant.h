@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -144,6 +156,34 @@ public:
     bool isBinaryData() const noexcept;
     bool isMethod() const noexcept;
 
+    //==============================================================================
+    /** Returns a span over the elements of the contained array, or an empty span if
+        the variant currently contains a non-array type.
+    */
+    Span<var> getArrayElements() &;
+
+    /** Returns a span over the elements of the contained array, or an empty span if
+        the variant currently contains a non-array type.
+    */
+    Span<const var> getArrayElements() const &;
+
+    /** Returns a span over the properties of the contained object, or an empty span if
+        the variant currently contains a non-object type.
+    */
+    Span<NamedValue> getObjectElements() &;
+
+    /** Returns a span over the properties of the contained object, or an empty span if
+        the variant currently contains a non-object type.
+    */
+    Span<const NamedValue> getObjectElements() const &;
+
+    /*  These functions are deleted to help avoid accidentally forming a span over a temporary. */
+    Span<var> getArrayElements() && = delete;
+    Span<const var> getArrayElements() const && = delete;
+    Span<NamedValue> getObjectElements() && = delete;
+    Span<const NamedValue> getObjectElements() const && = delete;
+
+    //==============================================================================
     /** Returns true if this var has the same value as the one supplied.
         Note that this ignores the type, so a string var "123" and an integer var with the
         value 123 are considered to be equal.
@@ -283,12 +323,14 @@ public:
     static var readFromStream (InputStream& input);
 
     //==============================================================================
-   #if JUCE_ALLOW_STATIC_NULL_VARIABLES && ! defined (DOXYGEN)
+   #if JUCE_ALLOW_STATIC_NULL_VARIABLES
+    /** @cond */
     [[deprecated ("This was a static empty var object, but is now deprecated as it's too easy to accidentally "
                  "use it indirectly during a static constructor leading to hard-to-find order-of-initialisation "
                  "problems. Use var() or {} instead. For returning an empty var from a function by reference, "
                  "use a function-local static var and return that.")]]
     static const var null;
+    /** @endcond */
    #endif
 
 private:
@@ -311,7 +353,7 @@ private:
     friend bool canCompare (const var&, const var&);
 
     const VariantType* type;
-    ValueUnion value;
+    ValueUnion value{};
 
     Array<var>* convertToArray();
     var (const VariantType&) noexcept;

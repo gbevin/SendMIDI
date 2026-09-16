@@ -1,16 +1,16 @@
 # Vendored JUCE patches
 
 The JUCE modules vendored under `JuceLibraryCode/modules` are based on JUCE
-7.0.11 with two local patches to `juce_midi_ci`, kept as the patch files in this
-folder. They exist because stock JUCE (verified absent through JUCE master as of
-July 2026) doesn't support what the MPE Profile negotiation needs:
+9.0.2 with two local patches to `juce_midi_ci`, kept as the patch files in this
+folder. They exist because stock JUCE (verified absent through JUCE 9.0.2 as of
+September 2026) doesn't support what the MPE Profile negotiation needs:
 
-- **`juce_midi_ci-profile-inquiry-inactive.patch`** — a Profile Inquiry Reply
+- **`juce_midi_ci-profile-inquiry-inactive.patch`**: a Profile Inquiry Reply
   must list a profile as either enabled or disabled, but stock
   `ChannelProfileStates::getInactive()` returns every supported profile,
   including the active ones, so active profiles were also reported as disabled.
   The fix excludes active profiles from the inactive list.
-- **`juce_midi_ci-profile-details-inquiry.patch`** — stock JUCE unconditionally
+- **`juce_midi_ci-profile-details-inquiry.patch`**: stock JUCE unconditionally
   NAKs a Profile Details Inquiry with a non-zero target. This adds a
   `profileDetailsInquired()` hook to `ci::ProfileDelegate` (default: empty, which
   still NAKs) and makes the profile host answer with the delegate's data, so a

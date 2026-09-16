@@ -84,20 +84,18 @@ jobs:
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
-        # the committed projects target the v141 toolset (VS2017); build with the
-        # runner's current toolset so no legacy build tools need installing
         run: |
-          msbuild Builds/VisualStudio2017/sendmidi.sln /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143
-          msbuild Tests/Builds/VisualStudio2017/SendMIDITests.sln /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143
+          msbuild Builds/VisualStudio2022/sendmidi.sln /m /p:Configuration=Release /p:Platform=x64
+          msbuild Tests/Builds/VisualStudio2022/SendMIDITests.sln /m /p:Configuration=Release /p:Platform=x64
 
       - name: Run tests (Windows)
         if: runner.os == 'Windows'
-        run: .\Tests\Builds\VisualStudio2017\x64\Release\ConsoleApp\SendMIDITests.exe
+        run: .\Tests\Builds\VisualStudio2022\x64\Release\ConsoleApp\SendMIDITests.exe
 
       - name: Smoke test (Windows)
         if: runner.os == 'Windows'
         shell: bash
-        run: ./Builds/VisualStudio2017/x64/Release/ConsoleApp/sendmidi.exe --version | grep -q "sendmidi v"
+        run: ./Builds/VisualStudio2022/x64/Release/ConsoleApp/sendmidi.exe --version | grep -q "sendmidi v"
 
   # Separate job: a 32-bit (i686) build on an amd64 runner via the multilib
   # toolchain, exercised natively and under Valgrind. A 32-bit allocator lays

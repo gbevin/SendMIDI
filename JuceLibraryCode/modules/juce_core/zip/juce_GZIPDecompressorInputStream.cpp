@@ -1,91 +1,39 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
 
 namespace juce
 {
-
-JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4309 4305 4365 6385 6326 6340)
-
-namespace zlibNamespace
-{
- #if JUCE_INCLUDE_ZLIB_CODE
-  JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wconversion",
-                                       "-Wsign-conversion",
-                                       "-Wshadow",
-                                       "-Wdeprecated-register",
-                                       "-Wswitch-enum",
-                                       "-Wswitch-default",
-                                       "-Wredundant-decls",
-                                       "-Wimplicit-fallthrough",
-                                       "-Wzero-as-null-pointer-constant",
-                                       "-Wcomma")
-
-  #undef OS_CODE
-  #undef fdopen
-  #define ZLIB_INTERNAL
-  #define NO_DUMMY_DECL
-  #include "zlib/zlib.h"
-  #include "zlib/adler32.c"
-  #include "zlib/compress.c"
-  #undef DO1
-  #undef DO8
-  #include "zlib/crc32.c"
-  #include "zlib/deflate.c"
-  #include "zlib/inffast.c"
-  #undef PULLBYTE
-  #undef LOAD
-  #undef RESTORE
-  #undef INITBITS
-  #undef NEEDBITS
-  #undef DROPBITS
-  #undef BYTEBITS
-  #include "zlib/inflate.c"
-  #include "zlib/inftrees.c"
-  #include "zlib/trees.c"
-  #include "zlib/zutil.c"
-  #undef Byte
-  #undef fdopen
-  #undef local
-  #undef Freq
-  #undef Code
-  #undef Dad
-  #undef Len
-
-  JUCE_END_IGNORE_WARNINGS_GCC_LIKE
- #else
-  #include JUCE_ZLIB_INCLUDE_PATH
-
-  #ifndef z_uInt
-   #ifdef uInt
-    #define z_uInt uInt
-   #else
-    #define z_uInt unsigned int
-   #endif
-  #endif
-
- #endif
-}
-
-JUCE_END_IGNORE_WARNINGS_MSVC
 
 //==============================================================================
 // internal helper object that holds the zlib structures so they don't have to be
@@ -95,7 +43,6 @@ class GZIPDecompressorInputStream::GZIPDecompressHelper
 public:
     GZIPDecompressHelper (Format f)
     {
-        using namespace zlibNamespace;
         zerostruct (stream);
         streamIsValid = (inflateInit2 (&stream, getBitsForFormat (f)) == Z_OK);
         finished = error = ! streamIsValid;
@@ -104,7 +51,7 @@ public:
     ~GZIPDecompressHelper()
     {
         if (streamIsValid)
-            zlibNamespace::inflateEnd (&stream);
+            inflateEnd (&stream);
     }
 
     bool needsInput() const noexcept        { return dataSize <= 0; }
@@ -117,14 +64,12 @@ public:
 
     int doNextBlock (uint8* const dest, const unsigned int destSize)
     {
-        using namespace zlibNamespace;
-
         if (streamIsValid && data != nullptr && ! finished)
         {
             stream.next_in  = data;
             stream.next_out = dest;
-            stream.avail_in  = (z_uInt) dataSize;
-            stream.avail_out = (z_uInt) destSize;
+            stream.avail_in  = (decltype (stream.avail_in)) dataSize;
+            stream.avail_out = (decltype (stream.avail_out)) destSize;
 
             switch (inflate (&stream, Z_PARTIAL_FLUSH))
             {
@@ -133,7 +78,7 @@ public:
                 JUCE_FALLTHROUGH
             case Z_OK:
                 data += dataSize - stream.avail_in;
-                dataSize = (z_uInt) stream.avail_in;
+                dataSize = (decltype (dataSize)) stream.avail_in;
                 return (int) (destSize - stream.avail_out);
 
             case Z_NEED_DICT:
@@ -172,7 +117,7 @@ public:
     enum { gzipDecompBufferSize = 32768 };
 
 private:
-    zlibNamespace::z_stream stream;
+    z_stream stream;
     uint8* data = nullptr;
     size_t dataSize = 0;
 
@@ -276,7 +221,7 @@ bool GZIPDecompressorInputStream::setPosition (int64 newPos)
 {
     if (newPos < currentPos)
     {
-        // to go backwards, reset the stream and start again..
+        // to go backwards, reset the stream and start again
         isEof = false;
         activeBufferSize = 0;
         currentPos = 0;

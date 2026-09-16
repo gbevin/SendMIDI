@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -106,9 +118,9 @@ private:
     // a block of memory here that's big enough to be used internally as a windows
     // CRITICAL_SECTION structure.
     #if JUCE_64BIT
-     std::aligned_storage_t<44, 8> lock;
+     alignas (8) std::byte lock[44];
     #else
-     std::aligned_storage_t<24, 8> lock;
+     alignas (8) std::byte lock[24];
     #endif
    #else
     mutable pthread_mutex_t lock;
@@ -171,11 +183,11 @@ private:
         {
             const ScopedLock myScopedLock (objectLock);
 
-            // objectLock is now locked..
+            // objectLock is now locked...
 
             ...do some thread-safe work here...
 
-            // ..and objectLock gets unlocked here, as myScopedLock goes out of
+            // ...and objectLock gets unlocked here, as myScopedLock goes out of
             // scope at the end of the block
         }
     };
@@ -205,18 +217,18 @@ using ScopedLock = CriticalSection::ScopedLockType;
             {
                 const ScopedLock myScopedLock (objectLock);
 
-                // objectLock is now locked..
+                // objectLock is now locked...
 
                 {
                     ScopedUnlock myUnlocker (objectLock);
 
-                    // ..and now unlocked..
+                    // ...and now unlocked...
                 }
 
-                // ..and now locked again..
+                // ...and now locked again...
             }
 
-            // ..and finally unlocked.
+            // ...and finally unlocked.
         }
     };
     @endcode
@@ -242,14 +254,14 @@ using ScopedUnlock = CriticalSection::ScopedUnlockType;
             const ScopedTryLock myScopedTryLock (objectLock);
 
             // Unlike using a ScopedLock, this may fail to actually get the lock, so you
-            // must call the isLocked() method before making any assumptions..
+            // must call the isLocked() method before making any assumptions.
             if (myScopedTryLock.isLocked())
             {
                ...safely do some work...
             }
             else
             {
-                // If we get here, then our attempt at locking failed because another thread had already locked it..
+                // If we get here, then our attempt at locking failed because another thread had already locked it.
             }
         }
     };

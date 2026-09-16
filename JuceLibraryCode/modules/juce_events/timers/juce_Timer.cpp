@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -23,23 +35,71 @@
 namespace juce
 {
 
-class Timer::TimerThread final : private Thread,
-                                 private AsyncUpdater
+class ShutdownDetector : private DeletedAtShutdown
 {
 public:
-    using LockType = CriticalSection; // (mysteriously, using a SpinLock here causes problems on some XP machines..)
+    ShutdownDetector() = default;
 
-    TimerThread()  : Thread ("JUCE Timer")
+    ~ShutdownDetector() override
+    {
+        getListeners().call (&Listener::applicationShuttingDown);
+        clearSingletonInstance();
+    }
+
+    struct Listener
+    {
+        virtual ~Listener() = default;
+        virtual void applicationShuttingDown() = 0;
+    };
+
+    static void addListener (Listener* listenerToAdd)
+    {
+        // Only try to create an instance of the ShutdownDetector when a listener is added
+        [[maybe_unused]] auto* instance = getInstance();
+        getListeners().add (listenerToAdd);
+    }
+
+    static void removeListener (Listener* listenerToRemove)
+    {
+        getListeners().remove (listenerToRemove);
+    }
+
+private:
+    using ListenerListType = ThreadSafeListenerList<Listener>;
+
+    // By having a static ListenerList it can outlive the ShutdownDetector instance preventing
+    // issues for objects trying to remove themselves after the instance has been deleted
+    static ListenerListType& getListeners()
+    {
+        static ListenerListType listeners;
+        return listeners;
+    }
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ShutdownDetector)
+    JUCE_DECLARE_NON_MOVEABLE (ShutdownDetector)
+    JUCE_DECLARE_SINGLETON_INLINE (ShutdownDetector, false)
+};
+
+class Timer::TimerThread final : private Thread,
+                                 private ShutdownDetector::Listener
+{
+public:
+    using LockType = CriticalSection;
+
+    TimerThread()
+        : Thread (SystemStats::getJUCEVersion() + ": Timer")
     {
         timers.reserve (32);
-        triggerAsyncUpdate();
+        ShutdownDetector::addListener (this);
     }
 
     ~TimerThread() override
     {
-        cancelPendingUpdate();
-        signalThreadShouldExit();
-        callbackArrived.signal();
+        // If this is hit, a timer has outlived the platform event system.
+        jassert (MessageManager::getInstanceWithoutCreating() != nullptr);
+
+        stopThreadAsync();
+        ShutdownDetector::removeListener (this);
         stopThread (-1);
     }
 
@@ -61,7 +121,7 @@ public:
             {
                 if (callbackArrived.wait (0))
                 {
-                    // already a message in flight - do nothing..
+                    // already a message in flight - do nothing
                 }
                 else
                 {
@@ -121,20 +181,15 @@ public:
 
     void callTimersSynchronously()
     {
-        if (! isThreadRunning())
-        {
-            // (This is relied on by some plugins in cases where the MM has
-            // had to restart and the async callback never started)
-            cancelPendingUpdate();
-            triggerAsyncUpdate();
-        }
-
         callTimers();
     }
 
     void addTimer (Timer* t)
     {
         const LockType::ScopedLockType sl (lock);
+
+        if (! isThreadRunning())
+            startThread (Thread::Priority::high);
 
         // Trying to add a timer that's already here - shouldn't get to this point,
         // so if you get this assertion, let me know!
@@ -281,11 +336,19 @@ private:
         return timers.front().countdownMs;
     }
 
-    void handleAsyncUpdate() override
+    //==============================================================================
+    void applicationShuttingDown() final
     {
-        startThread (Priority::high);
+        stopThreadAsync();
     }
 
+    void stopThreadAsync()
+    {
+        signalThreadShouldExit();
+        callbackArrived.signal();
+    }
+
+    //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimerThread)
 };
 
@@ -366,7 +429,7 @@ struct LambdaInvoker final : private Timer,
 
     std::function<void()> function;
 
-    JUCE_DECLARE_NON_COPYABLE (LambdaInvoker)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LambdaInvoker)
 };
 
 void JUCE_CALLTYPE Timer::callAfterDelay (int milliseconds, std::function<void()> f)

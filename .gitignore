@@ -2,12 +2,12 @@ Builds/*/build
 Builds/MacOSX/sendmidi.xcodeproj/xcuserdata
 Builds/MacOSX/sendmidi.xcodeproj/project.xcworkspace/xcuserdata
 /.vs
-/Builds/VisualStudio2017/.vs
-/Builds/VisualStudio2017/x64
-/Builds/VisualStudio2017/sendmidi_ConsoleApp.vcxproj.user
+/Builds/VisualStudio2022/.vs
+/Builds/VisualStudio2022/x64
+/Builds/VisualStudio2022/sendmidi_ConsoleApp.vcxproj.user
 Installers
 Tests/Builds/*/build
-Tests/Builds/VisualStudio2017/.vs
-Tests/Builds/VisualStudio2017/x64
+Tests/Builds/VisualStudio2022/.vs
+Tests/Builds/VisualStudio2022/x64
 Tests/Builds/MacOSX/SendMIDITests.xcodeproj/xcuserdata
 Tests/Builds/MacOSX/SendMIDITests.xcodeproj/project.xcworkspace/xcuserdata

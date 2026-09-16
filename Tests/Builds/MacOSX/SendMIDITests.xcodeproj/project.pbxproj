@@ -7,29 +7,31 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0B5EC984173EA8E9AB804115 /* CoreMIDI.framework */ = {isa = PBXBuildFile; fileRef = 93E6DA798983F26C3345070C; };
+		0CB8FB5A21950324E2979EBA /* IOKit.framework */ = {isa = PBXBuildFile; fileRef = EC6775AF1E1B71B251C4DB5E; };
+		164EFF65DF1EF8C08AA6A88D /* CoreAudio.framework */ = {isa = PBXBuildFile; fileRef = F0F4C386AA9D1BA7C80A7B09; };
+		28530ADC549357189D164FC4 /* Accelerate.framework */ = {isa = PBXBuildFile; fileRef = AD8C9C230831FE4F0C9347D4; };
 		2DD6A3E1FCA209A94F313A33 /* RecentFilesMenuTemplate.nib */ = {isa = PBXBuildFile; fileRef = E3650B2DDEC11DE71D4109FF; };
-		3CD131B646A8CB8267BE6A50 /* IOKit.framework */ = {isa = PBXBuildFile; fileRef = EC6775AF1E1B71B251C4DB5E; };
-		3FDE3FBDB0B3F2D74A101BEE /* AudioToolbox.framework */ = {isa = PBXBuildFile; fileRef = 14D8DAC3DC433682BA534CA4; };
 		4477B280FC90E1A7AB3411D2 /* MpeProfileNegotation.cpp */ = {isa = PBXBuildFile; fileRef = 5F58C8FB2168D9F5C55C2D24; };
+		52D5F835CB1F5F18613E34DA /* Cocoa.framework */ = {isa = PBXBuildFile; fileRef = 455F0C5BBDAAC9CF02869FF6; };
 		5307C66C53F907AAFD3381F1 /* ApplicationState.cpp */ = {isa = PBXBuildFile; fileRef = 0851407858915D02E3160BEE; };
 		5324041A4DD094E3A3663741 /* include_juce_data_structures.mm */ = {isa = PBXBuildFile; fileRef = D78053AF3E33308B1C93EC28; };
-		573E66B234EEB1AB38B6E7A6 /* Security.framework */ = {isa = PBXBuildFile; fileRef = 73E822810C52C5A257F5366C; };
-		5EB3C197FBF44B8AB7595A4C /* Accelerate.framework */ = {isa = PBXBuildFile; fileRef = AD8C9C230831FE4F0C9347D4; };
 		63F35C543EE27B17C79DF234 /* include_juce_midi_ci.cpp */ = {isa = PBXBuildFile; fileRef = DB780FEC01582FFE9FD1224A; };
 		6ACAA0A6F211B7EF7DE57523 /* include_juce_audio_devices.mm */ = {isa = PBXBuildFile; fileRef = DBEC91F3A2B8DCE6A5B0CB52; };
 		6BA5C94B6CB89A255F1A9580 /* ApplicationCommand.cpp */ = {isa = PBXBuildFile; fileRef = 8A62329A9A1FBBE82B6715A1; };
-		77DEBE4DDE6AF9A068709883 /* Foundation.framework */ = {isa = PBXBuildFile; fileRef = 8C331C8EA0777C8CA4018215; };
-		7835A6A031C159DB83D8AF69 /* Cocoa.framework */ = {isa = PBXBuildFile; fileRef = 455F0C5BBDAAC9CF02869FF6; };
 		7B3985F5871EE11EA3805646 /* include_juce_audio_basics.mm */ = {isa = PBXBuildFile; fileRef = B1426A9132C0F030B1FFB1A6; };
-		981DEBA33ED9214E6647144D /* CoreAudio.framework */ = {isa = PBXBuildFile; fileRef = F0F4C386AA9D1BA7C80A7B09; };
 		A6DF678D37A8382FF9A67AE8 /* ConsoleApp */ = {isa = PBXBuildFile; fileRef = F5B1ACF743C25754663550E2; };
 		AB598CCAEE3A48DCF9DB71C9 /* ParsingTests.cpp */ = {isa = PBXBuildFile; fileRef = D2C1A65EE08F9DFDB9EFE63E; };
-		B9119D9BE869FFB37304EC44 /* CoreMIDI.framework */ = {isa = PBXBuildFile; fileRef = 93E6DA798983F26C3345070C; };
+		B0806E6BF5DCCC346A21DE3E /* Foundation.framework */ = {isa = PBXBuildFile; fileRef = 8C331C8EA0777C8CA4018215; };
+		BB16A3EA42629E06A3AAFA1A /* include_juce_core_zlib.c */ = {isa = PBXBuildFile; fileRef = 91A2F9D44C5A9C8E73F81A6F; };
 		BB294B87601A706F89CF2B68 /* SendTests.cpp */ = {isa = PBXBuildFile; fileRef = 80AF9F7DBB14F721E646CB4A; };
 		C1448BBC8EB32AF345F81A62 /* include_juce_events.mm */ = {isa = PBXBuildFile; fileRef = 66DD6BEA61B295B30FBE919C; };
 		CA027F52FE422A61F5B6ABFE /* TerminalColor.cpp */ = {isa = PBXBuildFile; fileRef = 8435157E374F5B21B8BAFB6C; };
+		CACB0F88B76A9E33EF3680A6 /* include_juce_core_CompilationTime.cpp */ = {isa = PBXBuildFile; fileRef = 49F992A6D5A0BCA9964563CF; };
+		DEDA5C727AA711BAD5C69BB9 /* AudioToolbox.framework */ = {isa = PBXBuildFile; fileRef = 14D8DAC3DC433682BA534CA4; };
 		E95B85403B97C7B68ABDEBA1 /* MpeTestScenario.cpp */ = {isa = PBXBuildFile; fileRef = DC2CD0707AA3E439F223ECFD; };
 		F031547F9094D6F36F4699CA /* include_juce_core.mm */ = {isa = PBXBuildFile; fileRef = D9D4B0E63A0E86F0C1241C68; };
+		F5C769905B9D01A492192C50 /* Security.framework */ = {isa = PBXBuildFile; fileRef = 73E822810C52C5A257F5366C; };
 		F808A56B4697306593D8EE43 /* TestRunner.cpp */ = {isa = PBXBuildFile; fileRef = EA52F0515275E75E548F1B6C; };
 /* End PBXBuildFile section */
 
@@ -39,6 +41,7 @@
 		0E4A34F0F0D8B1CEBA9C013C /* ApplicationState.h */ /* ApplicationState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ApplicationState.h; path = ../../../Source/ApplicationState.h; sourceTree = SOURCE_ROOT; };
 		14D8DAC3DC433682BA534CA4 /* AudioToolbox.framework */ /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		455F0C5BBDAAC9CF02869FF6 /* Cocoa.framework */ /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		49F992A6D5A0BCA9964563CF /* include_juce_core_CompilationTime.cpp */ /* include_juce_core_CompilationTime.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_core_CompilationTime.cpp; path = ../../JuceLibraryCode/include_juce_core_CompilationTime.cpp; sourceTree = SOURCE_ROOT; };
 		534D3489C1AC6017DDDF65DD /* MpeTestScenario.h */ /* MpeTestScenario.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MpeTestScenario.h; path = ../../../Source/MpeTestScenario.h; sourceTree = SOURCE_ROOT; };
 		5F58C8FB2168D9F5C55C2D24 /* MpeProfileNegotation.cpp */ /* MpeProfileNegotation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MpeProfileNegotation.cpp; path = ../../../Source/MpeProfileNegotation.cpp; sourceTree = SOURCE_ROOT; };
 		66DD6BEA61B295B30FBE919C /* include_juce_events.mm */ /* include_juce_events.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_events.mm; path = ../../JuceLibraryCode/include_juce_events.mm; sourceTree = SOURCE_ROOT; };
@@ -50,6 +53,7 @@
 		89A74999892FF77000989AEF /* MpeProfileNegotiation.h */ /* MpeProfileNegotiation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MpeProfileNegotiation.h; path = ../../../Source/MpeProfileNegotiation.h; sourceTree = SOURCE_ROOT; };
 		8A62329A9A1FBBE82B6715A1 /* ApplicationCommand.cpp */ /* ApplicationCommand.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ApplicationCommand.cpp; path = ../../../Source/ApplicationCommand.cpp; sourceTree = SOURCE_ROOT; };
 		8C331C8EA0777C8CA4018215 /* Foundation.framework */ /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		91A2F9D44C5A9C8E73F81A6F /* include_juce_core_zlib.c */ /* include_juce_core_zlib.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_core_zlib.c; path = ../../JuceLibraryCode/include_juce_core_zlib.c; sourceTree = SOURCE_ROOT; };
 		93E6DA798983F26C3345070C /* CoreMIDI.framework */ /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
 		9905524E85AF137E161656E6 /* juce_data_structures */ /* juce_data_structures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_data_structures; path = ../../../JuceLibraryCode/modules/juce_data_structures; sourceTree = SOURCE_ROOT; };
 		A1C3CAB52A6C27B47A5FB857 /* juce_core */ /* juce_core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_core; path = ../../../JuceLibraryCode/modules/juce_core; sourceTree = SOURCE_ROOT; };
@@ -78,14 +82,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5EB3C197FBF44B8AB7595A4C,
-				3FDE3FBDB0B3F2D74A101BEE,
-				7835A6A031C159DB83D8AF69,
-				981DEBA33ED9214E6647144D,
-				B9119D9BE869FFB37304EC44,
-				77DEBE4DDE6AF9A068709883,
-				3CD131B646A8CB8267BE6A50,
-				573E66B234EEB1AB38B6E7A6,
+				28530ADC549357189D164FC4,
+				DEDA5C727AA711BAD5C69BB9,
+				52D5F835CB1F5F18613E34DA,
+				164EFF65DF1EF8C08AA6A88D,
+				0B5EC984173EA8E9AB804115,
+				B0806E6BF5DCCC346A21DE3E,
+				0CB8FB5A21950324E2979EBA,
+				F5C769905B9D01A492192C50,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,6 +120,8 @@
 				B1426A9132C0F030B1FFB1A6,
 				DBEC91F3A2B8DCE6A5B0CB52,
 				D9D4B0E63A0E86F0C1241C68,
+				49F992A6D5A0BCA9964563CF,
+				91A2F9D44C5A9C8E73F81A6F,
 				D78053AF3E33308B1C93EC28,
 				66DD6BEA61B295B30FBE919C,
 				DB780FEC01582FFE9FD1224A,
@@ -207,9 +213,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 80C4351E4D0F02EA049EF8E7;
 			buildPhases = (
-				1A92FC7A60A152ED152D7D08,
 				A8CDCB9C1EEDF72A7032C469,
 				A5C1B99E448E7653BDDE4EFE,
+				528EAF1B69617DE22425B943,
 			);
 			buildRules = (
 			);
@@ -246,16 +252,19 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXResourcesBuildPhase section */
-		1A92FC7A60A152ED152D7D08 = {
-			isa = PBXResourcesBuildPhase;
+/* Begin PBXShellScriptBuildPhase section */
+		528EAF1B69617DE22425B943 /* Sign Target */ = {
+			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2DD6A3E1FCA209A94F313A33,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
+			name = "Sign Target";
+			alwaysOutOfDate = 1;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\n\necho Signing Identity:	${EXPANDED_CODE_SIGN_IDENTITY_NAME:-${CODE_SIGN_IDENTITY}}\n\nentitlementsFile=\"${TARGET_TEMP_DIR}/${FULL_PRODUCT_NAME}.xcent\"\n\nif [[ ! -f \"${entitlementsFile}\" ]]; then\n  entitlementsFile=\"\"\nfi\n\necho Entitlements File:	${entitlementsFile:-None}\necho\necho Running codesign --force --sign \\\"${EXPANDED_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY}}\\\" --verbose=4 --timestamp  ${entitlementsFile:+--entitlements \\\"${entitlementsFile}\\\"} --generate-entitlement-der \\\"${CODESIGNING_FOLDER_PATH}\\\"\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY}}\" --verbose=4 --timestamp  ${entitlementsFile:+--entitlements \"${entitlementsFile}\"} --generate-entitlement-der \"${CODESIGNING_FOLDER_PATH}\"\necho\necho Running codesign --verify --deep --verbose=4 \\\"${CODESIGNING_FOLDER_PATH}\\\"\ncodesign --verify --deep --verbose=4 \"${CODESIGNING_FOLDER_PATH}\"\n";
 		};
-/* End PBXResourcesBuildPhase section */
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A8CDCB9C1EEDF72A7032C469 = {
@@ -273,6 +282,8 @@
 				7B3985F5871EE11EA3805646,
 				6ACAA0A6F211B7EF7DE57523,
 				F031547F9094D6F36F4699CA,
+				CACB0F88B76A9E33EF3680A6,
+				BB16A3EA42629E06A3AAFA1A,
 				5324041A4DD094E3A3663741,
 				C1448BBC8EB32AF345F81A62,
 				63F35C543EE27B17C79DF234,
@@ -304,6 +315,7 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = NO;
@@ -322,7 +334,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				OTHER_CODE_SIGN_FLAGS = --timestamp;
+				OTHER_CODE_SIGN_FLAGS = "--dryrun";
 				PRODUCT_NAME = "SendMIDITests";
 				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wreorder";
@@ -352,6 +364,7 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = NO;
@@ -371,7 +384,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_CODE_SIGN_FLAGS = --timestamp;
+				OTHER_CODE_SIGN_FLAGS = "--dryrun";
 				PRODUCT_NAME = "SendMIDITests";
 				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wreorder";
@@ -385,9 +398,12 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_LINK_OBJC_RUNTIME = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = NO;
+				DEPLOYMENT_POSTPROCESSING = NO;
 				EXCLUDED_ARCHS = "";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -416,8 +432,12 @@
 				INSTALL_PATH = "/usr/bin";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../../JuceLibraryCode/modules";
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uwyn.sendmiditests;
 				PRODUCT_NAME = "SendMIDITests";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
 			};
@@ -429,9 +449,12 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_LINK_OBJC_RUNTIME = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				DEAD_CODE_STRIPPING = YES;
+				DEPLOYMENT_POSTPROCESSING = NO;
 				EXCLUDED_ARCHS = "";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = 3;
@@ -461,8 +484,12 @@
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../../JuceLibraryCode/modules";
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uwyn.sendmiditests;
 				PRODUCT_NAME = "SendMIDITests";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
 			};

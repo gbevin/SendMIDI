@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -23,62 +35,21 @@
 namespace juce
 {
 
-NamedValueSet::NamedValue::NamedValue() noexcept {}
-NamedValueSet::NamedValue::~NamedValue() noexcept {}
-
-NamedValueSet::NamedValue::NamedValue (const Identifier& n, const var& v)  : name (n), value (v) {}
-NamedValueSet::NamedValue::NamedValue (const NamedValue& other) : NamedValue (other.name, other.value) {}
-
-NamedValueSet::NamedValue::NamedValue (NamedValue&& other) noexcept
-   : NamedValue (std::move (other.name),
-                 std::move (other.value))
-{}
-
-NamedValueSet::NamedValue::NamedValue (const Identifier& n, var&& v) noexcept
-   : name (n), value (std::move (v))
+bool NamedValue::operator== (const NamedValue& other) const noexcept
 {
+    const auto tie = [] (auto& x) { return std::tie (x.name, x.value); };
+    return tie (*this) == tie (other);
 }
 
-NamedValueSet::NamedValue::NamedValue (Identifier&& n, var&& v) noexcept
-   : name (std::move (n)),
-     value (std::move (v))
-{}
-
-NamedValueSet::NamedValue& NamedValueSet::NamedValue::operator= (NamedValue&& other) noexcept
+bool NamedValue::operator!= (const NamedValue& other) const noexcept
 {
-    name = std::move (other.name);
-    value = std::move (other.value);
-    return *this;
+    return ! operator== (other);
 }
-
-bool NamedValueSet::NamedValue::operator== (const NamedValue& other) const noexcept   { return name == other.name && value == other.value; }
-bool NamedValueSet::NamedValue::operator!= (const NamedValue& other) const noexcept   { return ! operator== (other); }
 
 //==============================================================================
-NamedValueSet::NamedValueSet() noexcept {}
-NamedValueSet::~NamedValueSet() noexcept {}
-
-NamedValueSet::NamedValueSet (const NamedValueSet& other)  : values (other.values) {}
-
-NamedValueSet::NamedValueSet (NamedValueSet&& other) noexcept
-   : values (std::move (other.values)) {}
-
 NamedValueSet::NamedValueSet (std::initializer_list<NamedValue> list)
    : values (std::move (list))
 {
-}
-
-NamedValueSet& NamedValueSet::operator= (const NamedValueSet& other)
-{
-    clear();
-    values = other.values;
-    return *this;
-}
-
-NamedValueSet& NamedValueSet::operator= (NamedValueSet&& other) noexcept
-{
-    other.values.swapWith (values);
-    return *this;
 }
 
 void NamedValueSet::clear()
@@ -103,7 +74,7 @@ bool NamedValueSet::operator== (const NamedValueSet& other) const noexcept
         }
         else
         {
-            // if we encounter keys that are in a different order, search remaining items by brute force..
+            // if we encounter keys that are in a different order, search remaining items by brute force
             for (int j = i; j < num; ++j)
             {
                 if (auto* otherVal = other.getVarPointer (values.getReference (j).name))
@@ -265,20 +236,20 @@ void NamedValueSet::setFromXmlAttributes (const XmlElement& xml)
 {
     values.clearQuick();
 
-    for (auto* att = xml.attributes.get(); att != nullptr; att = att->nextListItem)
+    for (const auto& [name, value] : xml.getAttributeIterator())
     {
-        if (att->name.toString().startsWith ("base64:"))
+        if (name.toString().startsWith ("base64:"))
         {
             MemoryBlock mb;
 
-            if (mb.fromBase64Encoding (att->value))
+            if (mb.fromBase64Encoding (value))
             {
-                values.add ({ att->name.toString().substring (7), var (mb) });
+                values.add ({ name.toString().substring (7), var (mb) });
                 continue;
             }
         }
 
-        values.add ({ att->name, var (att->value) });
+        values.add ({ name, var (value) });
     }
 }
 

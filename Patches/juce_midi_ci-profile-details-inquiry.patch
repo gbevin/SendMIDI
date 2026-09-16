@@ -1,6 +1,6 @@
 --- a/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileDelegate.h
 +++ b/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileDelegate.h
-@@ -56,6 +56,10 @@
+@@ -65,6 +65,10 @@
                                               [[maybe_unused]] ProfileAtAddress profileAtAddress,
                                               [[maybe_unused]] int numChannels,
                                               [[maybe_unused]] bool enabled) = 0;
@@ -13,26 +13,25 @@
  } // namespace juce::midi_ci
 --- a/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIDevice.cpp
 +++ b/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIDevice.cpp
-@@ -1057,7 +1057,16 @@
- 
+@@ -1067,6 +1067,15 @@
              device.profileHost->setProfileEnablement (profileAtAddress, enabled ? jmax (1, numChannels) : 0);
          }
-+        
+ 
 +        virtual std::vector<std::byte> profileDetailsInquired (MUID x, ProfileAtAddress profileAtAddress, std::byte target) override
 +        {
 +            if (auto* d = device.options.getProfileDelegate())
 +                return d->profileDetailsInquired (x, profileAtAddress, target);
-+            
++
 +            return std::vector<std::byte>();
 +        }
- 
++
 +
      private:
          Impl& device;
      };
 --- a/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileHost.cpp
 +++ b/JuceLibraryCode/modules/juce_midi_ci/ci/juce_CIProfileHost.cpp
-@@ -111,23 +111,37 @@
+@@ -120,23 +120,37 @@
  
      bool messageReceived (const Message::ProfileDetails& body) const
      {

@@ -19,7 +19,6 @@
 
 #include "aaudio/AAudioExtensions.h"
 #include "aaudio/AudioStreamAAudio.h"
-#include "FilterAudioStream.h"
 #include "OboeDebug.h"
 #include "oboe/Oboe.h"
 #include "oboe/AudioStreamBuilder.h"
@@ -27,6 +26,10 @@
 #include "opensles/AudioOutputStreamOpenSLES.h"
 #include "opensles/AudioStreamOpenSLES.h"
 #include "QuirksManager.h"
+
+#ifndef DISABLE_CONVERSION
+#include "FilterAudioStream.h"
+#endif
 
 bool oboe::OboeGlobals::mWorkaroundsEnabled = true;
 
@@ -45,7 +48,7 @@ int32_t DefaultStreamValues::SampleRate = 48000; // Common rate for mobile audio
 int32_t DefaultStreamValues::FramesPerBurst = 192; // 4 msec at 48000 Hz
 int32_t DefaultStreamValues::ChannelCount = 2; // Stereo
 
-constexpr int kBufferSizeInBurstsForLowLatencyStreams = 2;
+constexpr int knumBurstsForLowLatencyStreams = 2;
 
 #ifndef OBOE_ENABLE_AAUDIO
 // Set OBOE_ENABLE_AAUDIO to 0 if you want to disable the AAudio API.
@@ -89,14 +92,26 @@ bool AudioStreamBuilder::isCompatible(AudioStreamBase &other) {
 }
 
 Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
+    LOGW("Passing AudioStream pointer deprecated, Use openStream(std::shared_ptr<oboe::AudioStream> &stream) instead.");
+    return openStreamInternal(streamPP);
+}
+
+Result AudioStreamBuilder::openStreamInternal(AudioStream **streamPP) {
     auto result = isValidConfig();
     if (result != Result::OK) {
-        LOGW("%s() invalid config %d", __func__, result);
+        LOGW("%s() invalid config. Error %s", __func__, oboe::convertToText(result));
         return result;
     }
+    if (mPartialDataCallback != nullptr &&
+        (!OboeExtensions::isPartialDataCallbackSupported() || !willUseAAudio())) {
+        LOGE("%s() Partial data callback is not supported.", __func__);
+        return Result::ErrorIllegalArgument;
+    }
 
+#ifndef OBOE_SUPPRESS_LOG_SPAM
     LOGI("%s() %s -------- %s --------",
          __func__, getDirection() == Direction::Input ? "INPUT" : "OUTPUT", getVersionText());
+#endif
 
     if (streamPP == nullptr) {
         return Result::ErrorNull;
@@ -107,12 +122,19 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
 
     // Maybe make a FilterInputStream.
     AudioStreamBuilder childBuilder(*this);
+
+#ifndef DISABLE_CONVERSION
     // Check need for conversion and modify childBuilder for optimal stream.
     bool conversionNeeded = QuirksManager::getInstance().isConversionNeeded(*this, childBuilder);
     // Do we need to make a child stream and convert.
     if (conversionNeeded) {
+        if (isPartialDataCallbackSpecified()) {
+            LOGW("%s(), partial data callback is not supported when data conversion is required",
+                 __func__);
+            return Result::ErrorIllegalArgument;
+        }
         AudioStream *tempStream;
-        result = childBuilder.openStream(&tempStream);
+        result = childBuilder.openStreamInternal(&tempStream);
         if (result != Result::OK) {
             return result;
         }
@@ -139,7 +161,9 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
 
             // Use childStream in a FilterAudioStream.
             LOGI("%s() create a FilterAudioStream for data conversion.", __func__);
-            FilterAudioStream *filterStream = new FilterAudioStream(parentBuilder, tempStream);
+            std::shared_ptr<AudioStream> childStream(tempStream);
+            FilterAudioStream *filterStream = new FilterAudioStream(parentBuilder, childStream);
+            childStream->setWeakThis(childStream);
             result = filterStream->configureFlowGraph();
             if (result !=  Result::OK) {
                 filterStream->close();
@@ -150,6 +174,7 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
             }
         }
     }
+#endif
 
     if (streamP == nullptr) {
         streamP = build();
@@ -173,24 +198,26 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
         AAudioExtensions::getInstance().setMMapEnabled(wasMMapOriginallyEnabled); // restore original
     }
     if (result == Result::OK) {
-
-        int32_t  optimalBufferSize = -1;
-        // Use a reasonable default buffer size.
-        if (streamP->getDirection() == Direction::Input) {
-            // For input, small size does not improve latency because the stream is usually
-            // run close to empty. And a low size can result in XRuns so always use the maximum.
-            optimalBufferSize = streamP->getBufferCapacityInFrames();
-        } else if (streamP->getPerformanceMode() == PerformanceMode::LowLatency
-                && streamP->getDirection() == Direction::Output)  { // Output check is redundant.
-            optimalBufferSize = streamP->getFramesPerBurst() *
-                                    kBufferSizeInBurstsForLowLatencyStreams;
-        }
-        if (optimalBufferSize >= 0) {
-            auto setBufferResult = streamP->setBufferSizeInFrames(optimalBufferSize);
-            if (!setBufferResult) {
-                LOGW("Failed to setBufferSizeInFrames(%d). Error was %s",
-                     optimalBufferSize,
-                     convertToText(setBufferResult.error()));
+        // AAudio supports setBufferSizeInFrames() so use it.
+        if (streamP->getAudioApi() == AudioApi::AAudio) {
+            int32_t  optimalBufferSize = -1;
+            // Use a reasonable default buffer size.
+            if (streamP->getDirection() == Direction::Input) {
+                // For input, small size does not improve latency because the stream is usually
+                // run close to empty. And a low size can result in XRuns so always use the maximum.
+                optimalBufferSize = streamP->getBufferCapacityInFrames();
+            } else if (streamP->getPerformanceMode() == PerformanceMode::LowLatency
+                    && streamP->getDirection() == Direction::Output)  { // Output check is redundant.
+                optimalBufferSize = streamP->getFramesPerBurst() *
+                                        knumBurstsForLowLatencyStreams;
+            }
+            if (optimalBufferSize >= 0) {
+                auto setBufferResult = streamP->setBufferSizeInFrames(optimalBufferSize);
+                if (!setBufferResult) {
+                    LOGW("Failed to setBufferSizeInFrames(%d). Error was %s",
+                         optimalBufferSize,
+                         convertToText(setBufferResult.error()));
+                }
             }
         }
 
@@ -202,6 +229,7 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
 }
 
 Result AudioStreamBuilder::openManagedStream(oboe::ManagedStream &stream) {
+    LOGW("`openManagedStream` is deprecated. Use openStream(std::shared_ptr<oboe::AudioStream> &stream) instead.");
     stream.reset();
     AudioStream *streamptr;
     auto result = openStream(&streamptr);
@@ -212,7 +240,7 @@ Result AudioStreamBuilder::openManagedStream(oboe::ManagedStream &stream) {
 Result AudioStreamBuilder::openStream(std::shared_ptr<AudioStream> &sharedStream) {
     sharedStream.reset();
     AudioStream *streamptr;
-    auto result = openStream(&streamptr);
+    auto result = openStreamInternal(&streamptr);
     if (result == Result::OK) {
         sharedStream.reset(streamptr);
         // Save a weak_ptr in the stream for use with callbacks.

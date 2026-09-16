@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -43,10 +55,7 @@ void CriticalSection::exit() const noexcept         { pthread_mutex_unlock (&loc
 //==============================================================================
 void JUCE_CALLTYPE Thread::sleep (int millisecs)
 {
-    struct timespec time;
-    time.tv_sec = millisecs / 1000;
-    time.tv_nsec = (millisecs % 1000) * 1000000;
-    nanosleep (&time, nullptr);
+    std::this_thread::sleep_for (std::chrono::milliseconds (millisecs));
 }
 
 void JUCE_CALLTYPE Process::terminate()
@@ -101,12 +110,12 @@ static MaxNumFileHandlesInitialiser maxNumFileHandlesInitialiser;
 //==============================================================================
 #if JUCE_ALLOW_STATIC_NULL_VARIABLES
 
-JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
 
 const juce_wchar File::separator = '/';
 const StringRef File::separatorString ("/");
 
-JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+JUCE_END_IGNORE_DEPRECATION_WARNINGS
 
 #endif
 
@@ -140,7 +149,7 @@ bool File::setAsCurrentWorkingDirectory() const
 
 //==============================================================================
 // The unix siginterrupt function is deprecated - this does the same job.
-int juce_siginterrupt ([[maybe_unused]] int sig, [[maybe_unused]] int flag)
+inline int juce_siginterrupt ([[maybe_unused]] int sig, [[maybe_unused]] int flag)
 {
    #if JUCE_WASM
     return 0;
@@ -166,7 +175,7 @@ int juce_siginterrupt ([[maybe_unused]] int sig, [[maybe_unused]] int flag)
 //==============================================================================
 namespace
 {
-   #if JUCE_LINUX || (JUCE_IOS && (! TARGET_OS_MACCATALYST) && (! __DARWIN_ONLY_64_BIT_INO_T)) // (this iOS stuff is to avoid a simulator bug)
+   #if defined (__GLIBC__) || (JUCE_IOS && (! TARGET_OS_MACCATALYST) && (! __DARWIN_ONLY_64_BIT_INO_T)) // (this iOS stuff is to avoid a simulator bug)
     using juce_statStruct = struct stat64;
     #define JUCE_STAT  stat64
    #else
@@ -181,7 +190,7 @@ namespace
     }
 
    #if ! JUCE_WASM
-    // if this file doesn't exist, find a parent of it that does..
+    // if this file doesn't exist, find a parent of it that does
     bool juce_doStatFS (File f, struct statfs& result)
     {
         for (int i = 5; --i >= 0;)
@@ -229,9 +238,6 @@ namespace
     {
         return value == -1 ? getResultForErrno() : Result::ok();
     }
-
-    int getFD (void* handle) noexcept        { return (int) (pointer_sized_int) handle; }
-    void* fdToVoidPointer (int fd) noexcept  { return (void*) (pointer_sized_int) fd; }
 }
 
 bool File::isDirectory() const
@@ -303,16 +309,16 @@ static bool setFileModeFlags (const String& fullPath, mode_t flags, bool shouldS
     info.st_mode &= 0777;
 
     if (shouldSet)
-        info.st_mode |= flags;
+        info.st_mode |= (decltype (info.st_mode)) flags;
     else
-        info.st_mode &= ~flags;
+        info.st_mode &= (decltype (info.st_mode)) ~flags;
 
     return chmod (fullPath.toUTF8(), (mode_t) info.st_mode) == 0;
 }
 
 bool File::setFileReadOnlyInternal (bool shouldBeReadOnly) const
 {
-    // Hmm.. should we give global write permission or just the current user?
+    // Should we give global write permission or just the current user?
     return setFileModeFlags (fullPath, S_IWUSR | S_IWGRP | S_IWOTH, ! shouldBeReadOnly);
 }
 
@@ -430,9 +436,9 @@ Result File::createDirectoryInternal (const String& fileName) const
 }
 
 //==============================================================================
-int64 juce_fileSetPosition (void* handle, int64 pos)
+int64 juce_fileSetPosition (detail::NativeFileHandle handle, int64 pos)
 {
-    if (handle != nullptr && lseek (getFD (handle), (off_t) pos, SEEK_SET) == pos)
+    if (handle.isValid() && lseek (handle.get(), (off_t) pos, SEEK_SET) == pos)
         return pos;
 
     return -1;
@@ -443,24 +449,24 @@ void FileInputStream::openHandle()
     auto f = open (file.getFullPathName().toUTF8(), O_RDONLY);
 
     if (f != -1)
-        fileHandle = fdToVoidPointer (f);
+        fileHandle.set (f);
     else
         status = getResultForErrno();
 }
 
 FileInputStream::~FileInputStream()
 {
-    if (fileHandle != nullptr)
-        close (getFD (fileHandle));
+    if (fileHandle.isValid())
+        close (fileHandle.get());
 }
 
 size_t FileInputStream::readInternal (void* buffer, size_t numBytes)
 {
     ssize_t result = 0;
 
-    if (fileHandle != nullptr)
+    if (fileHandle.isValid())
     {
-        result = ::read (getFD (fileHandle), buffer, numBytes);
+        result = ::read (fileHandle.get(), buffer, numBytes);
 
         if (result < 0)
         {
@@ -485,7 +491,7 @@ void FileOutputStream::openHandle()
 
             if (currentPosition >= 0)
             {
-                fileHandle = fdToVoidPointer (f);
+                fileHandle.set (f);
             }
             else
             {
@@ -503,7 +509,7 @@ void FileOutputStream::openHandle()
         auto f = open (file.getFullPathName().toUTF8(), O_RDWR | O_CREAT, 00644);
 
         if (f != -1)
-            fileHandle = fdToVoidPointer (f);
+            fileHandle.set (f);
         else
             status = getResultForErrno();
     }
@@ -511,19 +517,19 @@ void FileOutputStream::openHandle()
 
 void FileOutputStream::closeHandle()
 {
-    if (fileHandle != nullptr)
+    if (fileHandle.isValid())
     {
-        close (getFD (fileHandle));
-        fileHandle = nullptr;
+        close (fileHandle.get());
+        fileHandle.invalidate();
     }
 }
 
 ssize_t FileOutputStream::writeInternal (const void* data, size_t numBytes)
 {
-    if (fileHandle == nullptr)
+    if (! fileHandle.isValid())
         return 0;
 
-    auto result = ::write (getFD (fileHandle), data, numBytes);
+    auto result = ::write (fileHandle.get(), data, numBytes);
 
     if (result == -1)
         status = getResultForErrno();
@@ -534,18 +540,18 @@ ssize_t FileOutputStream::writeInternal (const void* data, size_t numBytes)
 #ifndef JUCE_ANDROID
 void FileOutputStream::flushInternal()
 {
-    if (fileHandle != nullptr && fsync (getFD (fileHandle)) == -1)
+    if (fileHandle.isValid() && fsync (fileHandle.get()) == -1)
         status = getResultForErrno();
 }
 #endif
 
 Result FileOutputStream::truncate()
 {
-    if (fileHandle == nullptr)
+    if (! fileHandle.isValid())
         return status;
 
     flush();
-    return getResultForReturnValue (ftruncate (getFD (fileHandle), (off_t) currentPosition));
+    return getResultForReturnValue (ftruncate (fileHandle.get(), (off_t) currentPosition));
 }
 
 //==============================================================================
@@ -701,7 +707,7 @@ void juce_runSystemCommand (const String& command)
 String juce_getOutputFromCommand (const String&);
 String juce_getOutputFromCommand (const String& command)
 {
-    // slight bodge here, as we just pipe the output into a temp file and read it...
+    // slight bodge here, as we just pipe the output into a temp file and read it
     auto tempFile = File::getSpecialLocation (File::tempDirectory)
                       .getNonexistentChildFile (String::toHexString (Random::getSystemRandom().nextInt()), ".tmp", false);
 
@@ -720,7 +726,7 @@ class InterProcessLock::Pimpl
 public:
     Pimpl (const String&, int)  {}
 
-    int handle = 1, refCount = 1;  // On iOS just fake success..
+    int handle = 1, refCount = 1;  // on iOS just fake success
 };
 
 #else
@@ -732,7 +738,7 @@ public:
     {
        #if JUCE_MAC
         if (! createLockFile (File ("~/Library/Caches/com.juce.locks").getChildFile (lockName), timeOutMillisecs))
-            // Fallback if the user's home folder is on a network drive with no ability to lock..
+            // fallback if the user's home folder is on a network drive with no ability to lock
             createLockFile (File ("/tmp/com.juce.locks").getChildFile (lockName), timeOutMillisecs);
 
        #else
@@ -789,7 +795,7 @@ public:
         }
 
         closeFile();
-        return true; // only false if there's a file system error. Failure to lock still returns true.
+        return true; // only false if there's a file system error. Failure to lock still returns true
     }
 
     void closeFile()
@@ -942,13 +948,14 @@ public:
 
     void apply ([[maybe_unused]] PosixThreadAttribute& attr) const
     {
-        #if JUCE_LINUX || JUCE_BSD
-         const struct sched_param param { getPriority() };
+       #if JUCE_LINUX || JUCE_BSD
+        struct sched_param param{};
+        param.sched_priority = getPriority();
 
-         pthread_attr_setinheritsched (attr.get(), PTHREAD_EXPLICIT_SCHED);
-         pthread_attr_setschedpolicy (attr.get(), getScheduler());
-         pthread_attr_setschedparam (attr.get(), &param);
-        #endif
+        pthread_attr_setinheritsched (attr.get(), PTHREAD_EXPLICIT_SCHED);
+        pthread_attr_setschedpolicy (attr.get(), getScheduler());
+        pthread_attr_setschedparam (attr.get(), &param);
+       #endif
     }
 
     constexpr int getScheduler() const { return scheduler; }
@@ -1061,7 +1068,7 @@ void JUCE_CALLTYPE Thread::setCurrentThreadAffinityMask ([[maybe_unused]] uint32
 bool DynamicLibrary::open (const String& name)
 {
     close();
-    handle = dlopen (name.isEmpty() ? nullptr : name.toUTF8().getAddress(), RTLD_LOCAL | RTLD_NOW);
+    handle = dlopen (name.isEmpty() ? nullptr : name.toRawUTF8(), RTLD_LOCAL | RTLD_NOW);
     return handle != nullptr;
 }
 
@@ -1121,7 +1128,7 @@ public:
             }
             else if (result == 0)
             {
-                // we're the child process..
+                // we're the child process
                 close (pipeHandles[0]);   // close the read handle
 
                 if ((streamFlags & wantStdOut) != 0)
@@ -1149,7 +1156,7 @@ public:
             }
             else
             {
-                // we're the parent process..
+                // we're the parent process
                 childPID = result;
                 pipeHandle = pipeHandles[0];
                 close (pipeHandles[1]); // close the write handle

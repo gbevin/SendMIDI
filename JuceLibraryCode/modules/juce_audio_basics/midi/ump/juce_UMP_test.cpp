@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -30,6 +42,14 @@ constexpr uint64_t operator""_u64 (unsigned long long int i) { return static_cas
 
 class UniversalMidiPacketTests final : public UnitTest
 {
+    static auto makeMidiMessageAppender (MidiBuffer& b)
+    {
+        return [&b] (const BytesOnGroup& x, double time)
+        {
+            b.addEvent (makeMidiMessage (x, time), (int) time);
+        };
+    }
+
 public:
     UniversalMidiPacketTests()
         : UnitTest ("Universal MIDI Packet", UnitTestCategories::midi)
@@ -40,9 +60,9 @@ public:
     {
         auto random = getRandom();
 
-        beginTest ("Short bytestream midi messages can be round-tripped through the UMP converter");
+        testCase ("Short bytestream midi messages can be round-tripped through the UMP converter", [&]
         {
-            Midi1ToBytestreamTranslator translator (0);
+            SingleGroupMidi1ToBytestreamTranslator translator (0);
 
             forEachNonSysExTestMessage (random, [&] (const MidiMessage& m)
             {
@@ -50,19 +70,37 @@ public:
                 expect (packets.size() == 1);
 
                 // Make sure that the message type is correct
-                const auto msgType = Utils::getMessageType (packets.data()[0]);
-                expect (msgType == ((m.getRawData()[0] >> 0x4) == 0xf ? 0x1 : 0x2));
+                expect (Utils::getMessageType (packets.data()[0])
+                        == ((m.getRawData()[0] >> 0x4) == 0xf
+                            ? Utils::MessageKind::commonRealtime
+                            : Utils::MessageKind::channelVoice1));
 
-                translator.dispatch (View {packets.data() },
-                                     0,
-                                     [&] (const BytestreamMidiView& roundTripped)
-                                     {
-                                         expect (equal (m, roundTripped.getMessage()));
-                                     });
+                translator.dispatch (View { packets.data() }, 0, [&] (const BytesOnGroup& roundTripped, double time)
+                {
+                    expect (equal (m, makeMidiMessage (roundTripped, time)));
+                });
             });
-        }
+        });
 
-        beginTest ("Bytestream SysEx converts to universal packets");
+        testCase ("Single-packet sysex messages have an appropriate time stamp", [&]
+        {
+            SingleGroupMidi1ToBytestreamTranslator translator (0);
+
+            const auto message = createRandomSysEx (random, 1);
+            const auto packets = toMidi1 (message);
+
+            const auto timestamp = random.nextDouble();
+            std::optional<double> receivedTimestamp;
+
+            translator.dispatch (View { packets.data() }, timestamp, [&] (const BytesOnGroup&, double time)
+            {
+                receivedTimestamp = time;
+            });
+
+            expect (receivedTimestamp == timestamp);
+        });
+
+        testCase ("Bytestream SysEx converts to universal packets", [&]
         {
             {
                 // Zero length message
@@ -121,7 +159,7 @@ public:
                 expect (packets.data()[4] == Utils::bytesToWord (std::byte { 0x30 },     std::byte { 0x31 },     std::byte { sysEx[12] }, std::byte { 0 }));
                 expect (packets.data()[5] == 0x00000000);
             }
-        }
+        });
 
         ToBytestreamDispatcher converter (0);
         Packets packets;
@@ -129,22 +167,16 @@ public:
         const auto checkRoundTrip = [&] (const MidiBuffer& expected)
         {
             for (const auto meta : expected)
-                Conversion::toMidi1 (ump::BytestreamMidiView (meta), [&] (const auto p) { packets.add (p); });
+                Conversion::toMidi1 ({ 0, meta.asSpan() }, [&] (const auto p) { packets.add (p); });
 
             MidiBuffer output;
-            converter.dispatch (packets.data(),
-                                packets.data() + packets.size(),
-                                0,
-                                [&] (const BytestreamMidiView& roundTripped)
-                                {
-                                    output.addEvent (roundTripped.getMessage(), int (roundTripped.timestamp));
-                                });
+            converter.dispatch (packets, 0, makeMidiMessageAppender (output));
             packets.clear();
 
             expect (equal (expected, output));
         };
 
-        beginTest ("Long SysEx bytestream midi messages can be round-tripped through the UMP converter");
+        testCase ("Long SysEx bytestream midi messages can be round-tripped through the UMP converter", [&]
         {
             for (auto length : { 0, 1, 2, 3, 4, 5, 6, 7, 13, 20, 100, 1000 })
             {
@@ -152,9 +184,9 @@ public:
                 expected.addEvent (createRandomSysEx (random, size_t (length)), 0);
                 checkRoundTrip (expected);
             }
-        }
+        });
 
-        beginTest ("UMP SysEx7 messages interspersed with utility messages convert to bytestream");
+        testCase ("UMP SysEx7 messages interspersed with utility messages convert to bytestream", [&]
         {
             const auto sysEx = createRandomSysEx (random, 100);
             const auto originalPackets = toMidi1 (sysEx);
@@ -175,22 +207,16 @@ public:
             }
 
             MidiBuffer output;
-            converter.dispatch (modifiedPackets.data(),
-                                modifiedPackets.data() + modifiedPackets.size(),
-                                0,
-                                [&] (const BytestreamMidiView& roundTripped)
-                                {
-                                    output.addEvent (roundTripped.getMessage(), int (roundTripped.timestamp));
-                                });
+            converter.dispatch (modifiedPackets, 0, makeMidiMessageAppender (output));
 
             // All Utility messages should have been ignored
             expect (output.getNumEvents() == 1);
 
             for (const auto meta : output)
                 expect (equal (meta.getMessage(), sysEx));
-        }
+        });
 
-        beginTest ("UMP SysEx7 messages interspersed with System Realtime messages convert to bytestream");
+        testCase ("UMP SysEx7 messages interspersed with System Realtime messages convert to bytestream", [&]
         {
             const auto sysEx = createRandomSysEx (random, 200);
             const auto originalPackets = toMidi1 (sysEx);
@@ -202,7 +228,7 @@ public:
             {
                 const auto newPacket = createRandomRealtimeUMP (random);
                 modifiedPackets.add (View (newPacket.data()));
-                realtimeMessages.addEvent (Midi1ToBytestreamTranslator::fromUmp (newPacket), 0);
+                realtimeMessages.addEvent (SingleGroupMidi1ToBytestreamExtractor::fromUmp (newPacket), 0);
             };
 
             for (const auto& packet : originalPackets)
@@ -213,13 +239,7 @@ public:
             }
 
             MidiBuffer output;
-            converter.dispatch (modifiedPackets.data(),
-                                modifiedPackets.data() + modifiedPackets.size(),
-                                0,
-                                [&] (const BytestreamMidiView& roundTripped)
-                                {
-                                    output.addEvent (roundTripped.getMessage(), int (roundTripped.timestamp));
-                                });
+            converter.dispatch (modifiedPackets, 0, makeMidiMessageAppender (output));
 
             const auto numOutputs = output.getNumEvents();
             const auto numInputs = realtimeMessages.getNumEvents();
@@ -247,9 +267,9 @@ public:
                     ++it;
                 }
             }
-        }
+        });
 
-        beginTest ("UMP SysEx7 messages interspersed with System Realtime and Utility messages convert to bytestream");
+        testCase ("UMP SysEx7 messages interspersed with System Realtime and Utility messages convert to bytestream", [&]
         {
             const auto sysEx = createRandomSysEx (random, 300);
             const auto originalPackets = toMidi1 (sysEx);
@@ -261,7 +281,7 @@ public:
             {
                 const auto newPacket = createRandomRealtimeUMP (random);
                 modifiedPackets.add (View (newPacket.data()));
-                realtimeMessages.addEvent (Midi1ToBytestreamTranslator::fromUmp (newPacket), 0);
+                realtimeMessages.addEvent (SingleGroupMidi1ToBytestreamExtractor::fromUmp (newPacket), 0);
             };
 
             const auto addRandomUtilityUMP = [&]
@@ -280,13 +300,7 @@ public:
             }
 
             MidiBuffer output;
-            converter.dispatch (modifiedPackets.data(),
-                                modifiedPackets.data() + modifiedPackets.size(),
-                                0,
-                                [&] (const BytestreamMidiView& roundTripped)
-                                {
-                                    output.addEvent (roundTripped.getMessage(), int (roundTripped.timestamp));
-                                });
+            converter.dispatch (modifiedPackets, 0, makeMidiMessageAppender (output));
 
             const auto numOutputs = output.getNumEvents();
             const auto numInputs = realtimeMessages.getNumEvents();
@@ -313,9 +327,9 @@ public:
                     ++it;
                 }
             }
-        }
+        });
 
-        beginTest ("SysEx messages are terminated by non-Utility, non-Realtime messages");
+        testCase ("SysEx messages are terminated by non-Utility, non-Realtime messages", [&]
         {
             const auto noteOn = [&]
             {
@@ -329,7 +343,7 @@ public:
                 Packets p;
 
                 for (const auto meta : noteOn)
-                    Conversion::toMidi1 (ump::BytestreamMidiView (meta), [&] (const auto packet) { p.add (packet); });
+                    Conversion::toMidi1 ({ 0, meta.asSpan() }, [&] (const auto packet) { p.add (packet); });
 
                 return p;
             }();
@@ -363,13 +377,7 @@ public:
 
             const auto pushToOutput = [&] (const Packets& p)
             {
-                converter.dispatch (p.data(),
-                                    p.data() + p.size(),
-                                    0,
-                                    [&] (const BytestreamMidiView& roundTripped)
-                                    {
-                                        output.addEvent (roundTripped.getMessage(), int (roundTripped.timestamp));
-                                    });
+                converter.dispatch (p, 0, makeMidiMessageAppender (output));
             };
 
             pushToOutput (modifiedPackets);
@@ -391,9 +399,9 @@ public:
 
             for (const auto meta : output)
                 expect (equal (meta.getMessage(), newSysEx));
-        }
+        });
 
-        beginTest ("Widening conversions work");
+        testCase ("Widening conversions work", [&]
         {
             // This is similar to the 'slow' example code from the MIDI 2.0 spec
             const auto baselineScale = [] (uint32_t srcVal, uint32_t srcBits, uint32_t dstBits)
@@ -495,9 +503,9 @@ public:
                 expectEquals ((int64_t) Conversion::scaleTo32 (rand),
                               (int64_t) baselineScale14To32 (rand));
             }
-        }
+        });
 
-        beginTest ("Round-trip widening/narrowing conversions work");
+        testCase ("Round-trip widening/narrowing conversions work", [&]
         {
             for (auto i = 0; i != 100; ++i)
             {
@@ -526,9 +534,9 @@ public:
                     expectEquals ((uint64_t) Conversion::scaleTo14 (Conversion::scaleTo32 (rand)), (uint64_t) rand);
                 }
             }
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 note on conversions");
+        testCase ("MIDI 2 -> 1 note on conversions", [&]
         {
             {
                 Packets midi2;
@@ -550,9 +558,9 @@ public:
 
                 checkMidi2ToMidi1Conversion (midi2, midi1);
             }
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 note off conversion");
+        testCase ("MIDI 2 -> 1 note off conversion", [&]
         {
             Packets midi2;
             midi2.add (PacketX2 { 0x448b0520, 0xfedcba98 });
@@ -561,9 +569,9 @@ public:
             midi1.add (PacketX1 { 0x248b057f });
 
             checkMidi2ToMidi1Conversion (midi2, midi1);
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 poly pressure conversion");
+        testCase ("MIDI 2 -> 1 poly pressure conversion", [&]
         {
             Packets midi2;
             midi2.add (PacketX2 { 0x49af0520, 0x80dcba98 });
@@ -572,9 +580,9 @@ public:
             midi1.add (PacketX1 { 0x29af0540 });
 
             checkMidi2ToMidi1Conversion (midi2, midi1);
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 control change conversion");
+        testCase ("MIDI 2 -> 1 control change conversion", [&]
         {
             Packets midi2;
             midi2.add (PacketX2 { 0x49b00520, 0x80dcba98 });
@@ -583,9 +591,9 @@ public:
             midi1.add (PacketX1 { 0x29b00540 });
 
             checkMidi2ToMidi1Conversion (midi2, midi1);
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 channel pressure conversion");
+        testCase ("MIDI 2 -> 1 channel pressure conversion", [&]
         {
             Packets midi2;
             midi2.add (PacketX2 { 0x40d20520, 0x80dcba98 });
@@ -594,9 +602,9 @@ public:
             midi1.add (PacketX1 { 0x20d24000 });
 
             checkMidi2ToMidi1Conversion (midi2, midi1);
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 nrpn rpn conversion");
+        testCase ("MIDI 2 -> 1 nrpn rpn conversion", [&]
         {
             {
                 Packets midi2;
@@ -623,9 +631,9 @@ public:
 
                 checkMidi2ToMidi1Conversion (midi2, midi1);
             }
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 program change and bank select conversion");
+        testCase ("MIDI 2 -> 1 program change and bank select conversion", [&]
         {
             {
                 // If the bank valid bit is 0, just emit a program change
@@ -650,9 +658,9 @@ public:
 
                 checkMidi2ToMidi1Conversion (midi2, midi1);
             }
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 pitch bend conversion");
+        testCase ("MIDI 2 -> 1 pitch bend conversion", [&]
         {
             Packets midi2;
             midi2.add (PacketX2 { 0x4eee0000, 0x12340000 });
@@ -661,9 +669,9 @@ public:
             midi1.add (PacketX1 { 0x2eee0d09 });
 
             checkMidi2ToMidi1Conversion (midi2, midi1);
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 messages which don't convert");
+        testCase ("MIDI 2 -> 1 messages which don't convert", [&]
         {
             const std::byte opcodes[] { std::byte { 0x0 },
                                         std::byte { 0x1 },
@@ -678,9 +686,9 @@ public:
                 midi2.add (PacketX2 { Utils::bytesToWord (std::byte { 0x40 }, std::byte { opcode << 0x4 }, std::byte { 0 }, std::byte { 0 }), 0x0 });
                 checkMidi2ToMidi1Conversion (midi2, {});
             }
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 messages which are passed through");
+        testCase ("MIDI 2 -> 1 messages which are passed through", [&]
         {
             const uint8_t typecodesX1[] { 0x0, 0x1, 0x2 };
 
@@ -709,9 +717,9 @@ public:
 
                 checkMidi2ToMidi1Conversion (p, p);
             }
-        }
+        });
 
-        beginTest ("MIDI 2 -> 1 control changes which should be ignored");
+        testCase ("MIDI 2 -> 1 control changes which should be ignored", [&]
         {
             const uint8_t CCs[] { 6, 38, 98, 99, 100, 101, 0, 32 };
 
@@ -722,9 +730,9 @@ public:
 
                 checkMidi2ToMidi1Conversion (midi2, {});
             }
-        }
+        });
 
-        beginTest ("MIDI 1 -> 2 note on conversions");
+        testCase ("MIDI 1 -> 2 note on conversions", [&]
         {
             {
                 Packets midi1;
@@ -746,9 +754,9 @@ public:
 
                 checkMidi1ToMidi2Conversion (midi1, midi2);
             }
-        }
+        });
 
-        beginTest ("MIDI 1 -> 2 note off conversions");
+        testCase ("MIDI 1 -> 2 note off conversions", [&]
         {
             Packets midi1;
             midi1.add (PacketX1 { 0x21831020 });
@@ -757,9 +765,9 @@ public:
             midi2.add (PacketX2 { 0x41831000, static_cast<uint32_t> (Conversion::scaleTo16 (0x20_u8)) << 0x10 });
 
             checkMidi1ToMidi2Conversion (midi1, midi2);
-        }
+        });
 
-        beginTest ("MIDI 1 -> 2 poly pressure conversions");
+        testCase ("MIDI 1 -> 2 poly pressure conversions", [&]
         {
             Packets midi1;
             midi1.add (PacketX1 { 0x20af7330 });
@@ -768,9 +776,9 @@ public:
             midi2.add (PacketX2 { 0x40af7300, Conversion::scaleTo32 (0x30_u8) });
 
             checkMidi1ToMidi2Conversion (midi1, midi2);
-        }
+        });
 
-        beginTest ("individual MIDI 1 -> 2 control changes which should be ignored");
+        testCase ("individual MIDI 1 -> 2 control changes which should be ignored", [&]
         {
             const uint8_t CCs[] { 6, 38, 98, 99, 100, 101, 0, 32 };
 
@@ -781,9 +789,9 @@ public:
 
                 checkMidi1ToMidi2Conversion (midi1, {});
             }
-        }
+        });
 
-        beginTest ("MIDI 1 -> 2 control change conversions");
+        testCase ("MIDI 1 -> 2 control change conversions", [&]
         {
             // normal control change
             {
@@ -823,9 +831,9 @@ public:
 
                 checkMidi1ToMidi2Conversion (midi1, midi2);
             }
-        }
+        });
 
-        beginTest ("MIDI 1 -> MIDI 2 program change and bank select");
+        testCase ("MIDI 1 -> MIDI 2 program change and bank select", [&]
         {
             Packets midi1;
             // program change with bank
@@ -840,9 +848,9 @@ public:
             midi2.add (PacketX2 { 0x40c00000, 0x10000000 });
 
             checkMidi1ToMidi2Conversion (midi1, midi2);
-        }
+        });
 
-        beginTest ("MIDI 1 -> MIDI 2 channel pressure conversions");
+        testCase ("MIDI 1 -> MIDI 2 channel pressure conversions", [&]
         {
             Packets midi1;
             midi1.add (PacketX1 { 0x20df3000 });
@@ -851,9 +859,9 @@ public:
             midi2.add (PacketX2 { 0x40df0000, Conversion::scaleTo32 (0x30_u8) });
 
             checkMidi1ToMidi2Conversion (midi1, midi2);
-        }
+        });
 
-        beginTest ("MIDI 1 -> MIDI 2 pitch bend conversions");
+        testCase ("MIDI 1 -> MIDI 2 pitch bend conversions", [&]
         {
             Packets midi1;
             midi1.add (PacketX1 { 0x20e74567 });
@@ -862,14 +870,14 @@ public:
             midi2.add (PacketX2 { 0x40e70000, Conversion::scaleTo32 (static_cast<uint16_t> ((0x67 << 7) | 0x45)) });
 
             checkMidi1ToMidi2Conversion (midi1, midi2);
-        }
+        });
     }
 
 private:
     static Packets toMidi1 (const MidiMessage& msg)
     {
         Packets packets;
-        Conversion::toMidi1 (ump::BytestreamMidiView (&msg), [&] (const auto p) { packets.add (p); });
+        Conversion::toMidi1 ({ 0, msg.asSpan() }, [&] (const auto p) { packets.add (p); });
         return packets;
     }
 
@@ -998,6 +1006,11 @@ private:
     static bool equal (const MidiBuffer& a, const MidiBuffer& b) noexcept
     {
         return a.data == b.data;
+    }
+
+    static MidiMessage makeMidiMessage (const BytesOnGroup& b, double time)
+    {
+        return { b.bytes.data(), (int) b.bytes.size(), time };
     }
 };
 

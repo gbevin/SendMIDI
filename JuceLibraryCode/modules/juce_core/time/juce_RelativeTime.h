@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -37,12 +49,22 @@ class JUCE_API  RelativeTime
 {
 public:
     //==============================================================================
+    /** Creates a RelativeTime with a period of zero seconds. */
+    RelativeTime() noexcept = default;
+
+    //==============================================================================
     /** Creates a RelativeTime.
 
         @param seconds  the number of seconds, which may be +ve or -ve.
         @see milliseconds, minutes, hours, days, weeks
     */
-    explicit RelativeTime (double seconds = 0.0) noexcept;
+    explicit RelativeTime (double seconds) noexcept;
+
+    /** Creates a relative time from a std::chrono::duration. */
+    template <typename Rep, typename Period>
+    explicit RelativeTime (std::chrono::duration<Rep, Period> duration) noexcept
+        : RelativeTime (std::chrono::duration_cast<Seconds> (duration).count())
+    {}
 
     /** Copies another relative time. */
     RelativeTime (const RelativeTime& other) noexcept;
@@ -120,6 +142,20 @@ public:
     */
     double inWeeks() const noexcept;
 
+    /** Converts this RelativeTime to a numeric value in the requested time unit. */
+    template <typename TimeUnit>
+    auto to() const noexcept
+    {
+        return toStdDuration<TimeUnit>().count();
+    }
+
+    /** Converts this RelativeTime to a std::chrono::duration. */
+    template <typename DurationType>
+    auto toStdDuration() const noexcept
+    {
+        return std::chrono::duration_cast<DurationType> (Seconds { numSeconds });
+    }
+
     /** Returns a readable textual description of the time.
 
         The exact format of the string returned will depend on
@@ -158,7 +194,7 @@ public:
 
 private:
     //==============================================================================
-    double numSeconds;
+    double numSeconds{};
 };
 
 //==============================================================================

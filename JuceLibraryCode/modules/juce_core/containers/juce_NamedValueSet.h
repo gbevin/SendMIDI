@@ -1,27 +1,50 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
 
 namespace juce
 {
+//==============================================================================
+/** Structure for a named var object, used as an element of a NamedValueSet. */
+class JUCE_API  NamedValue
+{
+public:
+    bool operator== (const NamedValue&) const noexcept;
+    bool operator!= (const NamedValue&) const noexcept;
+
+    Identifier name;
+    var value;
+};
 
 //==============================================================================
 /** Holds a set of named var objects.
@@ -34,42 +57,14 @@ namespace juce
 class JUCE_API  NamedValueSet
 {
 public:
-    //==============================================================================
-    /** Structure for a named var object */
-    struct JUCE_API  NamedValue
-    {
-        NamedValue() noexcept;
-        ~NamedValue() noexcept;
-
-        NamedValue (const Identifier& name, const var& value);
-        NamedValue (const Identifier& name, var&& value) noexcept;
-        NamedValue (Identifier&& name, var&& value) noexcept;
-
-        NamedValue (const NamedValue&);
-        NamedValue (NamedValue&&) noexcept;
-        NamedValue& operator= (NamedValue&&) noexcept;
-
-        bool operator== (const NamedValue&) const noexcept;
-        bool operator!= (const NamedValue&) const noexcept;
-
-        Identifier name;
-        var value;
-    };
+    using NamedValue = juce::NamedValue;
 
     //==============================================================================
     /** Creates an empty set. */
-    NamedValueSet() noexcept;
-
-    NamedValueSet (const NamedValueSet&);
-    NamedValueSet (NamedValueSet&&) noexcept;
-    NamedValueSet& operator= (const NamedValueSet&);
-    NamedValueSet& operator= (NamedValueSet&&) noexcept;
+    NamedValueSet() noexcept = default;
 
     /** Creates a NamedValueSet from a list of names and properties. */
     NamedValueSet (std::initializer_list<NamedValue>);
-
-    /** Destructor. */
-    ~NamedValueSet() noexcept;
 
     /** Two NamedValueSets are considered equal if they contain all the same key/value
         pairs, regardless of the order.
@@ -77,8 +72,15 @@ public:
     bool operator== (const NamedValueSet&) const noexcept;
     bool operator!= (const NamedValueSet&) const noexcept;
 
-    const NamedValueSet::NamedValue* begin() const noexcept     { return values.begin(); }
-    const NamedValueSet::NamedValue* end() const noexcept       { return values.end();   }
+    const NamedValue* begin() const noexcept     { return values.begin(); }
+    const NamedValue* end() const noexcept       { return values.end();   }
+
+    Span<NamedValue> asSpan() & { return { values.data(), (size_t) values.size() }; }
+    Span<const NamedValue> asSpan() const& { return { values.data(), (size_t) values.size() }; }
+
+    /*  These functions are deleted to help avoid accidentally forming a span over a temporary. */
+    Span<NamedValue> asSpan() && = delete;
+    Span<const NamedValue> asSpan() const&& = delete;
 
     //==============================================================================
     /** Returns the total number of values that the set contains. */

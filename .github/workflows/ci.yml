@@ -147,15 +147,25 @@ jobs:
 
       - name: Install a loopback MIDI port (Windows)
         if: runner.os == 'Windows'
-        # the Win32 MIDI API has no virtual ports, so loopMIDI provides one; its
-        # ports only exist while its tray application runs, and it starts with
-        # none, so the "+" button of its window is pressed through UI Automation
+        # the Win32 MIDI API has no virtual ports, so loopMIDI provides them; its
+        # ports only exist while its tray application runs and come from the
+        # registry, so two are seeded there, with a press of the "+" button of
+        # its window as the fallback
         shell: pwsh
         run: |
           winget install --id TobiasErichsen.loopMIDI --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
           $exe = Get-ChildItem -Path "${env:ProgramFiles}\Tobias Erichsen\loopMIDI\loopMIDI.exe", "${env:ProgramFiles(x86)}\Tobias Erichsen\loopMIDI\loopMIDI.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $exe) { throw "loopMIDI.exe was not installed" }
+          reg add "HKCU\Software\Tobias Erichsen\loopMIDI\Ports" /v "loopMIDI Port" /t REG_DWORD /d 1 /f | Out-Null
+          reg add "HKCU\Software\Tobias Erichsen\loopMIDI\Ports" /v "loopMIDI Port 2" /t REG_DWORD /d 1 /f | Out-Null
           Start-Process -FilePath $exe.FullName
+          $port = $null
+          foreach ($i in 1..30) {
+            Start-Sleep -Milliseconds 500
+            $port = & .\Builds\VisualStudio2022\x64\Release\ConsoleApp\sendmidi.exe list | Where-Object { $_ -match 'loopMIDI' } | Select-Object -First 1
+            if ($port) { break }
+          }
+          if (-not $port) {
           Add-Type -AssemblyName UIAutomationClient
           Add-Type -AssemblyName UIAutomationTypes
           $root = [System.Windows.Automation.AutomationElement]::RootElement
@@ -188,6 +198,7 @@ jobs:
               [Native.Win]::mouse_event(4, 0, 0, 0, [System.UIntPtr]::Zero)
             }
           }
+          }
           $port = $null
           foreach ($i in 1..60) {
             Start-Sleep -Milliseconds 500
@@ -201,6 +212,8 @@ jobs:
       - name: End-to-end test (Windows)
         if: runner.os == 'Windows'
         shell: bash
+        env:
+          E2E_TRACE: 1
         run: |
           ./Scripts/e2e-test.sh ./Builds/VisualStudio2022/x64/Release/ConsoleApp/sendmidi.exe \
             e2e/receivemidi/Builds/VisualStudio2022/x64/Release/ConsoleApp/receivemidi.exe
@@ -252,3 +265,25 @@ jobs:
 
       - name: Smoke test (i686)
         run: ./Builds/LinuxMakefile/build/sendmidi --version | grep -q "sendmidi v"
+
+  # Temporary probe: which Ubuntu runner kernels still carry the ALSA
+  # sequencer that virtual MIDI ports need
+  linux-sequencer-probe:
+    name: Sequencer probe ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-22.04-arm, ubuntu-24.04-arm]
+    steps:
+      - run: |
+          uname -r
+          grep -E "CONFIG_SOUND|CONFIG_SND=|CONFIG_SND_SEQ" "/boot/config-$(uname -r)" || true
+          sudo modprobe snd-seq 2>&1 || true
+          if [ ! -c /dev/snd/seq ]; then
+            sudo apt-get install -y "linux-modules-extra-$(uname -r)" 2>&1 | tail -2 || true
+            sudo depmod -a
+            sudo modprobe snd-seq 2>&1 || true
+          fi
+          ls -la /dev/snd 2>&1 || true
+          [ -c /dev/snd/seq ] && echo "SEQUENCER AVAILABLE on ${{ matrix.os }}" || echo "no sequencer on ${{ matrix.os }}"

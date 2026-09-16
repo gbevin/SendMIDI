@@ -13,6 +13,9 @@
 # are open, and the end marker tells when everything before it has arrived.
 
 set -u
+if [ -n "${E2E_TRACE:-}" ]; then
+    set -x
+fi
 
 SENDMIDI="$1"
 RECEIVEMIDI="$2"

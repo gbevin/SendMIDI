@@ -274,9 +274,19 @@ if virtual_ports; then
     else
         fail "ports sharing a name are listed numbered" "$listing"
     fi
-    check "a numbered name picks that port only" \
-        "$(printf 'channel  1   note-on           E3 100\n---\nchannel  1   note-on          D#3 100')" \
-        "$(tr -d '\r' < "$WORK/twin1.txt"; echo ---; tr -d '\r' < "$WORK/twin2.txt")"
+    # the numbering follows the order the system lists the ports, which is not
+    # the order they were created, so each numbered name has to reach one port
+    # and one note each, whichever way round that is
+    first=$(grep -c . "$WORK/twin1.txt")
+    second=$(grep -c . "$WORK/twin2.txt")
+    if [ "$first" = "1" ] && [ "$second" = "1" ]; then
+        pass "each numbered name reaches exactly one of the ports"
+    else
+        fail "each numbered name reaches exactly one of the ports" "$first line(s) and $second line(s)"
+    fi
+    check "the numbered names deliver both notes" \
+        "$(printf 'channel  1   note-on          D#3 100\nchannel  1   note-on           E3 100' | sort)" \
+        "$( { tr -d '\r' < "$WORK/twin1.txt"; tr -d '\r' < "$WORK/twin2.txt"; } | sort)"
 
     # --- the MPE Profile negotiates through MIDI-CI, including the details ---
     name="E2E sendmidi mpe $$ $RANDOM"

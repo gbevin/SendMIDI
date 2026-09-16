@@ -80,7 +80,11 @@ jobs:
         # the runners have no sound hardware; the sequencer module alone is what
         # virtual MIDI ports need
         run: |
-          sudo modprobe snd-seq || { sudo apt-get install -y "linux-modules-extra-$(uname -r)" && sudo modprobe snd-seq; }
+          if ! sudo modprobe snd-seq 2>/dev/null; then
+            sudo apt-get install -y "linux-modules-extra-$(uname -r)"
+            sudo depmod -a
+            sudo modprobe snd-seq || { find "/lib/modules/$(uname -r)" -name 'snd-seq*'; exit 1; }
+          fi
           sudo chmod 666 /dev/snd/seq
 
       - name: Build (Linux)
@@ -136,13 +140,30 @@ jobs:
       - name: Install a loopback MIDI port (Windows)
         if: runner.os == 'Windows'
         # the Win32 MIDI API has no virtual ports, so loopMIDI provides one; its
-        # ports only exist while its tray application runs
+        # ports only exist while its tray application runs, and it starts with
+        # none, so the "+" button of its window is pressed through UI Automation
         shell: pwsh
         run: |
           winget install --id TobiasErichsen.loopMIDI --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
           $exe = Get-ChildItem -Path "${env:ProgramFiles}\Tobias Erichsen\loopMIDI\loopMIDI.exe", "${env:ProgramFiles(x86)}\Tobias Erichsen\loopMIDI\loopMIDI.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $exe) { throw "loopMIDI.exe was not installed" }
           Start-Process -FilePath $exe.FullName
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -AssemblyName UIAutomationTypes
+          $root = [System.Windows.Automation.AutomationElement]::RootElement
+          $window = $null
+          foreach ($i in 1..40) {
+            Start-Sleep -Milliseconds 500
+            $window = $root.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition) | Where-Object { $_.Current.Name -like 'loopMIDI*' } | Select-Object -First 1
+            if ($window) { break }
+          }
+          if (-not $window) { throw "the loopMIDI window did not appear" }
+          $plus = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition) | Where-Object { $_.Current.Name -eq '+' } | Select-Object -First 1
+          if (-not $plus) {
+            $window.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { "{0} [{1}]" -f $_.Current.Name, $_.Current.ControlType.ProgrammaticName }
+            throw "the + button was not found in the loopMIDI window"
+          }
+          $plus.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
           $port = $null
           foreach ($i in 1..60) {
             Start-Sleep -Milliseconds 500

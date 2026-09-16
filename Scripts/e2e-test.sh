@@ -40,14 +40,22 @@ fail() {
 }
 
 # compares two multi-line strings and reports the difference
+# the expected text below is written the way the tools lay it out, so it stays
+# readable, but only the words are compared: a change to the column widths of
+# another tool must not fail these tests
+normalise() {
+    printf '%s\n' "$1" | tr -s ' ' | sed 's/[[:space:]]*$//'
+}
+
 check() {
-    local name="$1" expected="$2" actual="$3"
+    local name="$1" expected actual
+    expected="$(normalise "$2")" actual="$(normalise "$3")"
     if [ "$expected" = "$actual" ]; then
         pass "$name"
     else
         fail "$name"
-        echo "--- expected -------"; printf '%s\n' "$expected"
-        echo "--- actual ---------"; printf '%s\n' "$actual"
+        echo "--- expected -------"; printf '%s\n' "$2"
+        echo "--- actual ---------"; printf '%s\n' "$3"
         echo "--------------------"
     fi
 }

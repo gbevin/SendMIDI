@@ -36,9 +36,12 @@ namespace ansi
     // the terminal's default foreground on purpose, so they stay legible on both
     // dark and light backgrounds without needing to know which one it is.
     struct Role { const char* truecolor; const char* basic; };
-    static const Role label   { "38;2;232;121;76",  "33" };   // terracotta: Usage/Commands headers
-    static const Role command { "38;2;109;188;128", "32" };   // sage green: command and flag names
-    static const Role option  { "38;2;126;167;205", "34" };   // steel blue: option placeholders and the URL
+    // terracotta: Usage/Commands headers
+    static const Role label   { "38;2;232;121;76",  "33" };
+    // sage green: command and flag names
+    static const Role command { "38;2;109;188;128", "32" };
+    // steel blue: option placeholders and the URL
+    static const Role option  { "38;2;126;167;205", "34" };
 
     static bool enabled()
     {
@@ -56,7 +59,7 @@ namespace ansi
     // wraps text in the role's color, or returns it unchanged when color is off
     static String paint(const Role& role, const String& text)
     {
-        if (! enabled() || text.isEmpty())
+        if (!enabled() || text.isEmpty())
         {
             return text;
         }
@@ -737,8 +740,10 @@ void ApplicationState::printUsage()
             longestOption = jmax(longestOption, option.length());
         }
     }
-    const int optionColumn = longestCommand + 3;              // where the options start
-    const int descriptionColumn = optionColumn + longestOption + 1;  // where the description starts
+    // where the options start
+    const int optionColumn = longestCommand + 3;
+    // where the description starts
+    const int descriptionColumn = optionColumn + longestOption + 1;
 
     for (auto&& cmd : commands_)
     {
@@ -795,7 +800,8 @@ void ApplicationState::printUsage()
             if (i < descriptionLines.size())
             {
                 padTo(descriptionColumn);
-                out << descriptionLines.getReference(i);   // description in the default color
+                // description in the default color
+                out << descriptionLines.getReference(i);
             }
 
             std::cout << out << std::endl;
@@ -862,7 +868,7 @@ void ApplicationState::printUsage()
     };
     auto note = [&isCommandName](const String& text)
     {
-        if (! ansi::enabled())
+        if (!ansi::enabled())
         {
             return text;
         }
@@ -876,7 +882,7 @@ void ApplicationState::printUsage()
             if (close < 0) { out << text.substring(i); break; }
             const String inner = text.substring(open + 1, close);
             const bool tint = inner.startsWith("--")
-                              || (! inner.containsChar(' ') && isCommandName(inner));
+                              || (!inner.containsChar(' ') && isCommandName(inner));
             out << text.substring(i, open + 1)
                 << (tint ? ansi::paint(ansi::command, inner) : inner) << "\"";
             i = close + 1;

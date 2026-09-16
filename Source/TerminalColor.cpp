@@ -46,16 +46,18 @@ bool terminalSupportsColor()
 {
     if (std::getenv("NO_COLOR") != nullptr)
     {
-        return false;   // a hard user opt-out; wins over CLICOLOR_FORCE
+        // a hard user opt-out; wins over CLICOLOR_FORCE
+        return false;
     }
     const char* force = std::getenv("CLICOLOR_FORCE");
     const bool forced = force != nullptr && String(force) != "0";
 
    #if JUCE_WINDOWS
     const bool tty = _isatty(_fileno(stdout)) != 0;
-    if (! forced && ! tty)
+    if (!forced && !tty)
     {
-        return false;   // piped or redirected and not forced: plain text
+        // piped or redirected and not forced: plain text
+        return false;
     }
     // writing to a real console, the escapes only render once virtual
     // terminal processing is on (Windows 10+); if that can't be enabled the
@@ -67,8 +69,8 @@ bool terminalSupportsColor()
         HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
         DWORD mode = 0;
         if (out == INVALID_HANDLE_VALUE || out == nullptr
-            || ! GetConsoleMode(out, &mode)
-            || ! SetConsoleMode(out, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+            || !GetConsoleMode(out, &mode)
+            || !SetConsoleMode(out, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
         {
             return false;
         }
@@ -77,11 +79,13 @@ bool terminalSupportsColor()
    #else
     if (forced)
     {
-        return true;   // explicitly forced, even when not a terminal
+        // explicitly forced, even when not a terminal
+        return true;
     }
     if (isatty(fileno(stdout)) == 0)
     {
-        return false;   // piped or redirected: emit plain text
+        // piped or redirected: emit plain text
+        return false;
     }
     const char* term = std::getenv("TERM");
     if (term != nullptr && String(term) == "dumb")

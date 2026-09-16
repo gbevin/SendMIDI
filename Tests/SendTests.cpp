@@ -77,9 +77,12 @@ public:
             expectEquals(m.size(), 2);
             expect(m[0].isController());
             expectEquals(m[0].getControllerNumber(), 1);
-            expectEquals(m[0].getControllerValue(), 1000 >> 7);          // MSB = 7
-            expectEquals(m[1].getControllerNumber(), 1 + 32);            // LSB controller
-            expectEquals(m[1].getControllerValue(), 1000 & 0x7f);        // LSB = 104
+            // MSB = 7
+            expectEquals(m[0].getControllerValue(), 1000 >> 7);
+            // LSB controller
+            expectEquals(m[1].getControllerNumber(), 1 + 32);
+            // LSB = 104
+            expectEquals(m[1].getControllerValue(), 1000 & 0x7f);
         }
 
         beginTest("RPN emits select, data entry and closing null");
@@ -92,11 +95,16 @@ public:
                 expectEquals(m[i].getControllerNumber(), num);
                 expectEquals(m[i].getControllerValue(), val);
             };
-            isCc(0, 101, 1 >> 7);                          // RPN MSB of param 1 -> 0
-            isCc(1, 100, 1 & 0x7f);                        // RPN LSB of param 1 -> 1
-            isCc(2, 6,  200 >> 7);                          // data entry MSB -> 1
-            isCc(3, 38, 200 & 0x7f);                        // data entry LSB -> 72
-            isCc(4, 101, 0x7f);                             // null RPN
+            // RPN MSB of param 1 -> 0
+            isCc(0, 101, 1 >> 7);
+            // RPN LSB of param 1 -> 1
+            isCc(1, 100, 1 & 0x7f);
+            // data entry MSB -> 1
+            isCc(2, 6,  200 >> 7);
+            // data entry LSB -> 72
+            isCc(3, 38, 200 & 0x7f);
+            // null RPN
+            isCc(4, 101, 0x7f);
             isCc(5, 100, 0x7f);
         }
 
@@ -105,13 +113,17 @@ public:
             auto m = ApplicationState().collectLine("nrpn 1000 200");
             expectEquals(m.size(), 6);
             expectEquals(m[0].getControllerNumber(), 99);
-            expectEquals(m[0].getControllerValue(), 1000 >> 7);   // 7
+            // 7
+            expectEquals(m[0].getControllerValue(), 1000 >> 7);
             expectEquals(m[1].getControllerNumber(), 98);
-            expectEquals(m[1].getControllerValue(), 1000 & 0x7f); // 104
+            // 104
+            expectEquals(m[1].getControllerValue(), 1000 & 0x7f);
             expectEquals(m[2].getControllerNumber(), 6);
-            expectEquals(m[2].getControllerValue(), 200 >> 7);    // 1
+            // 1
+            expectEquals(m[2].getControllerValue(), 200 >> 7);
             expectEquals(m[3].getControllerNumber(), 38);
-            expectEquals(m[3].getControllerValue(), 200 & 0x7f);  // 72
+            // 72
+            expectEquals(m[3].getControllerValue(), 200 & 0x7f);
         }
 
         beginTest("MPE configuration declares the member range via RPN 6");
@@ -120,12 +132,16 @@ public:
             auto m = ApplicationState().collectLine("mpe 1 5");
             expectEquals(m.size(), 6);
             expectEquals(m[0].getChannel(), 1);
-            expectEquals(m[0].getControllerNumber(), 101);     // RPN MSB
-            expectEquals(m[0].getControllerValue(), 0);        // param 6 -> MSB 0
+            // RPN MSB
+            expectEquals(m[0].getControllerNumber(), 101);
+            // param 6 -> MSB 0
+            expectEquals(m[0].getControllerValue(), 0);
             expectEquals(m[1].getControllerNumber(), 100);
-            expectEquals(m[1].getControllerValue(), 6);        // param 6 -> LSB 6
+            // param 6 -> LSB 6
+            expectEquals(m[1].getControllerValue(), 6);
             expectEquals(m[2].getControllerNumber(), 6);
-            expectEquals(m[2].getControllerValue(), 5);        // (5 << 7) >> 7 = 5
+            // (5 << 7) >> 7 = 5
+            expectEquals(m[2].getControllerValue(), 5);
 
             // upper zone uses master channel 16
             auto u = ApplicationState().collectLine("mpe 2 4");
@@ -191,10 +207,13 @@ public:
             // all-notes-off, pitch bend recenter, 128 note offs
             expectEquals(m.size(), 16 * (5 + 128));
             expect(m[0].isController());
-            expectEquals(m[0].getControllerNumber(), 64);    // sustain off
+            // sustain off
+            expectEquals(m[0].getControllerNumber(), 64);
             expectEquals(m[0].getChannel(), 1);
-            expectEquals(m[2].getControllerNumber(), 121);   // reset all controllers
-            expect(m[4].isPitchWheel());                     // pitch bend recentered
+            // reset all controllers
+            expectEquals(m[2].getControllerNumber(), 121);
+            // pitch bend recentered
+            expect(m[4].isPitchWheel());
             expectEquals(m[4].getPitchWheelValue(), 0x2000);
             expect(m[m.size() - 1].isNoteOff());
             expectEquals(m[m.size() - 1].getChannel(), 16);

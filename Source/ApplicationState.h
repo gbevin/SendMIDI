@@ -91,7 +91,8 @@ private:
 
     String midiOutName_;
     std::unique_ptr<MidiOutput> midiOut_;
-    Array<MidiMessage>* messageSink_ { nullptr };   // when set, sendMidiMessage collects here instead of sending
+    // when set, sendMidiMessage collects here instead of sending
+    Array<MidiMessage>* messageSink_ { nullptr };
     
     std::unique_ptr<MidiInput> midiIn_;
     

@@ -37,7 +37,8 @@ void MpeTestScenario::send(ApplicationState& state)
     auto bend_messages = 1000;
     auto pressure_messages = 1000;
     auto timbre_messages = 1000;
-    auto control_messages = 500;   // shorter sweeps for the global Manager Channel demos
+    // shorter sweeps for the global Manager Channel demos
+    auto control_messages = 500;
 
     // CC74 (Timbre, the Third Dimension) has its neutral at 64 in the MPE
     // specification, so notes start from that center rather than from 0
@@ -214,7 +215,8 @@ void MpeTestScenario::send(ApplicationState& state)
 
     // the Manager Channel (channel 1 in the Lower Zone) affects every sounding
     // Member note at once, so this bends the entire chord up and back to center
-    auto mgr_bend_target = (0x1FFF * 5) / mgr_pbsens;   // roughly +5 semitones
+    // roughly +5 semitones
+    auto mgr_bend_target = (0x1FFF * 5) / mgr_pbsens;
     for (auto i = 1; i <= control_messages; ++i)
     {
         state.sendMidiMessage(MidiMessage::pitchWheel(1, 0x2000 + (mgr_bend_target * i) / control_messages));

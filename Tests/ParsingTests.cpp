@@ -33,15 +33,18 @@ public:
         beginTest("Note names map to numbers around the middle-C octave");
         {
             ApplicationState s;
-            s.octaveMiddleC_ = 3;                     // the default
+            // the default
+            s.octaveMiddleC_ = 3;
             expectEquals((int)s.asNoteNumber("C3"), 60);
             expectEquals((int)s.asNoteNumber("C-2"), 0);
             expectEquals((int)s.asNoteNumber("G8"), 127);
             expectEquals((int)s.asNoteNumber("C#3"), 61);
-            expectEquals((int)s.asNoteNumber("Db3"), 61);   // flat of D
+            // flat of D
+            expectEquals((int)s.asNoteNumber("Db3"), 61);
             expectEquals((int)s.asNoteNumber("A3"), 69);
 
-            s.octaveMiddleC_ = 4;                     // middle C is now C4
+            // middle C is now C4
+            s.octaveMiddleC_ = 4;
             expectEquals((int)s.asNoteNumber("C3"), 48);
             expectEquals((int)s.asNoteNumber("C4"), 60);
         }
@@ -55,18 +58,25 @@ public:
         beginTest("Decimal is the default, the H and M suffixes force a base");
         {
             ApplicationState s;
-            expectEquals((int)s.asDecOrHex7BitValue("100"), 100);   // decimal by default
-            expectEquals((int)s.asDecOrHex7BitValue("64H"), 0x64);  // 100, forced hex
-            expectEquals((int)s.asDecOrHex7BitValue("100M"), 100);  // forced decimal
-            expectEquals(s.asDecOrHexIntValue("1F4H"), 0x1F4);      // 500
+            // decimal by default
+            expectEquals((int)s.asDecOrHex7BitValue("100"), 100);
+            // 100, forced hex
+            expectEquals((int)s.asDecOrHex7BitValue("64H"), 0x64);
+            // forced decimal
+            expectEquals((int)s.asDecOrHex7BitValue("100M"), 100);
+            // 500
+            expectEquals(s.asDecOrHexIntValue("1F4H"), 0x1F4);
         }
 
         beginTest("The hex command flips the default base for later values");
         {
             ApplicationState s;
-            s.collectLine("hex");                     // sets hexadecimal-by-default
-            expectEquals((int)s.asDecOrHex7BitValue("40"), 0x40);   // now hex
-            expectEquals((int)s.asDecOrHex7BitValue("10M"), 10);    // M still forces decimal
+            // sets hexadecimal-by-default
+            s.collectLine("hex");
+            // now hex
+            expectEquals((int)s.asDecOrHex7BitValue("40"), 0x40);
+            // M still forces decimal
+            expectEquals((int)s.asDecOrHex7BitValue("10M"), 10);
         }
 
         beginTest("Values are clamped to 7 and 14 bits");

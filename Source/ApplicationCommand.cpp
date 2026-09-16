@@ -74,11 +74,16 @@ void ApplicationCommand::execute(ApplicationState& state)
         {
             for (auto ch = 1; ch <= 16; ++ch)
             {
-                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 64, 0));    // sustain pedal off
-                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 120, 0));   // all sound off
-                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 121, 0));   // reset all controllers
-                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 123, 0));   // all notes off
-                state.sendMidiMessage(MidiMessage::pitchWheel(ch, 0x2000));        // recenter pitch bend
+                // sustain pedal off
+                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 64, 0));
+                // all sound off
+                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 120, 0));
+                // reset all controllers
+                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 121, 0));
+                // all notes off
+                state.sendMidiMessage(MidiMessage::controllerEvent(ch, 123, 0));
+                // recenter pitch bend
+                state.sendMidiMessage(MidiMessage::pitchWheel(ch, 0x2000));
                 for (auto note = 0; note <= 127; ++note)
                 {
                     state.sendMidiMessage(MidiMessage::noteOff(ch, note, (uint8)0));

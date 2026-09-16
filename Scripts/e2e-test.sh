@@ -1,140 +1,283 @@
 #!/usr/bin/env bash
 #
-# End-to-end test: sends MIDI from the real sendmidi binary through a virtual
-# MIDI port and checks what actually arrives on the other end, received by
-# receivemidi. This exercises the whole path - argument parsing, message
-# encoding and the OS MIDI stack - which the in-process unit tests can't.
+# End-to-end tests that drive sendmidi through real MIDI ports and check what
+# arrives with receivemidi, so port enumeration, port matching and the MIDI
+# backend are exercised on the real binaries. On macOS and Linux receivemidi
+# creates a virtual port per case; on Windows E2E_PORT names an existing
+# loopback port (loopMIDI) that both tools open.
 #
-# Usage: e2e-test.sh <path-to-sendmidi> [path-to-receivemidi]
+# Usage: e2e-test.sh <path-to-sendmidi> <path-to-receivemidi>
 #
-# Needs virtual MIDI ports (macOS and Linux only) and a receivemidi binary
-# (defaults to one on the PATH). It skips cleanly - exit 0 - when those aren't
-# available, so it's safe to call from CI on any platform.
+# Every case brackets its traffic with CC 119 marker messages: the start marker
+# is repeated until it shows up in the receiver's output, which proves both ends
+# are open, and the end marker tells when everything before it has arrived.
 
 set -u
 
-SM="${1:?usage: e2e-test.sh <path-to-sendmidi> [path-to-receivemidi]}"
-RM="${2:-receivemidi}"
-
-case "$(uname -s)" in
-    Darwin|Linux) ;;
-    *) echo "skip: virtual MIDI ports are not supported on this platform"; exit 0 ;;
-esac
-
-if ! command -v "$RM" >/dev/null 2>&1 && [ ! -x "$RM" ]; then
-    echo "skip: receivemidi not found (needed to receive the sent messages)"
-    exit 0
-fi
-
-# One long-lived virtual port for the whole run: repeatedly creating and tearing
-# down virtual ports is racy, a single receiver is reliable. receivemidi prints
-# notes as numbers (nn) and is asked for every message type sent below.
-PORT="SM-E2E-$$"
-OUT="$(mktemp)"
-"$RM" virt "$PORT" nn on off pp cc pc cp pb clock start stop > "$OUT" 2>&1 &
-RPID=$!
-cleanup() { kill "$RPID" 2>/dev/null; wait "$RPID" 2>/dev/null; rm -f "$OUT"; }
-trap cleanup EXIT
-
-# wait for the virtual port to show up as a sendmidi output destination
-for _ in $(seq 1 100); do "$SM" list | grep -q "$PORT" && break; sleep 0.1; done
-if ! "$SM" list | grep -q "$PORT"; then
-    echo "skip: the virtual MIDI port never appeared (no MIDI on this host?)"
-    exit 0
-fi
-sleep 0.5
-
-"$SM" dev "$PORT" ch 1 on 60 100 off 60 0 pp 62 40 cc 74 55 pc 5 cp 90 pb 8192
-"$SM" dev "$PORT" ch 2 nrpn 1000 200
-"$SM" dev "$PORT" mc start stop
-sleep 1
-
-kill "$RPID" 2>/dev/null; wait "$RPID" 2>/dev/null; trap - EXIT
-# squeeze the column padding down to single spaces so the lines are easy to match
-GOT="$(tr -s ' ' < "$OUT" | sed 's/[[:space:]]*$//')"
-rm -f "$OUT"
-
+SENDMIDI="$1"
+RECEIVEMIDI="$2"
+PORT="${E2E_PORT:-}"
+WORK="$(mktemp -d)"
+MARK_START='control-change +(119 +1|77 +01)$'
+MARK_END='control-change +(119 +2|77 +02)$'
 failures=0
-check() {   # <name> <expected whole line>
-    if grep -qxF "$2" <<< "$GOT"; then
-        echo "ok   $1"
+receiver_pid=""
+port=""
+received=""
+
+virtual_ports() { [ -z "$PORT" ]; }
+
+pass() { echo "ok   $1"; }
+
+fail() {
+    echo "FAIL $1"
+    shift
+    printf '     %s\n' "$@"
+    failures=$((failures+1))
+}
+
+# compares two multi-line strings and reports the difference
+check() {
+    local name="$1" expected="$2" actual="$3"
+    if [ "$expected" = "$actual" ]; then
+        pass "$name"
     else
-        echo "FAIL $1"
-        echo "  expected line: $2"
-        failures=$((failures + 1))
+        fail "$name"
+        echo "--- expected -------"; printf '%s\n' "$expected"
+        echo "--- actual ---------"; printf '%s\n' "$actual"
+        echo "--------------------"
     fi
 }
 
-check "note on"                "channel 1 note-on 60 100"
-check "note off"               "channel 1 note-off 60 0"
-check "poly pressure"          "channel 1 poly-pressure 62 40"
-check "control change"         "channel 1 control-change 74 55"
-check "program change"         "channel 1 program-change 5"
-check "channel pressure"       "channel 1 channel-pressure 90"
-check "pitch bend"             "channel 1 pitch-bend 8192"
-check "nrpn param select MSB"  "channel 2 control-change 99 7"
-check "nrpn param select LSB"  "channel 2 control-change 98 104"
-check "nrpn data entry MSB"    "channel 2 control-change 6 1"
-check "nrpn data entry LSB"    "channel 2 control-change 38 72"
-check "timing clock"           "midi-clock"
-check "start"                  "start"
-check "stop"                   "stop"
+# a fresh port name per case, so a port lingering from an earlier case can't
+# satisfy a later one
+new_port() {
+    if virtual_ports; then
+        port="E2E sendmidi $$ $RANDOM"
+    else
+        port="$PORT"
+    fi
+}
 
-# ---------------------------------------------------------------------------
-# MPE Profile negotiation (MIDI-CI): receivemidi is the responder on a virtual
-# port, sendmidi the initiator. This drives the whole MIDI-CI handshake -
-# discovery, profile enablement and the optional-feature detail inquiry - and
-# so also exercises the vendored juce_midi_ci patches. MUIDs are random per
-# run, so only the stable text after them is matched (spaces squeezed to one).
-# ---------------------------------------------------------------------------
-MPORT="MPE-E2E-$$"
-RESP_OUT="$(mktemp)"
-INIT_OUT="$(mktemp)"
-# responder: manager channel 2, 3 members, with distinct optional-feature flags
-"$RM" mpp "$MPORT" 2 3 mcr 1 mpb 1 mcp 2 m3d 1 > "$RESP_OUT" 2>&1 &
-MRPID=$!
-mpe_cleanup() { kill "$MRPID" 2>/dev/null; wait "$MRPID" 2>/dev/null; rm -f "$RESP_OUT" "$INIT_OUT"; }
-trap mpe_cleanup EXIT
+stop_receiver() {
+    if [ -n "$receiver_pid" ]; then
+        kill "$receiver_pid" 2>/dev/null
+        wait "$receiver_pid" 2>/dev/null
+        receiver_pid=""
+    fi
+}
 
-for _ in $(seq 1 100); do "$SM" list | grep -q "$MPORT" && break; sleep 0.1; done
-if ! "$SM" list | grep -q "$MPORT"; then
-    echo "skip: the MPE virtual port never appeared (no MIDI on this host?)"
-else
-    sleep 0.5
-    # initiator: send to and listen on the responder's port; blocks until the
-    # negotiation finishes (or its internal timeout fires)
-    "$SM" dev "$MPORT" mpp "$MPORT" 2 3 > "$INIT_OUT" 2>&1
-    sleep 0.5
-    kill "$MRPID" 2>/dev/null; wait "$MRPID" 2>/dev/null; trap - EXIT
-
-    INIT="$(tr -s ' ' < "$INIT_OUT")"
-    RESP="$(tr -s ' ' < "$RESP_OUT")"
-    rm -f "$RESP_OUT" "$INIT_OUT"
-
-    checkc() {   # <name> <haystack> <substring>
-        if grep -qF "$3" <<< "$2"; then
-            echo "ok   $1"
-        else
-            echo "FAIL $1"
-            echo "  expected to contain: $3"
-            failures=$((failures + 1))
+# starts receivemidi on the case's port with the given arguments and waits for
+# the start marker to come through; filters passed in must let CC 119 pass
+start_receiver() {
+    local out="$1"
+    shift
+    new_port
+    if virtual_ports; then
+        "$RECEIVEMIDI" virt "$port" "$@" > "$out" 2>&1 &
+    else
+        "$RECEIVEMIDI" dev "$port" "$@" > "$out" 2>&1 &
+    fi
+    receiver_pid=$!
+    local i
+    for i in $(seq 1 40); do
+        sleep 0.25
+        "$SENDMIDI" dev "$port" cc 119 1 > /dev/null 2>&1
+        if grep -qE "$MARK_START" "$out"; then
+            return 0
         fi
-    }
+    done
+    return 1
+}
 
-    checkc "mpe initiator discovered responder" "$INIT" ": Discovered"
-    checkc "mpe initiator enabled profile"      "$INIT" "MPE Profile enabled with manager channel 2 and 3 member channels"
-    checkc "mpe initiator got detail reply"     "$INIT" "MPE Profile details received for optional features"
-    checkc "mpe channel pressure feature"       "$INIT" "channel pressure : alternate bipolar controller"
-    checkc "mpe 3rd dimension feature"          "$INIT" "3rd dimension : standard controller"
-    checkc "mpe responder enabled profile"      "$RESP" "MPE Profile enabled with manager channel 2 and 3 member channels"
-    checkc "mpe responder detail inquiry"       "$RESP" "MPE Profile details inquired for optional features"
+# sends the end marker, waits for it, stops the receiver and leaves the lines
+# between the markers in $received
+finish_receiver() {
+    local out="$1"
+    local i
+    for i in $(seq 1 40); do
+        "$SENDMIDI" dev "$port" cc 119 2 > /dev/null 2>&1
+        if grep -qE "$MARK_END" "$out"; then
+            break
+        fi
+        sleep 0.25
+    done
+    stop_receiver
+    received="$(tr -d '\r' < "$out" | awk -v s="$MARK_START" -v e="$MARK_END" \
+        '$0 ~ s { buf = ""; next } $0 ~ e { printf "%s", buf; exit } { buf = buf $0 "\n" }')"
+}
+
+send() {
+    "$SENDMIDI" dev "$port" "$@"
+}
+
+trap 'stop_receiver; rm -rf "$WORK"' EXIT
+
+# --- the receiver's port is listed and every message type arrives intact -----
+if start_receiver "$WORK/battery.txt"; then
+    if send list | grep -qF "$port"; then
+        pass "list shows the port"
+    else
+        fail "list shows the port" "$(send list)"
+    fi
+
+    send on 60 100 off 60 0 pp C3 90 cc 74 64 cc14 1 8192 pc 5 cp 77 pb 8192 pb 0 \
+         rpn 0 2 nrpn 300 1000 mpe 1 7 \
+         mc start stop cont as tun rst tc 1 5 spp 100 ss 3 \
+         hex syx 7E 7F 09 01 on 3C 7F dec ch 16 on 127 1 omc 4 on C4 1
+    finish_receiver "$WORK/battery.txt"
+    EXPECTED='channel  1   note-on           C3 100
+channel  1   note-off          C3   0
+channel  1   poly-pressure     C3  90
+channel  1   control-change    74    64
+channel  1   control-change     1    64
+channel  1   control-change    33     0
+channel  1   program-change         5
+channel  1   channel-pressure      77
+channel  1   pitch-bend          8192
+channel  1   pitch-bend             0
+channel  1   control-change   101     0
+channel  1   control-change   100     0
+channel  1   control-change     6     0
+channel  1   control-change    38     2
+channel  1   control-change   101   127
+channel  1   control-change   100   127
+channel  1   control-change    99     2
+channel  1   control-change    98    44
+channel  1   control-change     6     7
+channel  1   control-change    38   104
+channel  1   control-change   101   127
+channel  1   control-change   100   127
+channel  1   control-change   101     0
+channel  1   control-change   100     6
+channel  1   control-change     6     7
+channel  1   control-change    38     0
+channel  1   control-change   101   127
+channel  1   control-change   100   127
+midi-clock
+start
+stop
+continue
+active-sensing
+tune-request
+reset
+time-code  1 5
+song-position   100
+song-select   3
+system-exclusive hex 7E 7F 09 01 dec
+channel  1   note-on           C3 127
+channel 16   note-on           G8   1
+channel 16   note-on           C3   1'
+    check "every message type round-trips through a real port" "$EXPECTED" "$received"
+else
+    fail "every message type round-trips through a real port" "the receiver never saw the start marker" "$(cat "$WORK/battery.txt")"
+    stop_receiver
 fi
 
+# --- a SysEx file is sent complete, with and without the worst-case pacing ----
+python3 - "$WORK/big.syx" <<'PY' 2>/dev/null || printf '\xF0\x7D\x01\x02\x03\x7F\xF7' > "$WORK/big.syx"
+import sys
+open(sys.argv[1], "wb").write(bytes([0xF0, 0x7D] + [i % 128 for i in range(200)] + [0xF7]))
+PY
+if [ ! -s "$WORK/big.syx" ]; then
+    fail "a SysEx file arrives complete" "could not generate the SysEx file"
+else
+    EXPECTED="system-exclusive hex $(od -An -tx1 -v "$WORK/big.syx" | tr -s ' \n' ' ' | sed 's/^ //; s/ $//' | tr 'a-f' 'A-F' | sed 's/^F0 //; s/ F7$//') dec"
+    for mode in "" nowait; do
+        if start_receiver "$WORK/syx.txt"; then
+            send $mode syf "$WORK/big.syx" > /dev/null
+            finish_receiver "$WORK/syx.txt"
+            check "a 203-byte SysEx file arrives complete${mode:+ with $mode}" "$EXPECTED" "$received"
+        else
+            fail "a 203-byte SysEx file arrives complete${mode:+ with $mode}" "the receiver never saw the start marker"
+            stop_receiver
+        fi
+    done
+fi
+
+# --- commands from a program file and from standard input -------------------
+printf 'on 60 100\noff 60 0\n' > "$WORK/prog.txt"
+if start_receiver "$WORK/file.txt"; then
+    send file "$WORK/prog.txt"
+    printf 'on 61 100\noff 61 0\n' | send --
+    finish_receiver "$WORK/file.txt"
+    EXPECTED='channel  1   note-on           C3 100
+channel  1   note-off          C3   0
+channel  1   note-on          C#3 100
+channel  1   note-off         C#3   0'
+    check "a program file and standard input both drive the port" "$EXPECTED" "$received"
+else
+    fail "a program file and standard input both drive the port" "the receiver never saw the start marker"
+    stop_receiver
+fi
+
+# --- the port name matches case-insensitively -------------------------------
+if start_receiver "$WORK/match.txt"; then
+    lower="$(printf '%s' "$port" | tr '[:upper:]' '[:lower:]')"
+    "$SENDMIDI" dev "$lower" on 62 100
+    finish_receiver "$WORK/match.txt"
+    check "the port name matches case-insensitively" 'channel  1   note-on           D3 100' "$received"
+else
+    fail "the port name matches case-insensitively" "the receiver never saw the start marker"
+    stop_receiver
+fi
+
+if virtual_ports; then
+    # --- ports sharing a name are numbered and can be picked apart -----------
+    name="E2E sendmidi twin $$ $RANDOM"
+    "$RECEIVEMIDI" virt "$name" > "$WORK/twin1.txt" 2>&1 &
+    twin1=$!
+    sleep 1
+    "$RECEIVEMIDI" virt "$name" > "$WORK/twin2.txt" 2>&1 &
+    twin2=$!
+    sleep 2
+    "$SENDMIDI" dev "$name (2)" on 63 100
+    "$SENDMIDI" dev "$name (1)" on 64 100
+    sleep 1
+    listing="$("$SENDMIDI" list)"
+    kill $twin1 $twin2 2>/dev/null
+    wait $twin1 $twin2 2>/dev/null
+    if printf '%s\n' "$listing" | grep -qF "$name (1)" && printf '%s\n' "$listing" | grep -qF "$name (2)"; then
+        pass "ports sharing a name are listed numbered"
+    else
+        fail "ports sharing a name are listed numbered" "$listing"
+    fi
+    check "a numbered name picks that port only" \
+        "$(printf 'channel  1   note-on           E3 100\n---\nchannel  1   note-on          D#3 100')" \
+        "$(tr -d '\r' < "$WORK/twin1.txt"; echo ---; tr -d '\r' < "$WORK/twin2.txt")"
+
+    # --- the MPE Profile negotiates through MIDI-CI, including the details ---
+    name="E2E sendmidi mpe $$ $RANDOM"
+    "$RECEIVEMIDI" mpp "$name" 1 7 mpb 1 mcp 2 m3d 1 > "$WORK/mpe-responder.txt" 2>&1 &
+    responder=$!
+    sleep 2
+    "$SENDMIDI" dev "$name" mpp "$name" 1 7 > "$WORK/mpe-initiator.txt" 2>&1
+    sleep 1
+    kill $responder 2>/dev/null
+    wait $responder 2>/dev/null
+    EXPECTED='Initiator MUID negotating MPE Profile with manager channel 1 and 7 member channels
+MUID : Discovered
+MUID : Requesting MPE Profile enablement with manager channel 1 and 7 member channels
+MUID : MPE Profile enabled with manager channel 1 and 7 member channels
+MUID : Inquiring MPE Profile details for optional features
+MUID : MPE Profile details received for optional features
+MUID   channel response : not supported
+MUID   pitch bend       : supported
+MUID   channel pressure : alternate bipolar controller
+MUID   3rd dimension    : standard controller'
+    check "the MPE Profile initiator negotiates and reads the optional features" \
+        "$EXPECTED" "$(tr -d '\r' < "$WORK/mpe-initiator.txt" | sed -E 's/MUID 0x[0-9a-f]+/MUID/')"
+    EXPECTED='Responder MUID waiting for MPE Profile negotiation on channel 1
+MUID : MPE Profile enabled with manager channel 1 and 7 member channels
+MUID : MPE Profile details inquired for optional features'
+    check "the MPE Profile responder enables the profile and answers the inquiry" \
+        "$EXPECTED" "$(tr -d '\r' < "$WORK/mpe-responder.txt" | sed -E 's/MUID 0x[0-9a-f]+/MUID/')"
+fi
+
+echo
 if [ "$failures" -eq 0 ]; then
     echo "all end-to-end tests passed"
 else
     echo "$failures end-to-end test(s) failed"
-    echo "--- full received transcript ---"
-    echo "$GOT"
     exit 1
 fi

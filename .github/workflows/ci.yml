@@ -33,6 +33,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Checkout ReceiveMIDI for the end-to-end tests
+        uses: actions/checkout@v5
+        with:
+          repository: gbevin/ReceiveMIDI
+          path: e2e/receivemidi
+
       # ---------------------------------------------------------------- macOS
       - name: Build (macOS)
         if: runner.os == 'macOS'
@@ -50,18 +56,32 @@ jobs:
         if: runner.os == 'macOS'
         run: ./Builds/MacOSX/build/Release/sendmidi --version | grep -q "sendmidi v"
 
+      - name: Build the other tools for the end-to-end tests (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          xcodebuild -project e2e/receivemidi/Builds/MacOSX/receivemidi.xcodeproj \
+            -target "receivemidi - ConsoleApp" -configuration Release SYMROOT=build build
+
       - name: End-to-end test (macOS)
         if: runner.os == 'macOS'
-        # sends through a virtual MIDI port and checks what receivemidi receives;
-        # the script skips cleanly if the runner has no working MIDI
+        # drives the built binary through virtual MIDI ports together with the
+        # other tools, built from their current sources
         run: |
-          brew install gbevin/tools/receivemidi
-          ./Scripts/e2e-test.sh ./Builds/MacOSX/build/Release/sendmidi
+          ./Scripts/e2e-test.sh ./Builds/MacOSX/build/Release/sendmidi \
+            e2e/receivemidi/Builds/MacOSX/build/Release/receivemidi
 
       # ---------------------------------------------------------------- Linux
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      - name: Enable the ALSA sequencer (Linux)
+        if: runner.os == 'Linux'
+        # the runners have no sound hardware; the sequencer module alone is what
+        # virtual MIDI ports need
+        run: |
+          sudo modprobe snd-seq || { sudo apt-get install -y "linux-modules-extra-$(uname -r)" && sudo modprobe snd-seq; }
+          sudo chmod 666 /dev/snd/seq
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
@@ -76,6 +96,17 @@ jobs:
       - name: Smoke test (Linux)
         if: runner.os == 'Linux'
         run: ./Builds/LinuxMakefile/build/sendmidi --version | grep -q "sendmidi v"
+
+      - name: Build the other tools for the end-to-end tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          make -C e2e/receivemidi/Builds/LinuxMakefile CONFIG=Release -j"$(nproc)"
+
+      - name: End-to-end test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          ./Scripts/e2e-test.sh ./Builds/LinuxMakefile/build/sendmidi \
+            e2e/receivemidi/Builds/LinuxMakefile/build/receivemidi
 
       # -------------------------------------------------------------- Windows
       - name: Add MSBuild to PATH
@@ -96,6 +127,38 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: ./Builds/VisualStudio2022/x64/Release/ConsoleApp/sendmidi.exe --version | grep -q "sendmidi v"
+
+      - name: Build the other tools for the end-to-end tests (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          msbuild e2e/receivemidi/Builds/VisualStudio2022/receivemidi.sln /m /p:Configuration=Release /p:Platform=x64
+
+      - name: Install a loopback MIDI port (Windows)
+        if: runner.os == 'Windows'
+        # the Win32 MIDI API has no virtual ports, so loopMIDI provides one; its
+        # ports only exist while its tray application runs
+        shell: pwsh
+        run: |
+          winget install --id TobiasErichsen.loopMIDI --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+          $exe = Get-ChildItem -Path "${env:ProgramFiles}\Tobias Erichsen\loopMIDI\loopMIDI.exe", "${env:ProgramFiles(x86)}\Tobias Erichsen\loopMIDI\loopMIDI.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "loopMIDI.exe was not installed" }
+          Start-Process -FilePath $exe.FullName
+          $port = $null
+          foreach ($i in 1..60) {
+            Start-Sleep -Milliseconds 500
+            $port = & .\Builds\VisualStudio2022\x64\Release\ConsoleApp\sendmidi.exe list | Where-Object { $_ -match 'loopMIDI' } | Select-Object -First 1
+            if ($port) { break }
+          }
+          try { reg query "HKCU\Software\Tobias Erichsen\loopMIDI" /s } catch { }
+          if (-not $port) { & .\Builds\VisualStudio2022\x64\Release\ConsoleApp\sendmidi.exe list; throw "no loopMIDI port appeared" }
+          "E2E_PORT=$($port.Trim())" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: End-to-end test (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          ./Scripts/e2e-test.sh ./Builds/VisualStudio2022/x64/Release/ConsoleApp/sendmidi.exe \
+            e2e/receivemidi/Builds/VisualStudio2022/x64/Release/ConsoleApp/receivemidi.exe
 
   # Separate job: a 32-bit (i686) build on an amd64 runner via the multilib
   # toolchain, exercised natively and under Valgrind. A 32-bit allocator lays

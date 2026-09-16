@@ -11,3 +11,4 @@ Tests/Builds/VisualStudio2022/.vs
 Tests/Builds/VisualStudio2022/x64
 Tests/Builds/MacOSX/SendMIDITests.xcodeproj/xcuserdata
 Tests/Builds/MacOSX/SendMIDITests.xcodeproj/project.xcworkspace/xcuserdata
+/e2e/

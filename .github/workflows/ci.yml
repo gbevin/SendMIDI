@@ -80,10 +80,18 @@ jobs:
         # the runners have no sound hardware; the sequencer module alone is what
         # virtual MIDI ports need
         run: |
-          if ! sudo modprobe snd-seq 2>/dev/null; then
+          sudo modprobe snd-seq 2>/dev/null || true
+          if [ ! -c /dev/snd/seq ]; then
             sudo apt-get install -y "linux-modules-extra-$(uname -r)"
             sudo depmod -a
-            sudo modprobe snd-seq || { find "/lib/modules/$(uname -r)" -name 'snd-seq*'; exit 1; }
+            sudo modprobe snd-seq || true
+          fi
+          if [ ! -c /dev/snd/seq ]; then
+            echo "no sequencer device; kernel configuration:"
+            grep -E "CONFIG_SOUND|CONFIG_SND=|CONFIG_SND_SEQ" "/boot/config-$(uname -r)" || true
+            grep -c snd "/lib/modules/$(uname -r)/modules.builtin" || true
+            ls -la /dev/snd 2>&1 || true
+            exit 1
           fi
           sudo chmod 666 /dev/snd/seq
 
@@ -163,7 +171,23 @@ jobs:
             $window.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { "{0} [{1}]" -f $_.Current.Name, $_.Current.ControlType.ProgrammaticName }
             throw "the + button was not found in the loopMIDI window"
           }
-          $plus.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+          "+ is a {0} with patterns: {1}" -f $plus.Current.ControlType.ProgrammaticName, (($plus.GetSupportedPatterns() | ForEach-Object { $_.ProgrammaticName }) -join ', ')
+          Add-Type -Namespace Native -Name Win -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr hWnd); [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, System.UIntPtr extra);'
+          [Native.Win]::SetForegroundWindow([System.IntPtr]$window.Current.NativeWindowHandle) | Out-Null
+          try {
+            $plus.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+          } catch {
+            try {
+              $plus.GetCurrentPattern([System.Windows.Automation.LegacyIAccessiblePattern]::Pattern).DoDefaultAction()
+            } catch {
+              Add-Type -AssemblyName System.Windows.Forms
+              Add-Type -AssemblyName System.Drawing
+              $point = $plus.GetClickablePoint()
+              [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point([int]$point.X, [int]$point.Y)
+              [Native.Win]::mouse_event(2, 0, 0, 0, [System.UIntPtr]::Zero)
+              [Native.Win]::mouse_event(4, 0, 0, 0, [System.UIntPtr]::Zero)
+            }
+          }
           $port = $null
           foreach ($i in 1..60) {
             Start-Sleep -Milliseconds 500

@@ -62,6 +62,26 @@ new_port() {
     fi
 }
 
+# starts a tool in the background with its output in the given file; the MIDI
+# backend may refuse a virtual port created right after one vanished, so a
+# refused start is tried again
+start_background() {
+    local out="$1"
+    shift
+    local attempt
+    for attempt in 1 2 3; do
+        "$@" > "$out" 2>&1 &
+        started_pid=$!
+        sleep 1
+        if ! grep -q "Couldn't create virtual MIDI" "$out"; then
+            return 0
+        fi
+        kill "$started_pid" 2>/dev/null
+        wait "$started_pid" 2>/dev/null
+    done
+    return 1
+}
+
 stop_receiver() {
     if [ -n "$receiver_pid" ]; then
         kill "$receiver_pid" 2>/dev/null
@@ -238,11 +258,10 @@ fi
 if virtual_ports; then
     # --- ports sharing a name are numbered and can be picked apart -----------
     name="E2E sendmidi twin $$ $RANDOM"
-    "$RECEIVEMIDI" virt "$name" > "$WORK/twin1.txt" 2>&1 &
-    twin1=$!
-    sleep 1
-    "$RECEIVEMIDI" virt "$name" > "$WORK/twin2.txt" 2>&1 &
-    twin2=$!
+    start_background "$WORK/twin1.txt" "$RECEIVEMIDI" virt "$name"
+    twin1=$started_pid
+    start_background "$WORK/twin2.txt" "$RECEIVEMIDI" virt "$name"
+    twin2=$started_pid
     sleep 2
     "$SENDMIDI" dev "$name (2)" on 63 100
     "$SENDMIDI" dev "$name (1)" on 64 100
@@ -261,8 +280,8 @@ if virtual_ports; then
 
     # --- the MPE Profile negotiates through MIDI-CI, including the details ---
     name="E2E sendmidi mpe $$ $RANDOM"
-    "$RECEIVEMIDI" mpp "$name" 1 7 mpb 1 mcp 2 m3d 1 > "$WORK/mpe-responder.txt" 2>&1 &
-    responder=$!
+    start_background "$WORK/mpe-responder.txt" "$RECEIVEMIDI" mpp "$name" 1 7 mpb 1 mcp 2 m3d 1
+    responder=$started_pid
     sleep 2
     "$SENDMIDI" dev "$name" mpp "$name" 1 7 > "$WORK/mpe-initiator.txt" 2>&1
     sleep 1

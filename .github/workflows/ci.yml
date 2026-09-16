@@ -71,29 +71,12 @@ jobs:
             e2e/receivemidi/Builds/MacOSX/build/Release/receivemidi
 
       # ---------------------------------------------------------------- Linux
+      # no end-to-end tests here: the runner kernels are built without sound
+      # support (CONFIG_SOUND is not set), so there is no ALSA sequencer to
+      # create virtual MIDI ports with
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-
-      - name: Enable the ALSA sequencer (Linux)
-        if: runner.os == 'Linux'
-        # the runners have no sound hardware; the sequencer module alone is what
-        # virtual MIDI ports need
-        run: |
-          sudo modprobe snd-seq 2>/dev/null || true
-          if [ ! -c /dev/snd/seq ]; then
-            sudo apt-get install -y "linux-modules-extra-$(uname -r)"
-            sudo depmod -a
-            sudo modprobe snd-seq || true
-          fi
-          if [ ! -c /dev/snd/seq ]; then
-            echo "no sequencer device; kernel configuration:"
-            grep -E "CONFIG_SOUND|CONFIG_SND=|CONFIG_SND_SEQ" "/boot/config-$(uname -r)" || true
-            grep -c snd "/lib/modules/$(uname -r)/modules.builtin" || true
-            ls -la /dev/snd 2>&1 || true
-            exit 1
-          fi
-          sudo chmod 666 /dev/snd/seq
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
@@ -109,18 +92,6 @@ jobs:
         if: runner.os == 'Linux'
         run: ./Builds/LinuxMakefile/build/sendmidi --version | grep -q "sendmidi v"
 
-      - name: Build the other tools for the end-to-end tests (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          make -C e2e/receivemidi/Builds/LinuxMakefile CONFIG=Release -j"$(nproc)"
-
-      - name: End-to-end test (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          ./Scripts/e2e-test.sh ./Builds/LinuxMakefile/build/sendmidi \
-            e2e/receivemidi/Builds/LinuxMakefile/build/receivemidi
-
-      # -------------------------------------------------------------- Windows
       - name: Add MSBuild to PATH
         if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v3
@@ -212,8 +183,6 @@ jobs:
       - name: End-to-end test (Windows)
         if: runner.os == 'Windows'
         shell: bash
-        env:
-          E2E_TRACE: 1
         run: |
           ./Scripts/e2e-test.sh ./Builds/VisualStudio2022/x64/Release/ConsoleApp/sendmidi.exe \
             e2e/receivemidi/Builds/VisualStudio2022/x64/Release/ConsoleApp/receivemidi.exe
@@ -266,24 +235,3 @@ jobs:
       - name: Smoke test (i686)
         run: ./Builds/LinuxMakefile/build/sendmidi --version | grep -q "sendmidi v"
 
-  # Temporary probe: which Ubuntu runner kernels still carry the ALSA
-  # sequencer that virtual MIDI ports need
-  linux-sequencer-probe:
-    name: Sequencer probe ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-22.04-arm, ubuntu-24.04-arm]
-    steps:
-      - run: |
-          uname -r
-          grep -E "CONFIG_SOUND|CONFIG_SND=|CONFIG_SND_SEQ" "/boot/config-$(uname -r)" || true
-          sudo modprobe snd-seq 2>&1 || true
-          if [ ! -c /dev/snd/seq ]; then
-            sudo apt-get install -y "linux-modules-extra-$(uname -r)" 2>&1 | tail -2 || true
-            sudo depmod -a
-            sudo modprobe snd-seq 2>&1 || true
-          fi
-          ls -la /dev/snd 2>&1 || true
-          [ -c /dev/snd/seq ] && echo "SEQUENCER AVAILABLE on ${{ matrix.os }}" || echo "no sequencer on ${{ matrix.os }}"

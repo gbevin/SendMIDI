@@ -71,6 +71,14 @@ struct ApplicationCommand
     void clear();
     void execute(ApplicationState& state);
     
+    // the commands without an alias have an empty altParam_, so an empty name
+    // would match the first of them
+    bool matchesName(const String& name) const
+    {
+        return name.isNotEmpty()
+            && (param_.equalsIgnoreCase(name) || altParam_.equalsIgnoreCase(name));
+    }
+
     String param_;
     String altParam_;
     CommandIndex command_;

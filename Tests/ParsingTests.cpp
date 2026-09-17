@@ -120,6 +120,23 @@ public:
             expectEquals(ApplicationState::matchDeviceIndex(devices, "LOOPMIDI"), 0);
             expectEquals(ApplicationState::matchDeviceIndex(devices, "nothing here"), -1);
         }
+
+        beginTest("An empty name matches no command");
+        {
+            // an empty argument used to run list, the first command
+            // without an alias
+            const ApplicationCommand list { "list", "", LIST, 0, {""}, {""} };
+            const ApplicationCommand dev  { "dev", "device", DEVICE, 1, {"name"}, {""} };
+
+            expect(!list.matchesName(""));
+            expect(!dev.matchesName(""));
+
+            expect(list.matchesName("list"));
+            expect(dev.matchesName("dev"));
+            expect(dev.matchesName("device"));
+            expect(dev.matchesName("DEVICE"));
+            expect(!dev.matchesName("devic"));
+        }
     }
 };
 

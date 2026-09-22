@@ -38,9 +38,9 @@
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="SendMIDITests"
-                       osxCompatibility="10.13 SDK" macOSDeploymentTarget="10.13"/>
+                       osxCompatibility="12.0 SDK" macOSDeploymentTarget="12.0"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="SendMIDITests"
-                       osxCompatibility="10.13 SDK" macOSDeploymentTarget="10.13"/>
+                       osxCompatibility="12.0 SDK" macOSDeploymentTarget="12.0"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core" path="../JuceLibraryCode/modules"/>
